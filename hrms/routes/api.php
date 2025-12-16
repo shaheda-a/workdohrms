@@ -32,6 +32,14 @@ use App\Http\Controllers\Api\StaffBenefitController;
 use App\Http\Controllers\Api\IncentiveRecordController;
 use App\Http\Controllers\Api\SalaryAdvanceController;
 use App\Http\Controllers\Api\RecurringDeductionController;
+use App\Http\Controllers\Api\BonusPaymentController;
+use App\Http\Controllers\Api\ExtraHoursRecordController;
+use App\Http\Controllers\Api\EmployerContributionController;
+use App\Http\Controllers\Api\SalarySlipController;
+use App\Http\Controllers\Api\TaxSlabController;
+use App\Http\Controllers\Api\TaxExemptionController;
+use App\Http\Controllers\Api\MinimumTaxLimitController;
+use App\Http\Controllers\Api\CompanyEventController;
 
 /*
 |--------------------------------------------------------------------------
@@ -145,4 +153,34 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('salary-advances', SalaryAdvanceController::class);
     Route::post('/salary-advances/{salaryAdvance}/payment', [SalaryAdvanceController::class, 'recordPayment']);
     Route::apiResource('recurring-deductions', RecurringDeductionController::class);
+
+    // ============================================
+    // PROMPT SET 11: Payroll Processing
+    // ============================================
+    Route::apiResource('bonus-payments', BonusPaymentController::class);
+    Route::apiResource('extra-hours-records', ExtraHoursRecordController::class);
+    Route::apiResource('employer-contributions', EmployerContributionController::class);
+
+    // ============================================
+    // PROMPT SET 12: Payslip Generation
+    // ============================================
+    Route::apiResource('salary-slips', SalarySlipController::class)->except(['store', 'update']);
+    Route::post('/salary-slips/generate', [SalarySlipController::class, 'generate']);
+    Route::post('/salary-slips/bulk-generate', [SalarySlipController::class, 'bulkGenerate']);
+    Route::post('/salary-slips/{salarySlip}/mark-paid', [SalarySlipController::class, 'markPaid']);
+
+    // ============================================
+    // PROMPT SET 13: Tax Management
+    // ============================================
+    Route::apiResource('tax-slabs', TaxSlabController::class);
+    Route::post('/tax-slabs/calculate', [TaxSlabController::class, 'calculate']);
+    Route::apiResource('tax-exemptions', TaxExemptionController::class);
+    Route::apiResource('minimum-tax-limits', MinimumTaxLimitController::class);
+
+    // ============================================
+    // PROMPT SET 14: Events & Calendar
+    // ============================================
+    Route::apiResource('company-events', CompanyEventController::class);
+    Route::post('/company-events/{companyEvent}/rsvp', [CompanyEventController::class, 'rsvp']);
+    Route::get('/calendar-data', [CompanyEventController::class, 'calendarData']);
 });
