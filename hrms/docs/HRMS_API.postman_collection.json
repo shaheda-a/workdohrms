@@ -1,0 +1,1000 @@
+{
+	"info": {
+		"_postman_id": "hrms-api-collection",
+		"name": "HRMS API Collection",
+		"description": "Complete API collection for HRMS (Human Resource Management System)\n\n## Setup Instructions\n1. Import this collection into Postman\n2. Create an environment with variable `base_url` = `http://localhost:8000`\n3. Run 'Sign In' request first to get auth token\n4. Token will be automatically saved to environment\n\n## Authentication\nAll protected endpoints use Bearer token authentication.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "🔐 Authentication",
+			"item": [
+				{
+					"name": "Sign Up",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Accept", "value": "application/json"},
+							{"key": "Content-Type", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test User\",\n    \"email\": \"test@example.com\",\n    \"password\": \"Password123!\",\n    \"password_confirmation\": \"Password123!\"\n}"
+						},
+						"url": "{{base_url}}/api/auth/sign-up"
+					}
+				},
+				{
+					"name": "Sign In",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.data && jsonData.data.access_token) {",
+									"    pm.collectionVariables.set('auth_token', jsonData.data.access_token);",
+									"    console.log('Token saved successfully!');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Accept", "value": "application/json"},
+							{"key": "Content-Type", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@hrms.local\",\n    \"password\": \"password\"\n}"
+						},
+						"url": "{{base_url}}/api/auth/sign-in"
+					}
+				},
+				{
+					"name": "Sign Out",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "POST",
+						"header": [{"key": "Accept", "value": "application/json"}],
+						"url": "{{base_url}}/api/auth/sign-out"
+					}
+				},
+				{
+					"name": "Get Profile",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json"}],
+						"url": "{{base_url}}/api/auth/profile"
+					}
+				},
+				{
+					"name": "Forgot Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Accept", "value": "application/json"},
+							{"key": "Content-Type", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@hrms.local\"\n}"
+						},
+						"url": "{{base_url}}/api/auth/forgot-password"
+					}
+				}
+			]
+		},
+		{
+			"name": "🏢 Organization",
+			"item": [
+				{
+					"name": "Office Locations",
+					"item": [
+						{
+							"name": "List Office Locations",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "GET",
+								"header": [{"key": "Accept", "value": "application/json"}],
+								"url": "{{base_url}}/api/office-locations"
+							}
+						},
+						{
+							"name": "Create Office Location",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "POST",
+								"header": [
+									{"key": "Accept", "value": "application/json"},
+									{"key": "Content-Type", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Head Office\",\n    \"city\": \"New York\",\n    \"state\": \"NY\",\n    \"country\": \"USA\",\n    \"is_headquarters\": true\n}"
+								},
+								"url": "{{base_url}}/api/office-locations"
+							}
+						},
+						{
+							"name": "Get Office Location",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "GET",
+								"header": [{"key": "Accept", "value": "application/json"}],
+								"url": "{{base_url}}/api/office-locations/1"
+							}
+						},
+						{
+							"name": "Update Office Location",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "PUT",
+								"header": [
+									{"key": "Accept", "value": "application/json"},
+									{"key": "Content-Type", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Main Office Updated\",\n    \"city\": \"Los Angeles\"\n}"
+								},
+								"url": "{{base_url}}/api/office-locations/1"
+							}
+						},
+						{
+							"name": "Delete Office Location",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "DELETE",
+								"header": [{"key": "Accept", "value": "application/json"}],
+								"url": "{{base_url}}/api/office-locations/1"
+							}
+						}
+					]
+				},
+				{
+					"name": "Divisions",
+					"item": [
+						{
+							"name": "List Divisions",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "GET",
+								"header": [{"key": "Accept", "value": "application/json"}],
+								"url": "{{base_url}}/api/divisions"
+							}
+						},
+						{
+							"name": "Create Division",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "POST",
+								"header": [
+									{"key": "Accept", "value": "application/json"},
+									{"key": "Content-Type", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Engineering\",\n    \"office_location_id\": 1,\n    \"description\": \"Software Engineering Department\"\n}"
+								},
+								"url": "{{base_url}}/api/divisions"
+							}
+						},
+						{
+							"name": "Fetch Divisions by Location",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "POST",
+								"header": [
+									{"key": "Accept", "value": "application/json"},
+									{"key": "Content-Type", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"office_location_id\": 1\n}"
+								},
+								"url": "{{base_url}}/api/fetch-divisions"
+							}
+						}
+					]
+				},
+				{
+					"name": "Job Titles",
+					"item": [
+						{
+							"name": "List Job Titles",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "GET",
+								"header": [{"key": "Accept", "value": "application/json"}],
+								"url": "{{base_url}}/api/job-titles"
+							}
+						},
+						{
+							"name": "Create Job Title",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "POST",
+								"header": [
+									{"key": "Accept", "value": "application/json"},
+									{"key": "Content-Type", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Senior Developer\",\n    \"division_id\": 1,\n    \"description\": \"Lead development projects\"\n}"
+								},
+								"url": "{{base_url}}/api/job-titles"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "👥 Staff Members",
+			"item": [
+				{
+					"name": "List Staff Members",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json"}],
+						"url": {
+							"raw": "{{base_url}}/api/staff-members?per_page=15",
+							"host": ["{{base_url}}"],
+							"path": ["api", "staff-members"],
+							"query": [
+								{"key": "per_page", "value": "15"},
+								{"key": "search", "value": "", "disabled": true},
+								{"key": "office_location_id", "value": "1", "disabled": true},
+								{"key": "division_id", "value": "1", "disabled": true},
+								{"key": "status", "value": "active", "disabled": true}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Staff Member",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "POST",
+						"header": [
+							{"key": "Accept", "value": "application/json"},
+							{"key": "Content-Type", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"full_name\": \"John Doe\",\n    \"email\": \"john.doe@company.com\",\n    \"password\": \"Password123!\",\n    \"personal_email\": \"john@personal.com\",\n    \"mobile_number\": \"+1234567890\",\n    \"birth_date\": \"1990-05-15\",\n    \"gender\": \"male\",\n    \"hire_date\": \"2024-01-15\",\n    \"base_salary\": 75000,\n    \"office_location_id\": 1,\n    \"division_id\": 1,\n    \"job_title_id\": 1\n}"
+						},
+						"url": "{{base_url}}/api/staff-members"
+					}
+				},
+				{
+					"name": "Get Staff Member",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json"}],
+						"url": "{{base_url}}/api/staff-members/1"
+					}
+				},
+				{
+					"name": "Update Staff Member",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "PUT",
+						"header": [
+							{"key": "Accept", "value": "application/json"},
+							{"key": "Content-Type", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"full_name\": \"John Smith\",\n    \"base_salary\": 80000\n}"
+						},
+						"url": "{{base_url}}/api/staff-members/1"
+					}
+				},
+				{
+					"name": "Delete Staff Member",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "DELETE",
+						"header": [{"key": "Accept", "value": "application/json"}],
+						"url": "{{base_url}}/api/staff-members/1"
+					}
+				},
+				{
+					"name": "Staff Dropdown",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json"}],
+						"url": "{{base_url}}/api/staff-members-dropdown"
+					}
+				}
+			]
+		},
+		{
+			"name": "⏰ Attendance",
+			"item": [
+				{
+					"name": "Clock In",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "POST",
+						"header": [{"key": "Accept", "value": "application/json"}],
+						"url": "{{base_url}}/api/clock-in"
+					}
+				},
+				{
+					"name": "Clock Out",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "POST",
+						"header": [{"key": "Accept", "value": "application/json"}],
+						"url": "{{base_url}}/api/clock-out"
+					}
+				},
+				{
+					"name": "List Work Logs",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json"}],
+						"url": {
+							"raw": "{{base_url}}/api/work-logs",
+							"host": ["{{base_url}}"],
+							"path": ["api", "work-logs"],
+							"query": [
+								{"key": "staff_member_id", "value": "1", "disabled": true},
+								{"key": "start_date", "value": "2024-12-01", "disabled": true},
+								{"key": "end_date", "value": "2024-12-31", "disabled": true}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Work Log",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "POST",
+						"header": [
+							{"key": "Accept", "value": "application/json"},
+							{"key": "Content-Type", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"staff_member_id\": 1,\n    \"log_date\": \"2024-12-15\",\n    \"status\": \"present\",\n    \"clock_in\": \"09:00\",\n    \"clock_out\": \"18:00\"\n}"
+						},
+						"url": "{{base_url}}/api/work-logs"
+					}
+				},
+				{
+					"name": "Bulk Create Work Logs",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "POST",
+						"header": [
+							{"key": "Accept", "value": "application/json"},
+							{"key": "Content-Type", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"logs\": [\n        {\n            \"staff_member_id\": 1,\n            \"log_date\": \"2024-12-10\",\n            \"status\": \"present\",\n            \"clock_in\": \"09:00\",\n            \"clock_out\": \"18:00\"\n        },\n        {\n            \"staff_member_id\": 1,\n            \"log_date\": \"2024-12-11\",\n            \"status\": \"absent\"\n        }\n    ]\n}"
+						},
+						"url": "{{base_url}}/api/work-logs/bulk"
+					}
+				},
+				{
+					"name": "Attendance Summary",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json"}],
+						"url": {
+							"raw": "{{base_url}}/api/attendance-summary?staff_member_id=1&start_date=2024-12-01&end_date=2024-12-31",
+							"host": ["{{base_url}}"],
+							"path": ["api", "attendance-summary"],
+							"query": [
+								{"key": "staff_member_id", "value": "1"},
+								{"key": "start_date", "value": "2024-12-01"},
+								{"key": "end_date", "value": "2024-12-31"}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🌴 Leave Management",
+			"item": [
+				{
+					"name": "Time Off Categories",
+					"item": [
+						{
+							"name": "List Categories",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "GET",
+								"header": [{"key": "Accept", "value": "application/json"}],
+								"url": "{{base_url}}/api/time-off-categories"
+							}
+						},
+						{
+							"name": "Create Category",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "POST",
+								"header": [
+									{"key": "Accept", "value": "application/json"},
+									{"key": "Content-Type", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Annual Leave\",\n    \"annual_quota\": 20,\n    \"is_paid\": true,\n    \"is_carry_forward_allowed\": true,\n    \"max_carry_forward_days\": 5\n}"
+								},
+								"url": "{{base_url}}/api/time-off-categories"
+							}
+						}
+					]
+				},
+				{
+					"name": "Time Off Requests",
+					"item": [
+						{
+							"name": "List Requests",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "GET",
+								"header": [{"key": "Accept", "value": "application/json"}],
+								"url": {
+									"raw": "{{base_url}}/api/time-off-requests",
+									"host": ["{{base_url}}"],
+									"path": ["api", "time-off-requests"],
+									"query": [
+										{"key": "status", "value": "pending", "disabled": true},
+										{"key": "staff_member_id", "value": "1", "disabled": true}
+									]
+								}
+							}
+						},
+						{
+							"name": "Create Request",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "POST",
+								"header": [
+									{"key": "Accept", "value": "application/json"},
+									{"key": "Content-Type", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"staff_member_id\": 1,\n    \"time_off_category_id\": 1,\n    \"start_date\": \"2024-12-23\",\n    \"end_date\": \"2024-12-27\",\n    \"reason\": \"Christmas holiday with family\"\n}"
+								},
+								"url": "{{base_url}}/api/time-off-requests"
+							}
+						},
+						{
+							"name": "Approve Request",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "POST",
+								"header": [
+									{"key": "Accept", "value": "application/json"},
+									{"key": "Content-Type", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"action\": \"approved\",\n    \"approval_remarks\": \"Approved. Enjoy your holiday!\"\n}"
+								},
+								"url": "{{base_url}}/api/time-off-requests/1/process"
+							}
+						},
+						{
+							"name": "Decline Request",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "POST",
+								"header": [
+									{"key": "Accept", "value": "application/json"},
+									{"key": "Content-Type", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"action\": \"declined\",\n    \"approval_remarks\": \"Insufficient notice period\"\n}"
+								},
+								"url": "{{base_url}}/api/time-off-requests/1/process"
+							}
+						},
+						{
+							"name": "Get Leave Balance",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "GET",
+								"header": [{"key": "Accept", "value": "application/json"}],
+								"url": {
+									"raw": "{{base_url}}/api/time-off-balance?staff_member_id=1&year=2024",
+									"host": ["{{base_url}}"],
+									"path": ["api", "time-off-balance"],
+									"query": [
+										{"key": "staff_member_id", "value": "1"},
+										{"key": "year", "value": "2024"}
+									]
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "💰 Payroll",
+			"item": [
+				{
+					"name": "Salary Slips",
+					"item": [
+						{
+							"name": "List Salary Slips",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "GET",
+								"header": [{"key": "Accept", "value": "application/json"}],
+								"url": {
+									"raw": "{{base_url}}/api/salary-slips",
+									"host": ["{{base_url}}"],
+									"path": ["api", "salary-slips"],
+									"query": [
+										{"key": "salary_period", "value": "2024-12", "disabled": true},
+										{"key": "staff_member_id", "value": "1", "disabled": true}
+									]
+								}
+							}
+						},
+						{
+							"name": "Generate Payslip",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "POST",
+								"header": [
+									{"key": "Accept", "value": "application/json"},
+									{"key": "Content-Type", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"staff_member_id\": 1,\n    \"salary_period\": \"2024-12\"\n}"
+								},
+								"url": "{{base_url}}/api/salary-slips/generate"
+							}
+						},
+						{
+							"name": "Bulk Generate Payslips",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "POST",
+								"header": [
+									{"key": "Accept", "value": "application/json"},
+									{"key": "Content-Type", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"salary_period\": \"2024-12\"\n}"
+								},
+								"url": "{{base_url}}/api/salary-slips/bulk-generate"
+							}
+						},
+						{
+							"name": "Get Payslip",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "GET",
+								"header": [{"key": "Accept", "value": "application/json"}],
+								"url": "{{base_url}}/api/salary-slips/1"
+							}
+						},
+						{
+							"name": "Mark Payslip as Paid",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "POST",
+								"header": [{"key": "Accept", "value": "application/json"}],
+								"url": "{{base_url}}/api/salary-slips/1/mark-paid"
+							}
+						}
+					]
+				},
+				{
+					"name": "Benefits",
+					"item": [
+						{
+							"name": "List Benefits",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "GET",
+								"header": [{"key": "Accept", "value": "application/json"}],
+								"url": "{{base_url}}/api/staff-benefits"
+							}
+						},
+						{
+							"name": "Create Benefit",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "POST",
+								"header": [
+									{"key": "Accept", "value": "application/json"},
+									{"key": "Content-Type", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"staff_member_id\": 1,\n    \"title\": \"Housing Allowance\",\n    \"amount\": 15000,\n    \"frequency\": \"monthly\",\n    \"is_taxable\": false,\n    \"is_active\": true\n}"
+								},
+								"url": "{{base_url}}/api/staff-benefits"
+							}
+						}
+					]
+				},
+				{
+					"name": "Deductions",
+					"item": [
+						{
+							"name": "List Deductions",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "GET",
+								"header": [{"key": "Accept", "value": "application/json"}],
+								"url": "{{base_url}}/api/recurring-deductions"
+							}
+						},
+						{
+							"name": "Create Deduction",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "POST",
+								"header": [
+									{"key": "Accept", "value": "application/json"},
+									{"key": "Content-Type", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"staff_member_id\": 1,\n    \"title\": \"Provident Fund\",\n    \"amount\": 9000,\n    \"deduction_type\": \"fixed\",\n    \"frequency\": \"monthly\",\n    \"is_active\": true\n}"
+								},
+								"url": "{{base_url}}/api/recurring-deductions"
+							}
+						}
+					]
+				},
+				{
+					"name": "Tax Slabs",
+					"item": [
+						{
+							"name": "List Tax Slabs",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "GET",
+								"header": [{"key": "Accept", "value": "application/json"}],
+								"url": "{{base_url}}/api/tax-slabs"
+							}
+						},
+						{
+							"name": "Calculate Tax",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "POST",
+								"header": [
+									{"key": "Accept", "value": "application/json"},
+									{"key": "Content-Type", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"income\": 100000\n}"
+								},
+								"url": "{{base_url}}/api/tax-slabs/calculate"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "📅 Events & Calendar",
+			"item": [
+				{
+					"name": "Company Events",
+					"item": [
+						{
+							"name": "List Events",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "GET",
+								"header": [{"key": "Accept", "value": "application/json"}],
+								"url": "{{base_url}}/api/company-events"
+							}
+						},
+						{
+							"name": "Create Event",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "POST",
+								"header": [
+									{"key": "Accept", "value": "application/json"},
+									{"key": "Content-Type", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Annual Team Meeting\",\n    \"description\": \"Yearly planning session\",\n    \"event_start\": \"2024-12-20 09:00:00\",\n    \"event_end\": \"2024-12-20 17:00:00\",\n    \"location\": \"Conference Room A\"\n}"
+								},
+								"url": "{{base_url}}/api/company-events"
+							}
+						}
+					]
+				},
+				{
+					"name": "Company Holidays",
+					"item": [
+						{
+							"name": "List Holidays",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "GET",
+								"header": [{"key": "Accept", "value": "application/json"}],
+								"url": "{{base_url}}/api/company-holidays"
+							}
+						},
+						{
+							"name": "Create Holiday",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "POST",
+								"header": [
+									{"key": "Accept", "value": "application/json"},
+									{"key": "Content-Type", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Christmas Day\",\n    \"holiday_date\": \"2024-12-25\",\n    \"is_recurring\": true\n}"
+								},
+								"url": "{{base_url}}/api/company-holidays"
+							}
+						}
+					]
+				},
+				{
+					"name": "Calendar Data",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json"}],
+						"url": {
+							"raw": "{{base_url}}/api/calendar-data?start_date=2024-12-01&end_date=2024-12-31",
+							"host": ["{{base_url}}"],
+							"path": ["api", "calendar-data"],
+							"query": [
+								{"key": "start_date", "value": "2024-12-01"},
+								{"key": "end_date", "value": "2024-12-31"}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "📊 Reports & Dashboard",
+			"item": [
+				{
+					"name": "Dashboard",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json"}],
+						"url": "{{base_url}}/api/dashboard"
+					}
+				},
+				{
+					"name": "Attendance Report",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json"}],
+						"url": {
+							"raw": "{{base_url}}/api/reports/attendance?month=2024-12",
+							"host": ["{{base_url}}"],
+							"path": ["api", "reports", "attendance"],
+							"query": [{"key": "month", "value": "2024-12"}]
+						}
+					}
+				},
+				{
+					"name": "Leave Report",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json"}],
+						"url": {
+							"raw": "{{base_url}}/api/reports/leave?year=2024",
+							"host": ["{{base_url}}"],
+							"path": ["api", "reports", "leave"],
+							"query": [{"key": "year", "value": "2024"}]
+						}
+					}
+				},
+				{
+					"name": "Payroll Report",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json"}],
+						"url": {
+							"raw": "{{base_url}}/api/reports/payroll?salary_period=2024-12",
+							"host": ["{{base_url}}"],
+							"path": ["api", "reports", "payroll"],
+							"query": [{"key": "salary_period", "value": "2024-12"}]
+						}
+					}
+				},
+				{
+					"name": "Headcount Report",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json"}],
+						"url": "{{base_url}}/api/reports/headcount"
+					}
+				}
+			]
+		},
+		{
+			"name": "📥 Import / Export",
+			"item": [
+				{
+					"name": "Export Staff (CSV)",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json"}],
+						"url": "{{base_url}}/api/exports/staff-members"
+					}
+				},
+				{
+					"name": "Export Attendance (CSV)",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json"}],
+						"url": {
+							"raw": "{{base_url}}/api/exports/attendance?start_date=2024-12-01&end_date=2024-12-31",
+							"host": ["{{base_url}}"],
+							"path": ["api", "exports", "attendance"],
+							"query": [
+								{"key": "start_date", "value": "2024-12-01"},
+								{"key": "end_date", "value": "2024-12-31"}
+							]
+						}
+					}
+				},
+				{
+					"name": "Import Template - Staff",
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json"}],
+						"url": "{{base_url}}/api/imports/template?type=staff_members"
+					}
+				}
+			]
+		},
+		{
+			"name": "📈 Performance",
+			"item": [
+				{
+					"name": "Objectives",
+					"item": [
+						{
+							"name": "List Objectives",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "GET",
+								"header": [{"key": "Accept", "value": "application/json"}],
+								"url": "{{base_url}}/api/performance-objectives"
+							}
+						},
+						{
+							"name": "Create Objective",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "POST",
+								"header": [
+									{"key": "Accept", "value": "application/json"},
+									{"key": "Content-Type", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"staff_member_id\": 1,\n    \"title\": \"Complete Project X\",\n    \"description\": \"Deliver all features by Q1\",\n    \"objective_type\": \"goal\",\n    \"target_value\": 100,\n    \"due_date\": \"2024-03-31\"\n}"
+								},
+								"url": "{{base_url}}/api/performance-objectives"
+							}
+						},
+						{
+							"name": "Update Progress",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "POST",
+								"header": [
+									{"key": "Accept", "value": "application/json"},
+									{"key": "Content-Type", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"current_value\": 75\n}"
+								},
+								"url": "{{base_url}}/api/performance-objectives/1/progress"
+							}
+						}
+					]
+				},
+				{
+					"name": "Appraisals",
+					"item": [
+						{
+							"name": "List Appraisal Cycles",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "GET",
+								"header": [{"key": "Accept", "value": "application/json"}],
+								"url": "{{base_url}}/api/appraisal-cycles"
+							}
+						},
+						{
+							"name": "Create Appraisal Cycle",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "POST",
+								"header": [
+									{"key": "Accept", "value": "application/json"},
+									{"key": "Content-Type", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"2024 Annual Review\",\n    \"start_date\": \"2024-12-01\",\n    \"end_date\": \"2024-12-31\"\n}"
+								},
+								"url": "{{base_url}}/api/appraisal-cycles"
+							}
+						},
+						{
+							"name": "Activate Cycle",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "POST",
+								"header": [{"key": "Accept", "value": "application/json"}],
+								"url": "{{base_url}}/api/appraisal-cycles/1/activate"
+							}
+						},
+						{
+							"name": "My Appraisals",
+							"request": {
+								"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{auth_token}}"}]},
+								"method": "GET",
+								"header": [{"key": "Accept", "value": "application/json"}],
+								"url": "{{base_url}}/api/my-appraisals"
+							}
+						}
+					]
+				}
+			]
+		}
+	]
+}
