@@ -634,3 +634,440 @@ Default rate limits:
 
 Import the provided Postman collection for easy API testing:
 [Download Collection](./postman_collection.json)
+
+---
+
+## 12. Asset Management
+
+### Asset Types
+
+```http
+GET /api/asset-types              # List all asset types
+POST /api/asset-types             # Create asset type
+GET /api/asset-types/{id}         # Get asset type
+PUT /api/asset-types/{id}         # Update asset type
+DELETE /api/asset-types/{id}      # Delete asset type
+```
+
+**Create Asset Type Request:**
+
+```json
+{
+    "title": "Laptop",
+    "description": "Company laptops and notebooks",
+    "depreciation_rate": 20.00
+}
+```
+
+### Assets
+
+```http
+GET /api/assets                       # List all assets
+POST /api/assets                      # Create asset
+GET /api/assets/{id}                  # Get asset details
+PUT /api/assets/{id}                  # Update asset
+DELETE /api/assets/{id}               # Delete asset
+POST /api/assets/{id}/assign          # Assign asset to employee
+POST /api/assets/{id}/return          # Return asset
+POST /api/assets/{id}/maintenance     # Mark for maintenance
+GET /api/assets-available             # List available assets
+GET /api/assets/employee/{id}         # Get assets by employee
+```
+
+**Create Asset Request:**
+
+```json
+{
+    "name": "MacBook Pro 14\"",
+    "asset_type_id": 1,
+    "serial_number": "C02XL4RSJHD3",
+    "purchase_date": "2024-01-15",
+    "purchase_cost": 2499.00,
+    "condition": "new",
+    "location": "Main Office"
+}
+```
+
+**Assign Asset Request:**
+
+```json
+{
+    "staff_member_id": 1,
+    "notes": "Assigned for development work"
+}
+```
+
+---
+
+## 13. Training Management
+
+### Training Types
+
+```http
+GET /api/training-types              # List training types
+POST /api/training-types             # Create training type
+GET /api/training-types/{id}         # Get training type
+PUT /api/training-types/{id}         # Update training type
+DELETE /api/training-types/{id}      # Delete training type
+```
+
+### Training Programs
+
+```http
+GET /api/training-programs           # List programs
+POST /api/training-programs          # Create program
+GET /api/training-programs/{id}      # Get program
+PUT /api/training-programs/{id}      # Update program
+DELETE /api/training-programs/{id}   # Delete program
+```
+
+**Create Training Program Request:**
+
+```json
+{
+    "title": "Leadership Development",
+    "training_type_id": 1,
+    "description": "Development program for managers",
+    "duration": "2 weeks",
+    "cost": 1500.00,
+    "trainer_name": "John Smith",
+    "trainer_type": "external"
+}
+```
+
+### Training Sessions
+
+```http
+GET /api/training-sessions                    # List sessions
+POST /api/training-sessions                   # Create session
+GET /api/training-sessions/{id}               # Get session
+PUT /api/training-sessions/{id}               # Update session
+DELETE /api/training-sessions/{id}            # Delete session
+POST /api/training-sessions/{id}/enroll       # Enroll employee
+POST /api/training-sessions/{id}/complete     # Mark complete
+GET /api/training/employee/{id}               # Employee trainings
+```
+
+---
+
+## 14. Recruitment - Jobs
+
+### Job Categories
+
+```http
+GET /api/job-categories              # List job categories
+POST /api/job-categories             # Create category
+GET /api/job-categories/{id}         # Get category
+PUT /api/job-categories/{id}         # Update category
+DELETE /api/job-categories/{id}      # Delete category
+```
+
+### Job Stages (Kanban)
+
+```http
+GET /api/job-stages                  # List stages
+POST /api/job-stages                 # Create stage
+PUT /api/job-stages/{id}             # Update stage
+DELETE /api/job-stages/{id}          # Delete stage
+POST /api/job-stages/reorder         # Reorder stages
+```
+
+### Jobs
+
+```http
+GET /api/jobs                        # List jobs
+POST /api/jobs                       # Create job
+GET /api/jobs/{id}                   # Get job details
+PUT /api/jobs/{id}                   # Update job
+DELETE /api/jobs/{id}                # Delete job
+POST /api/jobs/{id}/publish          # Publish job
+POST /api/jobs/{id}/close            # Close job
+GET /api/jobs/{id}/questions         # Get custom questions
+POST /api/jobs/{id}/questions        # Add custom question
+```
+
+**Create Job Request:**
+
+```json
+{
+    "title": "Senior Developer",
+    "job_category_id": 1,
+    "office_location_id": 1,
+    "division_id": 2,
+    "positions": 2,
+    "description": "We are looking for...",
+    "requirements": "5+ years experience...",
+    "skills": "PHP, Laravel, React",
+    "experience_required": "5+ years",
+    "salary_from": 80000,
+    "salary_to": 120000,
+    "start_date": "2024-01-01",
+    "end_date": "2024-02-28"
+}
+```
+
+---
+
+## 15. Recruitment - Candidates
+
+```http
+GET /api/candidates                               # List candidates
+POST /api/candidates                              # Create candidate
+GET /api/candidates/{id}                          # Get candidate
+PUT /api/candidates/{id}                          # Update candidate
+DELETE /api/candidates/{id}                       # Delete candidate
+POST /api/candidates/{id}/archive                 # Archive candidate
+POST /api/candidates/{id}/convert-to-employee     # Convert to employee
+```
+
+**Create Candidate Request:**
+
+```json
+{
+    "name": "Jane Smith",
+    "email": "jane@example.com",
+    "phone": "+1234567890",
+    "date_of_birth": "1990-05-15",
+    "gender": "female",
+    "address": "123 Main St",
+    "linkedin_url": "https://linkedin.com/in/janesmith",
+    "source": "job_portal"
+}
+```
+
+**Convert to Employee Request:**
+
+```json
+{
+    "office_location_id": 1,
+    "division_id": 2,
+    "job_title_id": 3,
+    "employee_id": "EMP-001",
+    "join_date": "2024-02-01",
+    "base_salary": 85000
+}
+```
+
+---
+
+## 16. Recruitment - Applications
+
+```http
+GET /api/job-applications                              # List all applications
+POST /api/jobs/{job}/applications                      # Apply to job
+GET /api/job-applications/{id}                         # Get application
+POST /api/job-applications/{id}/move-stage             # Move to stage
+POST /api/job-applications/{id}/rate                   # Rate application
+POST /api/job-applications/{id}/notes                  # Add note
+POST /api/job-applications/{id}/shortlist              # Shortlist candidate
+POST /api/job-applications/{id}/reject                 # Reject application
+POST /api/job-applications/{id}/hire                   # Mark as hired
+```
+
+**Apply to Job Request:**
+
+```json
+{
+    "candidate_id": 1,
+    "custom_answers": {
+        "1": "Yes, I have 5 years experience",
+        "2": "Available immediately"
+    }
+}
+```
+
+---
+
+## 17. Recruitment - Interviews
+
+```http
+GET /api/interview-schedules                           # List interviews
+POST /api/interview-schedules                          # Schedule interview
+GET /api/interview-schedules/{id}                      # Get interview
+PUT /api/interview-schedules/{id}                      # Update interview
+DELETE /api/interview-schedules/{id}                   # Cancel interview
+POST /api/interview-schedules/{id}/feedback            # Submit feedback
+POST /api/interview-schedules/{id}/reschedule          # Reschedule
+GET /api/interviews/calendar                           # Calendar view
+GET /api/interviews/today                              # Today's interviews
+```
+
+**Schedule Interview Request:**
+
+```json
+{
+    "job_application_id": 1,
+    "interviewer_id": 5,
+    "scheduled_date": "2024-01-20",
+    "scheduled_time": "14:00",
+    "duration_minutes": 60,
+    "location": "Meeting Room A",
+    "meeting_link": "https://zoom.us/j/123456"
+}
+```
+
+**Submit Feedback Request:**
+
+```json
+{
+    "feedback": "Excellent technical skills, good communication",
+    "rating": 4,
+    "recommendation": "proceed"
+}
+```
+
+---
+
+## 18. Onboarding Management
+
+### Onboarding Templates
+
+```http
+GET /api/onboarding-templates                          # List templates
+POST /api/onboarding-templates                         # Create template
+GET /api/onboarding-templates/{id}                     # Get template
+PUT /api/onboarding-templates/{id}                     # Update template
+DELETE /api/onboarding-templates/{id}                  # Delete template
+POST /api/onboarding-templates/{id}/tasks              # Add task to template
+```
+
+### Employee Onboarding
+
+```http
+GET /api/employee-onboardings                          # List all onboardings
+POST /api/employee-onboardings                         # Assign onboarding
+GET /api/employee-onboardings/{id}                     # Get onboarding details
+POST /api/employee-onboardings/{id}/complete-task      # Complete a task
+GET /api/onboardings/pending                           # Pending onboardings
+```
+
+---
+
+## 19. Contract Management
+
+```http
+GET /api/contract-types                                # List contract types
+POST /api/contract-types                               # Create type
+GET /api/contracts                                     # List contracts
+POST /api/contracts                                    # Create contract
+GET /api/contracts/{id}                                # Get contract
+PUT /api/contracts/{id}                                # Update contract
+DELETE /api/contracts/{id}                             # Delete contract
+POST /api/contracts/{id}/renew                         # Renew contract
+POST /api/contracts/{id}/terminate                     # Terminate contract
+GET /api/contracts-expiring                            # Expiring contracts
+GET /api/contracts/employee/{staffMemberId}            # Employee contracts
+```
+
+**Renew Contract Request:**
+
+```json
+{
+    "new_end_date": "2025-12-31",
+    "new_salary": 95000,
+    "notes": "Annual renewal with 10% increase"
+}
+```
+
+---
+
+## 20. Meeting Management
+
+### Meeting Types & Rooms
+
+```http
+GET /api/meeting-types                                 # List meeting types
+POST /api/meeting-types                                # Create type
+GET /api/meeting-rooms                                 # List rooms
+POST /api/meeting-rooms                                # Create room
+GET /api/meeting-rooms-available                       # Available rooms
+```
+
+### Meetings
+
+```http
+GET /api/meetings                                      # List meetings
+POST /api/meetings                                     # Create meeting
+GET /api/meetings/{id}                                 # Get meeting
+PUT /api/meetings/{id}                                 # Update meeting
+DELETE /api/meetings/{id}                              # Delete meeting
+POST /api/meetings/{id}/attendees                      # Add attendees
+POST /api/meetings/{id}/start                          # Start meeting
+POST /api/meetings/{id}/complete                       # Complete meeting
+POST /api/meetings/{id}/minutes                        # Add minutes
+POST /api/meetings/{id}/action-items                   # Add action item
+GET /api/meetings-calendar                             # Calendar view
+GET /api/my-meetings                                   # Current user's meetings
+```
+
+---
+
+## 21. Shifts Management
+
+```http
+GET /api/shifts                                        # List shifts
+POST /api/shifts                                       # Create shift
+GET /api/shifts/{id}                                   # Get shift
+PUT /api/shifts/{id}                                   # Update shift
+DELETE /api/shifts/{id}                                # Delete shift
+POST /api/shifts/{id}/assign                           # Assign to employee
+GET /api/shift-roster                                  # Get shift roster
+GET /api/shifts/employee/{staffMemberId}               # Employee shifts
+```
+
+**Create Shift Request:**
+
+```json
+{
+    "name": "Morning Shift",
+    "start_time": "09:00",
+    "end_time": "17:00",
+    "break_duration_minutes": 60,
+    "is_night_shift": false,
+    "overtime_after_hours": 8
+}
+```
+
+---
+
+## 22. Timesheets
+
+### Projects
+
+```http
+GET /api/timesheet-projects                            # List projects
+POST /api/timesheet-projects                           # Create project
+GET /api/timesheet-projects/{id}                       # Get project
+PUT /api/timesheet-projects/{id}                       # Update project
+DELETE /api/timesheet-projects/{id}                    # Delete project
+```
+
+### Timesheets
+
+```http
+GET /api/timesheets                                    # List timesheets
+POST /api/timesheets                                   # Create entry
+GET /api/timesheets/{id}                               # Get entry
+PUT /api/timesheets/{id}                               # Update entry
+DELETE /api/timesheets/{id}                            # Delete entry
+POST /api/timesheets/bulk                              # Bulk create
+POST /api/timesheets/{id}/submit                       # Submit for approval
+POST /api/timesheets/{id}/approve                      # Approve timesheet
+POST /api/timesheets/{id}/reject                       # Reject timesheet
+GET /api/timesheet-summary                             # Get summary
+GET /api/timesheets/employee/{staffMemberId}           # Employee timesheets
+GET /api/timesheet-report                              # Generate report
+```
+
+**Create Timesheet Entry:**
+
+```json
+{
+    "staff_member_id": 1,
+    "timesheet_project_id": 1,
+    "date": "2024-01-15",
+    "hours": 8,
+    "task_description": "Development work on feature X",
+    "is_billable": true
+}
+```

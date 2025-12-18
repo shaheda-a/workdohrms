@@ -54,6 +54,37 @@ use App\Http\Controllers\Api\DataExportController;
 use App\Http\Controllers\Api\PerformanceObjectiveController;
 use App\Http\Controllers\Api\AppraisalCycleController;
 use App\Http\Controllers\Api\AppraisalRecordController;
+use App\Http\Controllers\Api\AssetTypeController;
+use App\Http\Controllers\Api\AssetController;
+use App\Http\Controllers\Api\TrainingTypeController;
+use App\Http\Controllers\Api\TrainingProgramController;
+use App\Http\Controllers\Api\TrainingSessionController;
+use App\Http\Controllers\Api\JobCategoryController;
+use App\Http\Controllers\Api\JobStageController;
+use App\Http\Controllers\Api\JobController;
+use App\Http\Controllers\Api\CandidateController;
+use App\Http\Controllers\Api\JobApplicationController;
+use App\Http\Controllers\Api\InterviewScheduleController;
+use App\Http\Controllers\Api\OnboardingTemplateController;
+use App\Http\Controllers\Api\EmployeeOnboardingController;
+use App\Http\Controllers\Api\ContractTypeController;
+use App\Http\Controllers\Api\ContractController;
+use App\Http\Controllers\Api\MeetingTypeController;
+use App\Http\Controllers\Api\MeetingRoomController;
+use App\Http\Controllers\Api\MeetingController;
+use App\Http\Controllers\Api\ShiftController;
+use App\Http\Controllers\Api\TimesheetProjectController;
+use App\Http\Controllers\Api\TimesheetController;
+use App\Http\Controllers\Api\DocumentCategoryController;
+use App\Http\Controllers\Api\HrDocumentController;
+use App\Http\Controllers\Api\MediaDirectoryController;
+use App\Http\Controllers\Api\MediaFileController;
+use App\Http\Controllers\Api\JobRequisitionController;
+use App\Http\Controllers\Api\OfferTemplateController;
+use App\Http\Controllers\Api\OfferController;
+use App\Http\Controllers\Api\CandidateAssessmentController;
+use App\Http\Controllers\Api\AttendanceRegularizationController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -286,5 +317,179 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/appraisal-records/{appraisalRecord}/self-review', [AppraisalRecordController::class, 'submitSelfReview']);
     Route::post('/appraisal-records/{appraisalRecord}/manager-review', [AppraisalRecordController::class, 'submitManagerReview']);
     Route::get('/my-appraisals', [AppraisalRecordController::class, 'myAppraisals']);
+
+    // ============================================
+    // PROMPT SET 23: Asset Management
+    // ============================================
+    Route::apiResource('asset-types', AssetTypeController::class);
+    Route::apiResource('assets', AssetController::class);
+    Route::post('/assets/{asset}/assign', [AssetController::class, 'assign']);
+    Route::post('/assets/{asset}/return', [AssetController::class, 'returnAsset']);
+    Route::post('/assets/{asset}/maintenance', [AssetController::class, 'setMaintenance']);
+    Route::get('/assets-available', [AssetController::class, 'available']);
+    Route::get('/assets/employee/{staffMemberId}', [AssetController::class, 'byEmployee']);
+
+    // ============================================
+    // PROMPT SET 24: Training Management
+    // ============================================
+    Route::apiResource('training-types', TrainingTypeController::class);
+    Route::apiResource('training-programs', TrainingProgramController::class);
+    Route::apiResource('training-sessions', TrainingSessionController::class);
+    Route::post('/training-sessions/{trainingSession}/enroll', [TrainingSessionController::class, 'enroll']);
+    Route::post('/training-sessions/{trainingSession}/complete', [TrainingSessionController::class, 'complete']);
+    Route::get('/training/employee/{staffMemberId}', [TrainingSessionController::class, 'employeeTraining']);
+
+    // ============================================
+    // PROMPT SET 25: Recruitment - Jobs
+    // ============================================
+    Route::apiResource('job-categories', JobCategoryController::class);
+    Route::apiResource('job-stages', JobStageController::class);
+    Route::post('/job-stages/reorder', [JobStageController::class, 'reorder']);
+    Route::apiResource('jobs', JobController::class);
+    Route::post('/jobs/{job}/publish', [JobController::class, 'publish']);
+    Route::post('/jobs/{job}/close', [JobController::class, 'close']);
+    Route::get('/jobs/{job}/questions', [JobController::class, 'questions']);
+    Route::post('/jobs/{job}/questions', [JobController::class, 'addQuestion']);
+
+    // ============================================
+    // PROMPT SET 26: Recruitment - Candidates
+    // ============================================
+    Route::apiResource('candidates', CandidateController::class);
+    Route::post('/candidates/{candidate}/archive', [CandidateController::class, 'archive']);
+    Route::post('/candidates/{candidate}/convert-to-employee', [CandidateController::class, 'convertToEmployee']);
+
+    // ============================================
+    // PROMPT SET 27: Recruitment - Applications & Interviews
+    // ============================================
+    Route::get('/job-applications', [JobApplicationController::class, 'index']);
+    Route::post('/jobs/{job}/applications', [JobApplicationController::class, 'store']);
+    Route::get('/job-applications/{jobApplication}', [JobApplicationController::class, 'show']);
+    Route::post('/job-applications/{jobApplication}/move-stage', [JobApplicationController::class, 'moveStage']);
+    Route::post('/job-applications/{jobApplication}/rate', [JobApplicationController::class, 'rate']);
+    Route::post('/job-applications/{jobApplication}/notes', [JobApplicationController::class, 'addNote']);
+    Route::post('/job-applications/{jobApplication}/shortlist', [JobApplicationController::class, 'shortlist']);
+    Route::post('/job-applications/{jobApplication}/reject', [JobApplicationController::class, 'reject']);
+    Route::post('/job-applications/{jobApplication}/hire', [JobApplicationController::class, 'hire']);
+
+    Route::apiResource('interview-schedules', InterviewScheduleController::class);
+    Route::post('/interview-schedules/{interviewSchedule}/feedback', [InterviewScheduleController::class, 'feedback']);
+    Route::post('/interview-schedules/{interviewSchedule}/reschedule', [InterviewScheduleController::class, 'reschedule']);
+    Route::get('/interviews/calendar', [InterviewScheduleController::class, 'calendar']);
+    Route::get('/interviews/today', [InterviewScheduleController::class, 'today']);
+
+    // ============================================
+    // PROMPT SET 28: Onboarding
+    // ============================================
+    Route::apiResource('onboarding-templates', OnboardingTemplateController::class);
+    Route::post('/onboarding-templates/{onboardingTemplate}/tasks', [OnboardingTemplateController::class, 'addTask']);
+    Route::apiResource('employee-onboardings', EmployeeOnboardingController::class)->except(['update', 'destroy']);
+    Route::post('/employee-onboardings/{employeeOnboarding}/complete-task', [EmployeeOnboardingController::class, 'completeTask']);
+    Route::get('/onboardings/pending', [EmployeeOnboardingController::class, 'pending']);
+
+    // ============================================
+    // PROMPT SET 29: Contract Management
+    // ============================================
+    Route::apiResource('contract-types', ContractTypeController::class);
+    Route::apiResource('contracts', ContractController::class);
+    Route::post('/contracts/{contract}/renew', [ContractController::class, 'renew']);
+    Route::post('/contracts/{contract}/terminate', [ContractController::class, 'terminate']);
+    Route::get('/contracts-expiring', [ContractController::class, 'expiring']);
+    Route::get('/contracts/employee/{staffMemberId}', [ContractController::class, 'byEmployee']);
+
+    // ============================================
+    // PROMPT SET 30: Meeting Management
+    // ============================================
+    Route::apiResource('meeting-types', MeetingTypeController::class);
+    Route::apiResource('meeting-rooms', MeetingRoomController::class);
+    Route::get('/meeting-rooms-available', [MeetingRoomController::class, 'available']);
+    Route::apiResource('meetings', MeetingController::class);
+    Route::post('/meetings/{meeting}/attendees', [MeetingController::class, 'addAttendees']);
+    Route::post('/meetings/{meeting}/start', [MeetingController::class, 'start']);
+    Route::post('/meetings/{meeting}/complete', [MeetingController::class, 'complete']);
+    Route::post('/meetings/{meeting}/minutes', [MeetingController::class, 'addMinutes']);
+    Route::post('/meetings/{meeting}/action-items', [MeetingController::class, 'addActionItem']);
+    Route::post('/meeting-action-items/{meetingActionItem}/complete', [MeetingController::class, 'completeActionItem']);
+    Route::get('/meetings-calendar', [MeetingController::class, 'calendar']);
+    Route::get('/my-meetings', [MeetingController::class, 'myMeetings']);
+
+    // ============================================
+    // PROMPT SET 31: Shifts Management
+    // ============================================
+    Route::apiResource('shifts', ShiftController::class);
+    Route::post('/shifts/{shift}/assign', [ShiftController::class, 'assign']);
+    Route::get('/shift-roster', [ShiftController::class, 'roster']);
+    Route::get('/shifts/employee/{staffMemberId}', [ShiftController::class, 'employeeShifts']);
+
+    // ============================================
+    // PROMPT SET 32: Timesheets
+    // ============================================
+    Route::apiResource('timesheet-projects', TimesheetProjectController::class);
+    Route::apiResource('timesheets', TimesheetController::class);
+    Route::post('/timesheets/bulk', [TimesheetController::class, 'bulkStore']);
+    Route::post('/timesheets/{timesheet}/submit', [TimesheetController::class, 'submit']);
+    Route::post('/timesheets/{timesheet}/approve', [TimesheetController::class, 'approve']);
+    Route::post('/timesheets/{timesheet}/reject', [TimesheetController::class, 'reject']);
+    Route::get('/timesheet-summary', [TimesheetController::class, 'summary']);
+    Route::get('/timesheets/employee/{staffMemberId}', [TimesheetController::class, 'employeeTimesheets']);
+    Route::get('/timesheet-report', [TimesheetController::class, 'report']);
+
+    // ============================================
+    // DOCUMENT MANAGEMENT (100% Coverage)
+    // ============================================
+    Route::apiResource('document-categories', DocumentCategoryController::class);
+    Route::apiResource('hr-documents', HrDocumentController::class);
+    Route::get('/hr-documents/{hrDocument}/download', [HrDocumentController::class, 'download']);
+    Route::post('/hr-documents/{hrDocument}/acknowledge', [HrDocumentController::class, 'acknowledge']);
+    Route::get('/hr-documents/{hrDocument}/acknowledgments', [HrDocumentController::class, 'acknowledgments']);
+    Route::get('/pending-acknowledgments', [HrDocumentController::class, 'pendingAcknowledgments']);
+
+    // ============================================
+    // MEDIA LIBRARY (100% Coverage)
+    // ============================================
+    Route::apiResource('media-directories', MediaDirectoryController::class);
+    Route::post('/media-directories/{mediaDirectory}/move', [MediaDirectoryController::class, 'move']);
+    Route::apiResource('media-files', MediaFileController::class);
+    Route::get('/media-files/{mediaFile}/download', [MediaFileController::class, 'download']);
+    Route::post('/media-files/{mediaFile}/move', [MediaFileController::class, 'move']);
+    Route::post('/media-files/{mediaFile}/share', [MediaFileController::class, 'share']);
+    Route::post('/media-files/{mediaFile}/unshare', [MediaFileController::class, 'unshare']);
+
+    // ============================================
+    // JOB REQUISITIONS (100% Coverage)
+    // ============================================
+    Route::apiResource('job-requisitions', JobRequisitionController::class);
+    Route::post('/job-requisitions/{jobRequisition}/approve', [JobRequisitionController::class, 'approve']);
+    Route::post('/job-requisitions/{jobRequisition}/reject', [JobRequisitionController::class, 'reject']);
+    Route::get('/job-requisitions-pending', [JobRequisitionController::class, 'pending']);
+
+    // ============================================
+    // OFFER MANAGEMENT (100% Coverage)
+    // ============================================
+    Route::apiResource('offer-templates', OfferTemplateController::class);
+    Route::get('/offer-template-variables', [OfferTemplateController::class, 'variables']);
+    Route::apiResource('offers', OfferController::class);
+    Route::post('/offers/{offer}/send', [OfferController::class, 'send']);
+    Route::post('/offers/{offer}/accept', [OfferController::class, 'accept']);
+    Route::post('/offers/{offer}/reject', [OfferController::class, 'reject']);
+    Route::post('/offers/{offer}/withdraw', [OfferController::class, 'withdraw']);
+    Route::get('/offers-pending', [OfferController::class, 'pending']);
+    Route::get('/offers-expired', [OfferController::class, 'expired']);
+
+    // ============================================
+    // CANDIDATE ASSESSMENTS (100% Coverage)
+    // ============================================
+    Route::apiResource('candidate-assessments', CandidateAssessmentController::class);
+    Route::post('/candidate-assessments/{candidateAssessment}/complete', [CandidateAssessmentController::class, 'complete']);
+    Route::post('/candidate-assessments/{candidateAssessment}/cancel', [CandidateAssessmentController::class, 'cancel']);
+    Route::get('/candidates/{candidateId}/assessments', [CandidateAssessmentController::class, 'candidateAssessments']);
+
+    // ============================================
+    // ATTENDANCE REGULARIZATION (100% Coverage)
+    // ============================================
+    Route::apiResource('attendance-regularizations', AttendanceRegularizationController::class)->only(['index', 'store', 'show']);
+    Route::post('/attendance-regularizations/{attendanceRegularization}/approve', [AttendanceRegularizationController::class, 'approve']);
+    Route::post('/attendance-regularizations/{attendanceRegularization}/reject', [AttendanceRegularizationController::class, 'reject']);
+    Route::get('/attendance-regularizations-pending', [AttendanceRegularizationController::class, 'pending']);
+    Route::get('/my-regularization-requests', [AttendanceRegularizationController::class, 'myRequests']);
 });
 
