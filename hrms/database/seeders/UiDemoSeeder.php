@@ -24,7 +24,7 @@ class UiDemoSeeder extends Seeder
 
         // Create demo users for each role
         $adminUser = User::where('email', 'admin@hrms.local')->first();
-        if (!$adminUser) {
+        if (! $adminUser) {
             $adminUser = User::create([
                 'name' => 'Admin User',
                 'email' => 'admin@hrms.local',
@@ -35,7 +35,7 @@ class UiDemoSeeder extends Seeder
 
         // HR Officer demo account
         $hrUser = User::where('email', 'hr@hrms.local')->first();
-        if (!$hrUser) {
+        if (! $hrUser) {
             $hrUser = User::create([
                 'name' => 'HR Officer',
                 'email' => 'hr@hrms.local',
@@ -46,7 +46,7 @@ class UiDemoSeeder extends Seeder
 
         // Manager demo account
         $managerUser = User::where('email', 'manager@hrms.local')->first();
-        if (!$managerUser) {
+        if (! $managerUser) {
             $managerUser = User::create([
                 'name' => 'Team Manager',
                 'email' => 'manager@hrms.local',
@@ -57,7 +57,7 @@ class UiDemoSeeder extends Seeder
 
         // Staff Member demo account
         $staffUser = User::where('email', 'staff@hrms.local')->first();
-        if (!$staffUser) {
+        if (! $staffUser) {
             $staffUser = User::create([
                 'name' => 'Staff Member',
                 'email' => 'staff@hrms.local',
@@ -182,7 +182,7 @@ class UiDemoSeeder extends Seeder
                 [
                     'user_id' => $user->id,
                     'full_name' => $emp['name'],
-                    'mobile_number' => '+1-555-' . str_pad(rand(1000, 9999), 4, '0', STR_PAD_LEFT),
+                    'mobile_number' => '+1-555-'.str_pad(rand(1000, 9999), 4, '0', STR_PAD_LEFT),
                     'gender' => $emp['gender'],
                     'birth_date' => Carbon::now()->subYears(rand(25, 45))->subDays(rand(0, 365)),
                     'office_location_id' => $emp['location']->id,
@@ -201,7 +201,9 @@ class UiDemoSeeder extends Seeder
         foreach ($staffMembers as $staff) {
             for ($i = 30; $i >= 0; $i--) {
                 $date = $today->copy()->subDays($i);
-                if ($date->isWeekend()) continue;
+                if ($date->isWeekend()) {
+                    continue;
+                }
 
                 $statuses = ['present', 'present', 'present', 'present', 'present', 'present', 'absent', 'half_day'];
                 $status = $statuses[array_rand($statuses)];
@@ -210,8 +212,8 @@ class UiDemoSeeder extends Seeder
                     ['staff_member_id' => $staff->id, 'log_date' => $date->toDateString()],
                     [
                         'status' => $status,
-                        'clock_in' => $status !== 'absent' ? '09:' . str_pad(rand(0, 15), 2, '0', STR_PAD_LEFT) : null,
-                        'clock_out' => $status === 'present' ? '18:' . str_pad(rand(0, 30), 2, '0', STR_PAD_LEFT) : ($status === 'half_day' ? '13:00' : null),
+                        'clock_in' => $status !== 'absent' ? '09:'.str_pad(rand(0, 15), 2, '0', STR_PAD_LEFT) : null,
+                        'clock_out' => $status === 'present' ? '18:'.str_pad(rand(0, 30), 2, '0', STR_PAD_LEFT) : ($status === 'half_day' ? '13:00' : null),
                         'late_minutes' => $status !== 'absent' ? rand(0, 20) : 0,
                     ]
                 );
