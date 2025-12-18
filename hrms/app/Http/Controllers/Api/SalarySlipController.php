@@ -3,346 +3,232 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\SalarySlip;
-use App\Models\StaffMember;
-use App\Models\StaffBenefit;
-use App\Models\IncentiveRecord;
-use App\Models\BonusPayment;
-use App\Models\ExtraHoursRecord;
-use App\Models\EmployerContribution;
-use App\Models\RecurringDeduction;
-use App\Models\SalaryAdvance;
-use App\Models\TaxSlab;
-use App\Models\TaxExemption;
-use App\Models\MinimumTaxLimit;
+use App\Services\PayrollService;
+use App\Traits\ApiResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
+use Illuminate\Validation\ValidationException;
 
+/**
+ * Salary Slip Controller
+ * 
+ * Handles HTTP requests for payroll/salary slip management.
+ */
 class SalarySlipController extends Controller
 {
-    public function index(Request $request)
+    use ApiResponse;
+
+    protected PayrollService $service;
+
+    public function __construct(PayrollService $service)
     {
-        $query = SalarySlip::with(['staffMember', 'author']);
-
-        if ($request->filled('staff_member_id')) {
-            $query->where('staff_member_id', $request->staff_member_id);
-        }
-        if ($request->filled('salary_period')) {
-            $query->forPeriod($request->salary_period);
-        }
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        $slips = $request->boolean('paginate', true)
-            ? $query->latest()->paginate($request->input('per_page', 15))
-            : $query->latest()->get();
-
-        return response()->json(['success' => true, 'data' => $slips]);
+        $this->service = $service;
     }
 
     /**
-     * Generate payslip for a staff member for a specific month.
+     * Display a listing of salary slips.
      */
-    public function generate(Request $request)
+    public function index(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'staff_member_id' => 'required|exists:staff_members,id',
-            'salary_period' => 'required|date_format:Y-m', // e.g., 2025-12
-        ]);
+        try {
+            $params = $request->only([
+                'staff_member_id',
+                'status',
+                'month',
+                'year',
+                'paginate',
+                'per_page',
+                'page',
+            ]);
 
-        $staffMember = StaffMember::findOrFail($validated['staff_member_id']);
-        $period = $validated['salary_period'];
-        $periodStart = Carbon::parse($period . '-01')->startOfMonth();
-        $periodEnd = Carbon::parse($period . '-01')->endOfMonth();
+            $result = $this->service->getAllSalarySlips($params);
 
-        // Check if already exists
-        $existing = SalarySlip::where('staff_member_id', $staffMember->id)
-            ->where('salary_period', $period)
-            ->first();
-
-        if ($existing) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Salary slip already exists for this period',
-                'data' => $existing,
-            ], 422);
+            return $this->success($result, 'Salary slips retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to retrieve salary slips: ' . $e->getMessage());
         }
-
-        // Calculate all components
-        $basicSalary = (float) $staffMember->base_salary;
-
-        // Benefits/Allowances
-        $benefits = StaffBenefit::where('staff_member_id', $staffMember->id)
-            ->active()->currentlyEffective()->get();
-        $benefitsBreakdown = $benefits->map(function ($b) use ($basicSalary) {
-            return [
-                'id' => $b->id,
-                'description' => $b->description,
-                'type' => $b->calculation_type,
-                'rate' => (float) $b->amount,
-                'amount' => $b->calculateAmount($basicSalary),
-            ];
-        })->toArray();
-        $totalBenefits = collect($benefitsBreakdown)->sum('amount');
-
-        // Incentives/Commissions
-        $incentives = IncentiveRecord::where('staff_member_id', $staffMember->id)
-            ->where('period_start', '<=', $periodEnd)
-            ->where('period_end', '>=', $periodStart)
-            ->get();
-        $incentivesBreakdown = $incentives->map(function ($i) use ($basicSalary) {
-            return [
-                'id' => $i->id,
-                'description' => $i->description,
-                'type' => $i->calculation_type,
-                'rate' => (float) $i->amount,
-                'amount' => $i->calculateAmount($basicSalary),
-            ];
-        })->toArray();
-        $totalIncentives = collect($incentivesBreakdown)->sum('amount');
-
-        // Bonus payments
-        $bonuses = BonusPayment::where('staff_member_id', $staffMember->id)
-            ->whereBetween('payment_date', [$periodStart, $periodEnd])
-            ->get();
-        $bonusBreakdown = $bonuses->map(function ($b) use ($basicSalary) {
-            return [
-                'id' => $b->id,
-                'title' => $b->title,
-                'type' => $b->payment_type,
-                'rate' => (float) $b->amount,
-                'amount' => $b->calculateAmount($basicSalary),
-            ];
-        })->toArray();
-        $totalBonus = collect($bonusBreakdown)->sum('amount');
-
-        // Overtime
-        $overtime = ExtraHoursRecord::where('staff_member_id', $staffMember->id)
-            ->where('period_start', '<=', $periodEnd)
-            ->where('period_end', '>=', $periodStart)
-            ->get();
-        $overtimeBreakdown = $overtime->map(function ($o) {
-            return [
-                'id' => $o->id,
-                'title' => $o->title,
-                'days' => $o->days_count,
-                'hours' => (float) $o->hours_per_day,
-                'rate' => (float) $o->hourly_rate,
-                'amount' => $o->total_amount,
-            ];
-        })->toArray();
-        $totalOvertime = collect($overtimeBreakdown)->sum('amount');
-
-        // Employer contributions
-        $contributions = EmployerContribution::where('staff_member_id', $staffMember->id)
-            ->active()->currentlyEffective()->get();
-        $contributionsBreakdown = $contributions->map(function ($c) use ($basicSalary) {
-            return [
-                'id' => $c->id,
-                'title' => $c->title,
-                'type' => $c->contribution_type,
-                'rate' => (float) $c->amount,
-                'amount' => $c->calculateAmount($basicSalary),
-            ];
-        })->toArray();
-        $totalContributions = collect($contributionsBreakdown)->sum('amount');
-
-        // Deductions
-        $deductions = RecurringDeduction::where('staff_member_id', $staffMember->id)
-            ->active()->currentlyEffective()->get();
-        $deductionsBreakdown = $deductions->map(function ($d) use ($basicSalary) {
-            return [
-                'id' => $d->id,
-                'description' => $d->description,
-                'type' => $d->calculation_type,
-                'rate' => (float) $d->amount,
-                'amount' => $d->calculateAmount($basicSalary),
-            ];
-        })->toArray();
-        $totalDeductions = collect($deductionsBreakdown)->sum('amount');
-
-        // Loan deductions
-        $advances = SalaryAdvance::where('staff_member_id', $staffMember->id)
-            ->readyForDeduction()
-            ->get();
-        $advancesBreakdown = $advances->map(function ($a) {
-            return [
-                'id' => $a->id,
-                'description' => $a->description,
-                'monthly_deduction' => (float) $a->monthly_deduction,
-                'remaining_before' => (float) $a->remaining_balance,
-            ];
-        })->toArray();
-        $totalAdvances = collect($advancesBreakdown)->sum('monthly_deduction');
-
-        // Calculate gross earnings
-        $grossEarnings = $basicSalary + $totalBenefits + $totalIncentives + 
-                         $totalBonus + $totalOvertime + $totalContributions;
-
-        // Calculate tax
-        $taxBreakdown = [];
-        $totalTax = 0;
-
-        // Check minimum tax threshold
-        $threshold = MinimumTaxLimit::active()->first();
-        if (!$threshold || $grossEarnings > (float) $threshold->threshold_amount) {
-            // Apply exemptions
-            $exemptions = TaxExemption::active()->sum('exemption_amount');
-            $taxableIncome = max(0, $grossEarnings - $exemptions);
-
-            // Get applicable tax slab
-            $taxSlab = TaxSlab::active()
-                ->where('income_from', '<=', $taxableIncome)
-                ->where('income_to', '>=', $taxableIncome)
-                ->first();
-
-            if ($taxSlab) {
-                $taxAmount = $taxSlab->calculateTax($taxableIncome);
-                $taxBreakdown = [
-                    'gross_earnings' => $grossEarnings,
-                    'exemptions' => (float) $exemptions,
-                    'taxable_income' => $taxableIncome,
-                    'slab' => $taxSlab->title,
-                    'fixed' => (float) $taxSlab->fixed_amount,
-                    'percentage' => (float) $taxSlab->percentage,
-                    'tax_amount' => $taxAmount,
-                ];
-                $totalTax = $taxAmount;
-            }
-        }
-
-        // Calculate totals
-        $totalEarnings = $grossEarnings;
-        $totalAllDeductions = $totalDeductions + $totalAdvances + $totalTax;
-        $netPayable = $totalEarnings - $totalAllDeductions;
-
-        // Create salary slip
-        $slip = SalarySlip::create([
-            'staff_member_id' => $staffMember->id,
-            'salary_period' => $period,
-            'basic_salary' => $basicSalary,
-            'benefits_breakdown' => $benefitsBreakdown,
-            'incentives_breakdown' => $incentivesBreakdown,
-            'bonus_breakdown' => $bonusBreakdown,
-            'overtime_breakdown' => $overtimeBreakdown,
-            'contributions_breakdown' => $contributionsBreakdown,
-            'deductions_breakdown' => $deductionsBreakdown,
-            'advances_breakdown' => $advancesBreakdown,
-            'tax_breakdown' => $taxBreakdown,
-            'total_earnings' => $totalEarnings,
-            'total_deductions' => $totalAllDeductions,
-            'net_payable' => $netPayable,
-            'status' => 'generated',
-            'generated_at' => now(),
-            'author_id' => $request->user()->id,
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Salary slip generated successfully',
-            'data' => $slip->load('staffMember'),
-        ], 201);
     }
 
     /**
-     * Bulk generate payslips for all active staff.
+     * Generate salary slip for an employee.
      */
-    public function bulkGenerate(Request $request)
+    public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'salary_period' => 'required|date_format:Y-m',
-        ]);
+        try {
+            $validated = $request->validate([
+                'staff_member_id' => 'required|exists:staff_members,id',
+                'month' => 'required|integer|min:1|max:12',
+                'year' => 'required|integer|min:2000|max:2100',
+            ]);
 
-        $period = $validated['salary_period'];
-        $staffMembers = StaffMember::active()->get();
-        
-        $generated = 0;
-        $skipped = 0;
-        $errors = [];
+            $slip = $this->service->generateSalarySlip(
+                $validated['staff_member_id'],
+                $validated['month'],
+                $validated['year']
+            );
 
-        foreach ($staffMembers as $staff) {
-            // Skip if already exists
-            if (SalarySlip::where('staff_member_id', $staff->id)
-                ->where('salary_period', $period)->exists()) {
-                $skipped++;
-                continue;
-            }
+            $slip->load(['staffMember', 'staffMember.jobTitle', 'staffMember.division']);
 
-            try {
-                $fakeRequest = new Request([
-                    'staff_member_id' => $staff->id,
-                    'salary_period' => $period,
-                ]);
-                $fakeRequest->setUserResolver(fn() => $request->user());
-                
-                $this->generate($fakeRequest);
-                $generated++;
-            } catch (\Exception $e) {
-                $errors[] = ['staff_id' => $staff->id, 'error' => $e->getMessage()];
-            }
+            return $this->created($slip, 'Salary slip generated successfully');
+        } catch (ValidationException $e) {
+            return $this->validationError($e->errors());
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to generate salary slip: ' . $e->getMessage());
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => "Generated: {$generated}, Skipped: {$skipped}",
-            'data' => [
-                'generated' => $generated,
-                'skipped' => $skipped,
-                'errors' => $errors,
-            ],
-        ]);
-    }
-
-    public function show(SalarySlip $salarySlip)
-    {
-        return response()->json([
-            'success' => true,
-            'data' => $salarySlip->load(['staffMember.officeLocation', 'staffMember.division', 'staffMember.jobTitle', 'author']),
-        ]);
     }
 
     /**
-     * Mark payslip as paid.
+     * Display the specified salary slip.
      */
-    public function markPaid(Request $request, SalarySlip $salarySlip)
+    public function show(int $id): JsonResponse
     {
-        $salarySlip->update([
-            'status' => 'paid',
-            'paid_at' => now(),
-        ]);
+        try {
+            $slip = $this->service->findById($id);
 
-        // Process loan deductions
-        if (!empty($salarySlip->advances_breakdown)) {
-            foreach ($salarySlip->advances_breakdown as $adv) {
-                $advance = SalaryAdvance::find($adv['id']);
-                if ($advance) {
-                    $advance->recordDeduction($adv['monthly_deduction']);
-                }
+            if (!$slip) {
+                return $this->notFound('Salary slip not found');
             }
-        }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Salary slip marked as paid',
-            'data' => $salarySlip->fresh(),
-        ]);
+            return $this->success($slip, 'Salary slip retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to retrieve salary slip: ' . $e->getMessage());
+        }
     }
 
-    public function destroy(SalarySlip $salarySlip)
+    /**
+     * Mark salary slip as paid.
+     */
+    public function markPaid(Request $request, int $id): JsonResponse
     {
-        if ($salarySlip->status === 'paid') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot delete a paid salary slip',
-            ], 422);
+        try {
+            $data = $request->only(['payment_method', 'payment_reference']);
+
+            $slip = $this->service->markAsPaid($id, $data);
+
+            return $this->success($slip, 'Salary slip marked as paid');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->notFound('Salary slip not found');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to mark salary slip as paid: ' . $e->getMessage());
         }
+    }
 
-        $salarySlip->delete();
+    /**
+     * Bulk generate salary slips.
+     */
+    public function bulkGenerate(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'month' => 'required|integer|min:1|max:12',
+                'year' => 'required|integer|min:2000|max:2100',
+                'employee_ids' => 'nullable|array',
+                'employee_ids.*' => 'exists:staff_members,id',
+            ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Salary slip deleted',
-        ]);
+            $slips = $this->service->bulkGenerateSalarySlips(
+                $validated['month'],
+                $validated['year'],
+                $validated['employee_ids'] ?? null
+            );
+
+            return $this->success([
+                'generated' => $slips->count(),
+                'slips' => $slips,
+            ], 'Salary slips generated successfully');
+        } catch (ValidationException $e) {
+            return $this->validationError($e->errors());
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to generate salary slips: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Bulk mark salary slips as paid.
+     */
+    public function bulkPay(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'slip_ids' => 'required|array|min:1',
+                'slip_ids.*' => 'exists:salary_slips,id',
+                'payment_method' => 'nullable|string',
+                'payment_reference' => 'nullable|string',
+            ]);
+
+            $count = $this->service->bulkMarkAsPaid($validated['slip_ids'], [
+                'payment_method' => $validated['payment_method'] ?? null,
+                'payment_reference' => $validated['payment_reference'] ?? null,
+            ]);
+
+            return $this->success([
+                'paid_count' => $count,
+            ], 'Salary slips marked as paid');
+        } catch (ValidationException $e) {
+            return $this->validationError($e->errors());
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to mark salary slips as paid: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get monthly payroll summary.
+     */
+    public function monthlySummary(Request $request): JsonResponse
+    {
+        try {
+            $month = $request->input('month', now()->month);
+            $year = $request->input('year', now()->year);
+
+            $summary = $this->service->getMonthlyPayrollSummary($month, $year);
+
+            return $this->success($summary, 'Monthly payroll summary retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to retrieve monthly summary: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get employee salary history.
+     */
+    public function employeeHistory(int $staffMemberId): JsonResponse
+    {
+        try {
+            $history = $this->service->getEmployeeSalaryHistory($staffMemberId);
+
+            return $this->collection($history, 'Salary history retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to retrieve salary history: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get payroll statistics.
+     */
+    public function statistics(): JsonResponse
+    {
+        try {
+            $stats = $this->service->getStatistics();
+
+            return $this->success($stats, 'Payroll statistics retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to retrieve payroll statistics: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Delete a salary slip.
+     */
+    public function destroy(int $id): JsonResponse
+    {
+        try {
+            $this->service->delete($id);
+
+            return $this->noContent('Salary slip deleted successfully');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->notFound('Salary slip not found');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to delete salary slip: ' . $e->getMessage());
+        }
     }
 }

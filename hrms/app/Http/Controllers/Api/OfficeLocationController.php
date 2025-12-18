@@ -3,114 +3,131 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\OfficeLocation;
+use App\Services\OrganizationService;
+use App\Traits\ApiResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
+/**
+ * Office Location Controller
+ * 
+ * Handles HTTP requests for office location (branch) management.
+ */
 class OfficeLocationController extends Controller
 {
+    use ApiResponse;
+
+    protected OrganizationService $service;
+
+    public function __construct(OrganizationService $service)
+    {
+        $this->service = $service;
+    }
+
     /**
      * Display a listing of office locations.
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
-        $query = OfficeLocation::with('author');
+        try {
+            $params = $request->only([
+                'active_only',
+                'search',
+                'paginate',
+                'per_page',
+                'page',
+            ]);
 
-        // Filter by active status
-        if ($request->has('active')) {
-            $query->where('is_active', $request->boolean('active'));
+            $result = $this->service->getAllLocations($params);
+
+            return $this->success($result, 'Office locations retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to retrieve office locations: ' . $e->getMessage());
         }
-
-        // Search by title
-        if ($request->filled('search')) {
-            $query->where('title', 'like', '%' . $request->search . '%');
-        }
-
-        $locations = $request->boolean('paginate', true)
-            ? $query->latest()->paginate($request->input('per_page', 15))
-            : $query->latest()->get();
-
-        return response()->json([
-            'success' => true,
-            'data' => $locations,
-        ]);
     }
 
     /**
      * Store a newly created office location.
      */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'address' => 'nullable|string',
-            'contact_phone' => 'nullable|string|max:20',
-            'contact_email' => 'nullable|email|max:255',
-            'is_active' => 'boolean',
-        ]);
+        try {
+            $validated = $request->validate([
+                'title' => 'required|string|max:255|unique:office_locations,title',
+                'address' => 'nullable|string',
+                'contact_phone' => 'nullable|string|max:20',
+                'contact_email' => 'nullable|email',
+                'is_active' => 'boolean',
+            ]);
 
-        $validated['author_id'] = $request->user()->id;
-        
-        $location = OfficeLocation::create($validated);
+            $location = $this->service->createLocation($validated, $request->user()?->id);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Office location created successfully',
-            'data' => $location->load('author'),
-        ], 201);
+            return $this->created($location, 'Office location created successfully');
+        } catch (ValidationException $e) {
+            return $this->validationError($e->errors());
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to create office location: ' . $e->getMessage());
+        }
     }
 
     /**
      * Display the specified office location.
      */
-    public function show(OfficeLocation $officeLocation)
+    public function show(int $id): JsonResponse
     {
-        return response()->json([
-            'success' => true,
-            'data' => $officeLocation->load(['author', 'divisions']),
-        ]);
+        try {
+            $location = $this->service->findLocation($id);
+
+            if (!$location) {
+                return $this->notFound('Office location not found');
+            }
+
+            return $this->success($location, 'Office location retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to retrieve office location: ' . $e->getMessage());
+        }
     }
 
     /**
      * Update the specified office location.
      */
-    public function update(Request $request, OfficeLocation $officeLocation)
+    public function update(Request $request, int $id): JsonResponse
     {
-        $validated = $request->validate([
-            'title' => 'sometimes|required|string|max:255',
-            'address' => 'nullable|string',
-            'contact_phone' => 'nullable|string|max:20',
-            'contact_email' => 'nullable|email|max:255',
-            'is_active' => 'boolean',
-        ]);
+        try {
+            $validated = $request->validate([
+                'title' => 'sometimes|required|string|max:255|unique:office_locations,title,' . $id,
+                'address' => 'nullable|string',
+                'contact_phone' => 'nullable|string|max:20',
+                'contact_email' => 'nullable|email',
+                'is_active' => 'boolean',
+            ]);
 
-        $officeLocation->update($validated);
+            $location = $this->service->updateLocation($id, $validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Office location updated successfully',
-            'data' => $officeLocation->fresh(['author']),
-        ]);
+            return $this->success($location, 'Office location updated successfully');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->notFound('Office location not found');
+        } catch (ValidationException $e) {
+            return $this->validationError($e->errors());
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to update office location: ' . $e->getMessage());
+        }
     }
 
     /**
      * Remove the specified office location.
      */
-    public function destroy(OfficeLocation $officeLocation)
+    public function destroy(int $id): JsonResponse
     {
-        // Check if location has divisions
-        if ($officeLocation->divisions()->exists()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot delete location with existing divisions',
-            ], 422);
+        try {
+            $this->service->deleteLocation($id);
+
+            return $this->noContent('Office location deleted successfully');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->notFound('Office location not found');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to delete office location: ' . $e->getMessage());
         }
-
-        $officeLocation->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Office location deleted successfully',
-        ]);
     }
 }

@@ -3,129 +3,151 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\JobTitle;
+use App\Services\OrganizationService;
+use App\Traits\ApiResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
+/**
+ * Job Title Controller
+ * 
+ * Handles HTTP requests for job title (designation) management.
+ */
 class JobTitleController extends Controller
 {
+    use ApiResponse;
+
+    protected OrganizationService $service;
+
+    public function __construct(OrganizationService $service)
+    {
+        $this->service = $service;
+    }
+
     /**
      * Display a listing of job titles.
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
-        $query = JobTitle::with(['division.officeLocation', 'author']);
+        try {
+            $params = $request->only([
+                'division_id',
+                'active_only',
+                'search',
+                'paginate',
+                'per_page',
+                'page',
+            ]);
 
-        // Filter by division
-        if ($request->filled('division_id')) {
-            $query->forDivision($request->division_id);
+            $result = $this->service->getAllJobTitles($params);
+
+            return $this->success($result, 'Job titles retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to retrieve job titles: ' . $e->getMessage());
         }
-
-        // Filter by active status
-        if ($request->has('active')) {
-            $query->where('is_active', $request->boolean('active'));
-        }
-
-        // Search by title
-        if ($request->filled('search')) {
-            $query->where('title', 'like', '%' . $request->search . '%');
-        }
-
-        $jobTitles = $request->boolean('paginate', true)
-            ? $query->latest()->paginate($request->input('per_page', 15))
-            : $query->latest()->get();
-
-        return response()->json([
-            'success' => true,
-            'data' => $jobTitles,
-        ]);
     }
 
     /**
      * Store a newly created job title.
      */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'division_id' => 'required|exists:divisions,id',
-            'notes' => 'nullable|string',
-            'is_active' => 'boolean',
-        ]);
+        try {
+            $validated = $request->validate([
+                'title' => 'required|string|max:255',
+                'division_id' => 'required|exists:divisions,id',
+                'notes' => 'nullable|string',
+                'is_active' => 'boolean',
+            ]);
 
-        $validated['author_id'] = $request->user()->id;
-        
-        $jobTitle = JobTitle::create($validated);
+            $jobTitle = $this->service->createJobTitle($validated, $request->user()?->id);
+            $jobTitle->load('division');
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Job title created successfully',
-            'data' => $jobTitle->load(['division.officeLocation', 'author']),
-        ], 201);
+            return $this->created($jobTitle, 'Job title created successfully');
+        } catch (ValidationException $e) {
+            return $this->validationError($e->errors());
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to create job title: ' . $e->getMessage());
+        }
     }
 
     /**
      * Display the specified job title.
      */
-    public function show(JobTitle $jobTitle)
+    public function show(int $id): JsonResponse
     {
-        return response()->json([
-            'success' => true,
-            'data' => $jobTitle->load(['division.officeLocation', 'author']),
-        ]);
+        try {
+            $jobTitle = $this->service->findJobTitle($id);
+
+            if (!$jobTitle) {
+                return $this->notFound('Job title not found');
+            }
+
+            return $this->success($jobTitle, 'Job title retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to retrieve job title: ' . $e->getMessage());
+        }
     }
 
     /**
      * Update the specified job title.
      */
-    public function update(Request $request, JobTitle $jobTitle)
+    public function update(Request $request, int $id): JsonResponse
     {
-        $validated = $request->validate([
-            'title' => 'sometimes|required|string|max:255',
-            'division_id' => 'sometimes|required|exists:divisions,id',
-            'notes' => 'nullable|string',
-            'is_active' => 'boolean',
-        ]);
+        try {
+            $validated = $request->validate([
+                'title' => 'sometimes|required|string|max:255',
+                'division_id' => 'sometimes|required|exists:divisions,id',
+                'notes' => 'nullable|string',
+                'is_active' => 'boolean',
+            ]);
 
-        $jobTitle->update($validated);
+            $jobTitle = $this->service->updateJobTitle($id, $validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Job title updated successfully',
-            'data' => $jobTitle->fresh(['division.officeLocation', 'author']),
-        ]);
+            return $this->success($jobTitle, 'Job title updated successfully');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->notFound('Job title not found');
+        } catch (ValidationException $e) {
+            return $this->validationError($e->errors());
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to update job title: ' . $e->getMessage());
+        }
     }
 
     /**
      * Remove the specified job title.
      */
-    public function destroy(JobTitle $jobTitle)
+    public function destroy(int $id): JsonResponse
     {
-        $jobTitle->delete();
+        try {
+            $this->service->deleteJobTitle($id);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Job title deleted successfully',
-        ]);
+            return $this->noContent('Job title deleted successfully');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->notFound('Job title not found');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to delete job title: ' . $e->getMessage());
+        }
     }
 
     /**
-     * Fetch job titles by division (for cascading dropdown).
+     * Get job titles by division.
      */
-    public function fetchByDivision(Request $request)
+    public function fetchByDivision(Request $request): JsonResponse
     {
-        $request->validate([
-            'division_id' => 'required|exists:divisions,id',
-        ]);
+        try {
+            $validated = $request->validate([
+                'division_id' => 'required|exists:divisions,id',
+            ]);
 
-        $jobTitles = JobTitle::active()
-            ->forDivision($request->division_id)
-            ->select('id', 'title')
-            ->orderBy('title')
-            ->get();
+            $jobTitles = $this->service->getJobTitlesByDivision($validated['division_id']);
 
-        return response()->json([
-            'success' => true,
-            'data' => $jobTitles,
-        ]);
+            return $this->collection($jobTitles, 'Job titles retrieved successfully');
+        } catch (ValidationException $e) {
+            return $this->validationError($e->errors());
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to retrieve job titles: ' . $e->getMessage());
+        }
     }
 }

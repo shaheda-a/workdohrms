@@ -74,11 +74,24 @@ class AccessController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        // Get user's role and permissions
+        $user->load('roles.permissions');
+        $role = $user->roles->first();
+        $permissions = $user->getAllPermissions()->pluck('name')->toArray();
+
         return response()->json([
             'success' => true,
             'message' => 'Signed in successfully',
             'data' => [
-                'user' => $user->load('roles'),
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $role ? $role->name : 'staff_member',
+                    'role_display' => $role ? ucwords(str_replace('_', ' ', $role->name)) : 'Staff Member',
+                    'permissions' => $permissions,
+                ],
+                'token' => $token,
                 'access_token' => $token,
                 'token_type' => 'Bearer',
             ],

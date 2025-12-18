@@ -3,244 +3,273 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\WorkLog;
-use App\Models\StaffMember;
+use App\Services\AttendanceService;
+use App\Traits\ApiResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
+use Illuminate\Validation\ValidationException;
 
+/**
+ * Work Log Controller
+ * 
+ * Handles HTTP requests for attendance/work log management.
+ */
 class WorkLogController extends Controller
 {
-    public function index(Request $request)
+    use ApiResponse;
+
+    protected AttendanceService $service;
+
+    public function __construct(AttendanceService $service)
     {
-        $query = WorkLog::with(['staffMember', 'author']);
-
-        if ($request->filled('staff_member_id')) {
-            $query->where('staff_member_id', $request->staff_member_id);
-        }
-        if ($request->filled('date')) {
-            $query->forDate($request->date);
-        }
-        if ($request->filled('start_date') && $request->filled('end_date')) {
-            $query->forPeriod($request->start_date, $request->end_date);
-        }
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        $logs = $request->boolean('paginate', true)
-            ? $query->latest('log_date')->paginate($request->input('per_page', 15))
-            : $query->latest('log_date')->get();
-
-        return response()->json(['success' => true, 'data' => $logs]);
-    }
-
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'staff_member_id' => 'required|exists:staff_members,id',
-            'log_date' => 'required|date',
-            'status' => 'required|in:present,absent,half_day,on_leave,holiday',
-            'clock_in' => 'nullable|date_format:H:i',
-            'clock_out' => 'nullable|date_format:H:i',
-            'late_minutes' => 'nullable|integer|min:0',
-            'early_leave_minutes' => 'nullable|integer|min:0',
-            'overtime_minutes' => 'nullable|integer|min:0',
-            'break_minutes' => 'nullable|integer|min:0',
-            'notes' => 'nullable|string',
-        ]);
-
-        $validated['author_id'] = $request->user()->id;
-        $log = WorkLog::updateOrCreate(
-            [
-                'staff_member_id' => $validated['staff_member_id'],
-                'log_date' => $validated['log_date'],
-            ],
-            $validated
-        );
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Work log saved',
-            'data' => $log->load('staffMember'),
-        ], 201);
+        $this->service = $service;
     }
 
     /**
-     * Clock in for current user.
+     * Display a listing of work logs.
      */
-    public function clockIn(Request $request)
+    public function index(Request $request): JsonResponse
     {
-        $staffMember = StaffMember::where('user_id', $request->user()->id)->first();
-        
-        if (!$staffMember) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Staff member not found',
-            ], 404);
+        try {
+            $params = $request->only([
+                'staff_member_id',
+                'office_location_id',
+                'date',
+                'start_date',
+                'end_date',
+                'month',
+                'year',
+                'paginate',
+                'per_page',
+                'page',
+            ]);
+
+            $result = $this->service->getAll($params);
+
+            return $this->success($result, 'Work logs retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to retrieve work logs: ' . $e->getMessage());
         }
-
-        $today = now()->toDateString();
-        $log = WorkLog::updateOrCreate(
-            [
-                'staff_member_id' => $staffMember->id,
-                'log_date' => $today,
-            ],
-            [
-                'clock_in' => now()->format('H:i'),
-                'clock_in_ip' => $request->ip(),
-                'status' => 'present',
-                'author_id' => $request->user()->id,
-            ]
-        );
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Clocked in successfully',
-            'data' => $log,
-        ]);
     }
 
     /**
-     * Clock out for current user.
+     * Store a new work log (manual attendance entry).
      */
-    public function clockOut(Request $request)
+    public function store(Request $request): JsonResponse
     {
-        $staffMember = StaffMember::where('user_id', $request->user()->id)->first();
-        
-        if (!$staffMember) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Staff member not found',
-            ], 404);
+        try {
+            $validated = $request->validate([
+                'staff_member_id' => 'required|exists:staff_members,id',
+                'work_date' => 'required|date',
+                'clock_in' => 'nullable|date_format:H:i',
+                'clock_out' => 'nullable|date_format:H:i|after:clock_in',
+                'status' => 'nullable|in:present,absent,late,half_day,leave',
+                'notes' => 'nullable|string|max:500',
+            ]);
+
+            $workLog = $this->service->recordAttendance($validated);
+
+            return $this->created($workLog, 'Attendance recorded successfully');
+        } catch (ValidationException $e) {
+            return $this->validationError($e->errors());
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to record attendance: ' . $e->getMessage());
         }
-
-        $today = now()->toDateString();
-        $log = WorkLog::where('staff_member_id', $staffMember->id)
-            ->where('log_date', $today)
-            ->first();
-
-        if (!$log) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No clock in record found for today',
-            ], 422);
-        }
-
-        $log->update([
-            'clock_out' => now()->format('H:i'),
-            'clock_out_ip' => $request->ip(),
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Clocked out successfully',
-            'data' => $log,
-        ]);
     }
 
     /**
-     * Bulk create/update work logs.
+     * Display the specified work log.
      */
-    public function bulkStore(Request $request)
+    public function show(int $id): JsonResponse
     {
-        $validated = $request->validate([
-            'logs' => 'required|array',
-            'logs.*.staff_member_id' => 'required|exists:staff_members,id',
-            'logs.*.log_date' => 'required|date',
-            'logs.*.status' => 'required|in:present,absent,half_day,on_leave,holiday',
-            'logs.*.clock_in' => 'nullable|date_format:H:i',
-            'logs.*.clock_out' => 'nullable|date_format:H:i',
-        ]);
+        try {
+            $workLog = $this->service->findById($id);
 
-        $created = [];
-        foreach ($validated['logs'] as $logData) {
-            $logData['author_id'] = $request->user()->id;
-            $created[] = WorkLog::updateOrCreate(
-                [
-                    'staff_member_id' => $logData['staff_member_id'],
-                    'log_date' => $logData['log_date'],
-                ],
-                $logData
-            );
+            if (!$workLog) {
+                return $this->notFound('Work log not found');
+            }
+
+            return $this->success($workLog, 'Work log retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to retrieve work log: ' . $e->getMessage());
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => count($created) . ' work logs processed',
-            'data' => $created,
-        ], 201);
     }
 
     /**
-     * Get attendance summary for a period.
+     * Update the specified work log.
      */
-    public function summary(Request $request)
+    public function update(Request $request, int $id): JsonResponse
     {
-        $request->validate([
-            'staff_member_id' => 'required|exists:staff_members,id',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-        ]);
+        try {
+            $validated = $request->validate([
+                'clock_in' => 'nullable|date_format:H:i',
+                'clock_out' => 'nullable|date_format:H:i',
+                'status' => 'nullable|in:present,absent,late,half_day,leave',
+                'notes' => 'nullable|string|max:500',
+            ]);
 
-        $logs = WorkLog::where('staff_member_id', $request->staff_member_id)
-            ->forPeriod($request->start_date, $request->end_date)
-            ->get();
+            $workLog = $this->service->update($id, $validated);
 
-        $summary = [
-            'total_days' => Carbon::parse($request->start_date)->diffInDays(Carbon::parse($request->end_date)) + 1,
-            'present' => $logs->where('status', 'present')->count(),
-            'absent' => $logs->where('status', 'absent')->count(),
-            'half_day' => $logs->where('status', 'half_day')->count(),
-            'on_leave' => $logs->where('status', 'on_leave')->count(),
-            'holiday' => $logs->where('status', 'holiday')->count(),
-            'total_late_minutes' => $logs->sum('late_minutes'),
-            'total_overtime_minutes' => $logs->sum('overtime_minutes'),
-            'total_early_leave_minutes' => $logs->sum('early_leave_minutes'),
-        ];
-
-        return response()->json([
-            'success' => true,
-            'data' => $summary,
-        ]);
+            return $this->success($workLog, 'Work log updated successfully');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->notFound('Work log not found');
+        } catch (ValidationException $e) {
+            return $this->validationError($e->errors());
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to update work log: ' . $e->getMessage());
+        }
     }
 
-    public function show(WorkLog $workLog)
+    /**
+     * Remove the specified work log.
+     */
+    public function destroy(int $id): JsonResponse
     {
-        return response()->json([
-            'success' => true,
-            'data' => $workLog->load(['staffMember', 'author']),
-        ]);
+        try {
+            $this->service->delete($id);
+
+            return $this->noContent('Work log deleted successfully');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->notFound('Work log not found');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to delete work log: ' . $e->getMessage());
+        }
     }
 
-    public function update(Request $request, WorkLog $workLog)
+    /**
+     * Clock in for the current user.
+     */
+    public function clockIn(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'status' => 'sometimes|required|in:present,absent,half_day,on_leave,holiday',
-            'clock_in' => 'nullable|date_format:H:i',
-            'clock_out' => 'nullable|date_format:H:i',
-            'late_minutes' => 'nullable|integer|min:0',
-            'early_leave_minutes' => 'nullable|integer|min:0',
-            'overtime_minutes' => 'nullable|integer|min:0',
-            'break_minutes' => 'nullable|integer|min:0',
-            'notes' => 'nullable|string',
-        ]);
+        try {
+            $staffMemberId = $request->input('staff_member_id') ?? $request->user()->staffMember?->id;
 
-        $workLog->update($validated);
+            if (!$staffMemberId) {
+                return $this->error('Staff member not found', 404);
+            }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Work log updated',
-            'data' => $workLog->fresh('staffMember'),
-        ]);
+            $workLog = $this->service->clockIn($staffMemberId, [
+                'ip_address' => $request->ip(),
+                'location' => $request->input('location'),
+            ]);
+
+            return $this->created($workLog, 'Clocked in successfully');
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage(), 400);
+        }
     }
 
-    public function destroy(WorkLog $workLog)
+    /**
+     * Clock out for the current user.
+     */
+    public function clockOut(Request $request): JsonResponse
     {
-        $workLog->delete();
+        try {
+            $staffMemberId = $request->input('staff_member_id') ?? $request->user()->staffMember?->id;
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Work log deleted',
-        ]);
+            if (!$staffMemberId) {
+                return $this->error('Staff member not found', 404);
+            }
+
+            $workLog = $this->service->clockOut($staffMemberId, [
+                'ip_address' => $request->ip(),
+                'location' => $request->input('location'),
+            ]);
+
+            return $this->success($workLog, 'Clocked out successfully');
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Get today's attendance summary.
+     */
+    public function todaySummary(): JsonResponse
+    {
+        try {
+            $summary = $this->service->getTodaySummary();
+
+            return $this->success($summary, 'Today\'s attendance summary retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to retrieve attendance summary: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get attendance report.
+     */
+    public function report(Request $request): JsonResponse
+    {
+        try {
+            $params = $request->only(['start_date', 'end_date']);
+            $report = $this->service->getAttendanceReport($params);
+
+            return $this->collection($report, 'Attendance report generated successfully');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to generate attendance report: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get monthly attendance for an employee.
+     */
+    public function monthlyAttendance(Request $request, int $staffMemberId): JsonResponse
+    {
+        try {
+            $month = $request->input('month', now()->month);
+            $year = $request->input('year', now()->year);
+
+            $attendance = $this->service->getEmployeeMonthlyAttendance($staffMemberId, $month, $year);
+
+            return $this->success($attendance, 'Monthly attendance retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to retrieve monthly attendance: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get current attendance status for an employee.
+     */
+    public function currentStatus(Request $request): JsonResponse
+    {
+        try {
+            $staffMemberId = $request->input('staff_member_id') ?? $request->user()->staffMember?->id;
+
+            if (!$staffMemberId) {
+                return $this->error('Staff member not found', 404);
+            }
+
+            $status = $this->service->getCurrentStatus($staffMemberId);
+
+            return $this->success($status, 'Current status retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to retrieve current status: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Bulk record attendance.
+     */
+    public function bulkRecord(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'records' => 'required|array|min:1',
+                'records.*.staff_member_id' => 'required|exists:staff_members,id',
+                'records.*.work_date' => 'required|date',
+                'records.*.status' => 'required|in:present,absent,late,half_day,leave',
+            ]);
+
+            $records = $this->service->bulkRecordAttendance($validated['records']);
+
+            return $this->success([
+                'recorded' => $records->count(),
+            ], 'Bulk attendance recorded successfully');
+        } catch (ValidationException $e) {
+            return $this->validationError($e->errors());
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to record bulk attendance: ' . $e->getMessage());
+        }
     }
 }

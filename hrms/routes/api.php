@@ -84,6 +84,7 @@ use App\Http\Controllers\Api\OfferTemplateController;
 use App\Http\Controllers\Api\OfferController;
 use App\Http\Controllers\Api\CandidateAssessmentController;
 use App\Http\Controllers\Api\AttendanceRegularizationController;
+use App\Http\Controllers\Api\DashboardController;
 
 
 /*
@@ -108,6 +109,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/sign-out', [AccessController::class, 'signOut']);
         Route::get('/profile', [AccessController::class, 'profile']);
     });
+
+    // ============================================
+    // Dashboard
+    // ============================================
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+    Route::get('/dashboard/employee-stats', [DashboardController::class, 'employeeStats']);
+    Route::get('/dashboard/attendance-summary', [DashboardController::class, 'attendanceSummary']);
+    Route::get('/dashboard/employee-growth', [DashboardController::class, 'employeeGrowth']);
+    Route::get('/dashboard/department-distribution', [DashboardController::class, 'departmentDistribution']);
 
     // ============================================
     // PROMPT SET 2: Organization Structure

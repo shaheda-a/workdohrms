@@ -3,137 +3,151 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Division;
+use App\Services\OrganizationService;
+use App\Traits\ApiResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
+/**
+ * Division Controller
+ * 
+ * Handles HTTP requests for division (department) management.
+ */
 class DivisionController extends Controller
 {
+    use ApiResponse;
+
+    protected OrganizationService $service;
+
+    public function __construct(OrganizationService $service)
+    {
+        $this->service = $service;
+    }
+
     /**
      * Display a listing of divisions.
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
-        $query = Division::with(['officeLocation', 'author']);
+        try {
+            $params = $request->only([
+                'office_location_id',
+                'active_only',
+                'search',
+                'paginate',
+                'per_page',
+                'page',
+            ]);
 
-        // Filter by office location
-        if ($request->filled('office_location_id')) {
-            $query->forLocation($request->office_location_id);
+            $result = $this->service->getAllDivisions($params);
+
+            return $this->success($result, 'Divisions retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to retrieve divisions: ' . $e->getMessage());
         }
-
-        // Filter by active status
-        if ($request->has('active')) {
-            $query->where('is_active', $request->boolean('active'));
-        }
-
-        // Search by title
-        if ($request->filled('search')) {
-            $query->where('title', 'like', '%' . $request->search . '%');
-        }
-
-        $divisions = $request->boolean('paginate', true)
-            ? $query->latest()->paginate($request->input('per_page', 15))
-            : $query->latest()->get();
-
-        return response()->json([
-            'success' => true,
-            'data' => $divisions,
-        ]);
     }
 
     /**
      * Store a newly created division.
      */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'office_location_id' => 'required|exists:office_locations,id',
-            'notes' => 'nullable|string',
-            'is_active' => 'boolean',
-        ]);
+        try {
+            $validated = $request->validate([
+                'title' => 'required|string|max:255',
+                'office_location_id' => 'required|exists:office_locations,id',
+                'notes' => 'nullable|string',
+                'is_active' => 'boolean',
+            ]);
 
-        $validated['author_id'] = $request->user()->id;
-        
-        $division = Division::create($validated);
+            $division = $this->service->createDivision($validated, $request->user()?->id);
+            $division->load('officeLocation');
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Division created successfully',
-            'data' => $division->load(['officeLocation', 'author']),
-        ], 201);
+            return $this->created($division, 'Division created successfully');
+        } catch (ValidationException $e) {
+            return $this->validationError($e->errors());
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to create division: ' . $e->getMessage());
+        }
     }
 
     /**
      * Display the specified division.
      */
-    public function show(Division $division)
+    public function show(int $id): JsonResponse
     {
-        return response()->json([
-            'success' => true,
-            'data' => $division->load(['officeLocation', 'author', 'jobTitles']),
-        ]);
+        try {
+            $division = $this->service->findDivision($id);
+
+            if (!$division) {
+                return $this->notFound('Division not found');
+            }
+
+            return $this->success($division, 'Division retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to retrieve division: ' . $e->getMessage());
+        }
     }
 
     /**
      * Update the specified division.
      */
-    public function update(Request $request, Division $division)
+    public function update(Request $request, int $id): JsonResponse
     {
-        $validated = $request->validate([
-            'title' => 'sometimes|required|string|max:255',
-            'office_location_id' => 'sometimes|required|exists:office_locations,id',
-            'notes' => 'nullable|string',
-            'is_active' => 'boolean',
-        ]);
+        try {
+            $validated = $request->validate([
+                'title' => 'sometimes|required|string|max:255',
+                'office_location_id' => 'sometimes|required|exists:office_locations,id',
+                'notes' => 'nullable|string',
+                'is_active' => 'boolean',
+            ]);
 
-        $division->update($validated);
+            $division = $this->service->updateDivision($id, $validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Division updated successfully',
-            'data' => $division->fresh(['officeLocation', 'author']),
-        ]);
+            return $this->success($division, 'Division updated successfully');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->notFound('Division not found');
+        } catch (ValidationException $e) {
+            return $this->validationError($e->errors());
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to update division: ' . $e->getMessage());
+        }
     }
 
     /**
      * Remove the specified division.
      */
-    public function destroy(Division $division)
+    public function destroy(int $id): JsonResponse
     {
-        // Check if division has job titles
-        if ($division->jobTitles()->exists()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot delete division with existing job titles',
-            ], 422);
+        try {
+            $this->service->deleteDivision($id);
+
+            return $this->noContent('Division deleted successfully');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->notFound('Division not found');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to delete division: ' . $e->getMessage());
         }
-
-        $division->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Division deleted successfully',
-        ]);
     }
 
     /**
-     * Fetch divisions by office location (for cascading dropdown).
+     * Get divisions by office location.
      */
-    public function fetchByLocation(Request $request)
+    public function fetchByLocation(Request $request): JsonResponse
     {
-        $request->validate([
-            'office_location_id' => 'required|exists:office_locations,id',
-        ]);
+        try {
+            $validated = $request->validate([
+                'office_location_id' => 'required|exists:office_locations,id',
+            ]);
 
-        $divisions = Division::active()
-            ->forLocation($request->office_location_id)
-            ->select('id', 'title')
-            ->orderBy('title')
-            ->get();
+            $divisions = $this->service->getDivisionsByLocation($validated['office_location_id']);
 
-        return response()->json([
-            'success' => true,
-            'data' => $divisions,
-        ]);
+            return $this->collection($divisions, 'Divisions retrieved successfully');
+        } catch (ValidationException $e) {
+            return $this->validationError($e->errors());
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to retrieve divisions: ' . $e->getMessage());
+        }
     }
 }

@@ -1,8 +1,8 @@
 # Demo folder - reference only, not part of project
 demo/
 
-# Frontend folder - separate development
-frontend/
+# Frontend folder - separate development (temporarily enabled for development)
+# frontend/
 
 # HRM Guide folder - separate reference
 hrm-guide/
