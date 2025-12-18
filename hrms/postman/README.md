@@ -1,29 +1,44 @@
-# Postman Collection
+# HRMS API Postman Collection
 
-This folder contains everything you need to test the HRMS API using Postman.
+A complete Postman collection for testing the HRMS API endpoints.
 
 ## Files
 
-| File | Description |
-|------|-------------|
-| `HRMS_API.postman_collection.json` | Complete API collection with 70+ endpoints |
-| `HRMS_Local.postman_environment.json` | Environment variables for local testing |
-| `POSTMAN_SETUP.md` | Setup instructions and usage guide |
-| `API_TEST_RESULTS.md` | API verification test results |
+- `HRMS_API.postman_collection.json` - API Collection
+- `HRMS_Local.postman_environment.json` - Environment Variables
+- `POSTMAN_SETUP.md` - Detailed Setup Guide
 
-## Quick Import
+## Quick Start
 
-1. Open Postman
-2. Click **Import** (top left)
-3. Drag and drop both JSON files
-4. Select **HRMS Local** from environment dropdown
+1. Import both JSON files into Postman
+2. Select "HRMS Local" environment
+3. Run "Sign In" request
+4. Start testing!
+
+## Endpoints Covered
+
+- Authentication (Sign Up, Sign In, Sign Out)
+- Organization (Locations, Divisions, Job Titles)
+- Staff Members (CRUD)
+- Attendance (Clock In/Out, Work Logs)
+- Leave Management (Categories, Requests)
+- Payroll (Salary Components, Payslips)
+- Events & Calendar
+- Recruitment (Jobs, Candidates, Interviews)
+- Training Management
+- Asset Management
+- Contract Management
+- Meeting Management
+- Announcements
+- Holidays
+- Reports
+- Settings
 
 ## Default Credentials
 
-| Email | Password |
-|-------|----------|
-| <admin@hrms.local> | password |
+```
+Email: admin@hrms.local
+Password: password
+```
 
-## Auto Token Saving
-
-The "Sign In" request automatically saves the auth token. Just run it first and all other requests will work!
+See [POSTMAN_SETUP.md](POSTMAN_SETUP.md) for detailed instructions.

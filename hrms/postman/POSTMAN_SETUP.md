@@ -1,46 +1,45 @@
-# Postman Setup Guide
+# Postman API Collection
 
-## Quick Import
+## Overview
 
-### Step 1: Import Collection
+This directory contains the Postman collection and environment files for testing the HRMS API.
+
+## Files
+
+| File | Description |
+|------|-------------|
+| `HRMS_API.postman_collection.json` | Complete API collection |
+| `HRMS_Local.postman_environment.json` | Local development environment |
+
+## Setup Instructions
+
+### 1. Import Collection
 
 1. Open Postman
-2. Click **Import** button (top left)
-3. Drag and drop `HRMS_API.postman_collection.json`
-4. Or use: File → Import → Upload Files
+2. Click **Import** button
+3. Select `HRMS_API.postman_collection.json`
+4. The collection will appear in your sidebar
 
-### Step 2: Import Environment
+### 2. Import Environment
 
-1. Click **Import** again
-2. Import `HRMS_Local.postman_environment.json`
-3. Select **HRMS Local** from environment dropdown (top right)
+1. Click **Import** button
+2. Select `HRMS_Local.postman_environment.json`
+3. Select the environment from the dropdown (top-right)
 
----
+### 3. Configure Environment Variables
 
-## First Time Setup
+The following variables are used:
 
-### 1. Start Laravel Server
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `base_url` | API Base URL | `http://localhost:8000` |
+| `auth_token` | Bearer Token (auto-set) | - |
 
-```bash
-cd hrms
-php artisan serve
-```
+### 4. Start Testing
 
-Server runs at: `http://localhost:8000`
-
-### 2. Get Authentication Token
-
-1. Open Collection → **🔐 Authentication** → **Sign In**
-2. Click **Send**
-3. Token is automatically saved to `{{auth_token}}` variable
-
-### 3. Test an Endpoint
-
-1. Open **📊 Reports & Dashboard** → **Dashboard**
-2. Click **Send**
-3. You should see dashboard data
-
----
+1. Run **Sign In** request first
+2. The auth token is automatically saved
+3. All subsequent requests will use the token
 
 ## Collection Structure
 
@@ -48,7 +47,7 @@ Server runs at: `http://localhost:8000`
 HRMS API Collection
 ├── 🔐 Authentication
 │   ├── Sign Up
-│   ├── Sign In          ← Run this first!
+│   ├── Sign In
 │   ├── Sign Out
 │   ├── Get Profile
 │   └── Forgot Password
@@ -59,136 +58,156 @@ HRMS API Collection
 │   └── Job Titles
 │
 ├── 👥 Staff Members
-│   ├── List Staff
-│   ├── Create Staff
-│   ├── Get/Update/Delete
-│   └── Staff Dropdown
+│   ├── List Staff Members
+│   ├── Create Staff Member
+│   ├── Get Staff Member
+│   ├── Update Staff Member
+│   └── Delete Staff Member
 │
 ├── ⏰ Attendance
-│   ├── Clock In/Out
-│   ├── Work Logs
-│   └── Summary
+│   ├── Clock In
+│   ├── Clock Out
+│   ├── List Work Logs
+│   ├── Create Work Log
+│   └── Bulk Create Work Logs
 │
 ├── 🌴 Leave Management
-│   ├── Categories
-│   ├── Requests
-│   └── Approve/Decline
+│   ├── Time Off Categories
+│   └── Time Off Requests
 │
 ├── 💰 Payroll
-│   ├── Salary Slips
-│   ├── Benefits
-│   ├── Deductions
-│   └── Tax Slabs
+│   ├── Salary Components
+│   └── Payslips
+│
+├── 📊 Reports
+│   └── Various Reports
 │
 ├── 📅 Events & Calendar
-│   ├── Events
-│   ├── Holidays
-│   └── Calendar Data
+│   └── Company Events
 │
-├── 📊 Reports & Dashboard
-│   ├── Dashboard
-│   ├── Attendance Report
-│   ├── Leave Report
-│   └── Payroll Report
+├── 👔 Recruitment
+│   ├── Jobs
+│   ├── Candidates
+│   └── Interviews
 │
-├── 📥 Import / Export
-│   ├── Export Staff
-│   └── Export Attendance
+├── 🎓 Training
+│   └── Training Programs
 │
-└── 📈 Performance
-    ├── Objectives
-    └── Appraisals
+├── 📦 Assets
+│   └── Asset Management
+│
+├── 📄 Contracts
+│   └── Contract Management
+│
+├── 🗓️ Meetings
+│   └── Meeting Management
+│
+├── 📢 Announcements
+│   └── Announcement Management
+│
+├── 🎉 Holidays
+│   └── Holiday Management
+│
+└── ⚙️ Settings
+    └── System Settings
 ```
 
----
+## Authentication
 
-## Default Login Credentials
+All protected endpoints require a Bearer token in the Authorization header:
 
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | <admin@hrms.local> | password |
-| Manager | <manager@hrms.local> | password |
-| HR | <hr@hrms.local> | password |
-| Staff | <staff@hrms.local> | password |
+```
+Authorization: Bearer {token}
+```
 
----
+The token is automatically obtained when you run the **Sign In** request and stored in the `auth_token` variable.
 
-## Environment Variables
+## Default Test Credentials
 
-| Variable | Description |
-|----------|-------------|
-| `base_url` | API base URL (<http://localhost:8000>) |
-| `auth_token` | Bearer token (auto-saved on login) |
+```
+Email: admin@hrms.local
+Password: password
+```
 
----
+## Common Headers
 
-## Auto Token Saving
+All requests include:
 
-The **Sign In** request has a test script that automatically saves the token:
+```
+Accept: application/json
+Content-Type: application/json
+```
 
-```javascript
-var jsonData = pm.response.json();
-if (jsonData.data && jsonData.data.access_token) {
-    pm.collectionVariables.set('auth_token', jsonData.data.access_token);
+## Response Format
+
+### Success Response
+
+```json
+{
+    "success": true,
+    "message": "Operation successful",
+    "data": { ... }
 }
 ```
 
-All other requests use `{{auth_token}}` in the Authorization header.
+### Error Response
 
----
+```json
+{
+    "success": false,
+    "message": "Error description",
+    "errors": { ... }
+}
+```
 
-## Common Workflows
+### Paginated Response
 
-### Create a Staff Member
+```json
+{
+    "success": true,
+    "data": {
+        "current_page": 1,
+        "data": [...],
+        "last_page": 10,
+        "per_page": 15,
+        "total": 150
+    }
+}
+```
 
-1. Sign In (get token)
-2. Create Office Location
-3. Create Division
-4. Create Job Title
-5. Create Staff Member
+## Testing Workflow
 
-### Submit Leave Request
+1. **Sign In** to get authentication token
+2. **Create** resources (Office Location → Division → Job Title → Staff Member)
+3. **Test** CRUD operations on each module
+4. **Verify** relationships and validations
 
-1. Sign In as staff
-2. Check Leave Balance
-3. Create Leave Request
-4. Sign In as manager
-5. Approve/Decline Request
+## Tips
 
-### Generate Payroll
-
-1. Sign In as admin
-2. Create Benefits for staff
-3. Create Deductions
-4. Generate Payslip
-5. Mark as Paid
-
----
+- Use **Pre-request Scripts** for dynamic data
+- Use **Tests** tab to verify responses
+- Use **Variables** for reusable values
+- Use **Folders** to organize requests
+- Use **Runner** for automated testing
 
 ## Troubleshooting
 
-### "Unauthenticated" Error
+### 401 Unauthorized
 
-- Run **Sign In** request first
-- Check if token is saved in environment
-
-### 404 Not Found
-
-- Ensure server is running
-- Check `base_url` is correct
+- Token expired - Run **Sign In** again
+- Token missing - Check environment is selected
 
 ### 422 Validation Error
 
 - Check request body format
-- Required fields may be missing
+- Verify required fields
 
----
+### 404 Not Found
 
-## Files
+- Check resource ID exists
+- Verify URL is correct
 
-| File | Purpose |
-|------|---------|
-| `HRMS_API.postman_collection.json` | All API endpoints |
-| `HRMS_Local.postman_environment.json` | Environment variables |
+### 500 Server Error
 
-Happy Testing! 🚀
+- Check Laravel logs: `storage/logs/laravel.log`
+- Verify database connection

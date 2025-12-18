@@ -4,6 +4,9 @@ demo/
 # Frontend folder - separate development
 frontend/
 
+# HRM Guide folder - separate reference
+hrm-guide/
+
 
 # Composer phar file
 composer.phar

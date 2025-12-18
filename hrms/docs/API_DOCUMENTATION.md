@@ -1071,3 +1071,192 @@ GET /api/timesheet-report                              # Generate report
     "is_billable": true
 }
 ```
+
+---
+
+## 23. Holiday Management
+
+```http
+GET /api/holidays                                      # List holidays
+POST /api/holidays                                     # Create holiday
+GET /api/holidays/{id}                                 # Get holiday
+PUT /api/holidays/{id}                                 # Update holiday
+DELETE /api/holidays/{id}                              # Delete holiday
+POST /api/holidays/import                              # Import holidays (CSV)
+GET /api/holidays/export                               # Export holidays
+GET /api/holidays/year/{year}                          # Get holidays by year
+```
+
+**Create Holiday Request:**
+
+```json
+{
+    "name": "Christmas Day",
+    "date": "2024-12-25",
+    "description": "Public Holiday",
+    "is_recurring": true
+}
+```
+
+---
+
+## 24. Announcements
+
+```http
+GET /api/announcements                                 # List announcements
+POST /api/announcements                                # Create announcement
+GET /api/announcements/{id}                            # Get announcement
+PUT /api/announcements/{id}                            # Update announcement
+DELETE /api/announcements/{id}                         # Delete announcement
+GET /api/announcements/active                          # Get active announcements
+```
+
+**Create Announcement Request:**
+
+```json
+{
+    "title": "Office Holiday Notice",
+    "description": "Office will be closed on December 25th",
+    "start_date": "2024-12-20",
+    "end_date": "2024-12-26",
+    "target_type": "all",
+    "department_ids": [],
+    "employee_ids": []
+}
+```
+
+---
+
+## 25. Activity Log
+
+```http
+GET /api/activity-logs                                 # List all activity logs
+GET /api/activity-logs/user/{userId}                   # User's activity
+GET /api/activity-logs/module/{module}                 # Activity by module
+```
+
+**Query Parameters:**
+
+- `user_id` - Filter by user
+- `action` - Filter by action (login, create, update, delete, etc.)
+- `date_from` - Start date
+- `date_to` - End date
+- `per_page` - Items per page
+
+---
+
+## 26. Settings Management
+
+### Company Settings
+
+```http
+GET /api/settings/company                              # Get company settings
+PUT /api/settings/company                              # Update company settings
+```
+
+### System Settings
+
+```http
+GET /api/settings/system                               # Get system settings
+PUT /api/settings/system                               # Update system settings
+```
+
+### Email Settings
+
+```http
+GET /api/settings/email                                # Get email settings
+PUT /api/settings/email                                # Update email settings
+POST /api/settings/email/test                          # Send test email
+```
+
+### Attendance Settings
+
+```http
+GET /api/settings/attendance                           # Get attendance settings
+PUT /api/settings/attendance                           # Update attendance settings
+```
+
+### Leave Settings
+
+```http
+GET /api/settings/leave                                # Get leave settings
+PUT /api/settings/leave                                # Update leave settings
+```
+
+### IP Restriction
+
+```http
+GET /api/ip-restrictions                               # List IP restrictions
+POST /api/ip-restrictions                              # Add IP restriction
+DELETE /api/ip-restrictions/{id}                       # Remove restriction
+```
+
+---
+
+## 27. Document Generation
+
+```http
+POST /api/documents/generate/joining-letter/{staffId}  # Generate joining letter
+POST /api/documents/generate/experience/{staffId}      # Generate experience cert
+POST /api/documents/generate/noc/{staffId}             # Generate NOC
+POST /api/documents/generate/id-card/{staffId}         # Generate ID card
+POST /api/documents/generate/payslip/{payslipId}       # Generate payslip PDF
+POST /api/documents/generate/contract/{contractId}     # Generate contract PDF
+POST /api/documents/generate/offer-letter/{appId}      # Generate offer letter
+```
+
+---
+
+## 28. Notifications
+
+```http
+GET /api/notifications                                 # List notifications
+GET /api/notifications/unread                          # Get unread count
+POST /api/notifications/{id}/read                      # Mark as read
+POST /api/notifications/read-all                       # Mark all as read
+DELETE /api/notifications/{id}                         # Delete notification
+```
+
+---
+
+## 29. Reports
+
+```http
+GET /api/reports/attendance                            # Attendance report
+GET /api/reports/leave                                 # Leave report
+GET /api/reports/payroll                               # Payroll report
+GET /api/reports/employees                             # Employee report
+GET /api/reports/employees/turnover                    # Turnover report
+GET /api/reports/performance                           # Performance report
+GET /api/reports/attendance/export                     # Export attendance
+GET /api/reports/leave/export                          # Export leave
+GET /api/reports/payroll/export                        # Export payroll
+```
+
+**Query Parameters:**
+
+- `month` - Month (1-12)
+- `year` - Year
+- `department_id` - Filter by department
+- `employee_id` - Filter by employee
+- `format` - Export format (csv, pdf, xlsx)
+
+---
+
+## Quick Reference
+
+| Module | List | Create | Update | Delete |
+|--------|------|--------|--------|--------|
+| Staff Members | GET /api/staff-members | POST /api/staff-members | PUT /api/staff-members/{id} | DELETE /api/staff-members/{id} |
+| Attendance | GET /api/work-logs | POST /api/work-logs | PUT /api/work-logs/{id} | DELETE /api/work-logs/{id} |
+| Leave | GET /api/time-off-requests | POST /api/time-off-requests | PUT /api/time-off-requests/{id} | DELETE /api/time-off-requests/{id} |
+| Payslips | GET /api/salary-slips | POST /api/salary-slips/generate | - | DELETE /api/salary-slips/{id} |
+| Holidays | GET /api/holidays | POST /api/holidays | PUT /api/holidays/{id} | DELETE /api/holidays/{id} |
+| Announcements | GET /api/announcements | POST /api/announcements | PUT /api/announcements/{id} | DELETE /api/announcements/{id} |
+| Events | GET /api/company-events | POST /api/company-events | PUT /api/company-events/{id} | DELETE /api/company-events/{id} |
+| Meetings | GET /api/meetings | POST /api/meetings | PUT /api/meetings/{id} | DELETE /api/meetings/{id} |
+| Assets | GET /api/assets | POST /api/assets | PUT /api/assets/{id} | DELETE /api/assets/{id} |
+| Training | GET /api/training-programs | POST /api/training-programs | PUT /api/training-programs/{id} | DELETE /api/training-programs/{id} |
+| Contracts | GET /api/contracts | POST /api/contracts | PUT /api/contracts/{id} | DELETE /api/contracts/{id} |
+| Jobs | GET /api/jobs | POST /api/jobs | PUT /api/jobs/{id} | DELETE /api/jobs/{id} |
+| Shifts | GET /api/shifts | POST /api/shifts | PUT /api/shifts/{id} | DELETE /api/shifts/{id} |
