@@ -1,88 +1,103 @@
 <?php
 
-use App\Http\Controllers\Api\AccessController;
-use App\Http\Controllers\Api\AdvanceTypeController;
-use App\Http\Controllers\Api\AllowedIpAddressController;
-use App\Http\Controllers\Api\AppraisalCycleController;
-use App\Http\Controllers\Api\AppraisalRecordController;
-use App\Http\Controllers\Api\AssetController;
-use App\Http\Controllers\Api\AssetTypeController;
-use App\Http\Controllers\Api\AttendanceRegularizationController;
-use App\Http\Controllers\Api\BenefitTypeController;
-use App\Http\Controllers\Api\BonusPaymentController;
-use App\Http\Controllers\Api\BusinessTripController;
-use App\Http\Controllers\Api\CandidateAssessmentController;
-use App\Http\Controllers\Api\CandidateController;
-use App\Http\Controllers\Api\CompanyEventController;
-use App\Http\Controllers\Api\CompanyHolidayController;
-use App\Http\Controllers\Api\CompanyNoticeController;
-use App\Http\Controllers\Api\CompensationCategoryController;
-use App\Http\Controllers\Api\ContractController;
-use App\Http\Controllers\Api\ContractTypeController;
-use App\Http\Controllers\Api\DashboardController;
-use App\Http\Controllers\Api\DataExportController;
-use App\Http\Controllers\Api\DataImportController;
-use App\Http\Controllers\Api\DataTableController;
-use App\Http\Controllers\Api\DisciplineNoteController;
-use App\Http\Controllers\Api\DivisionController;
-use App\Http\Controllers\Api\DocumentCategoryController;
-use App\Http\Controllers\Api\DocumentTypeController;
-use App\Http\Controllers\Api\EmployeeOnboardingController;
-use App\Http\Controllers\Api\EmployerContributionController;
-use App\Http\Controllers\Api\ExitCategoryController;
-use App\Http\Controllers\Api\ExtraHoursRecordController;
-use App\Http\Controllers\Api\FileCategoryController;
-use App\Http\Controllers\Api\GeneratedLetterController;
-use App\Http\Controllers\Api\GrievanceController;
-use App\Http\Controllers\Api\HrDocumentController;
-use App\Http\Controllers\Api\IncentiveRecordController;
-use App\Http\Controllers\Api\InterviewScheduleController;
-use App\Http\Controllers\Api\JobApplicationController;
-use App\Http\Controllers\Api\JobCategoryController;
-use App\Http\Controllers\Api\JobController;
-use App\Http\Controllers\Api\JobRequisitionController;
-use App\Http\Controllers\Api\JobStageController;
-use App\Http\Controllers\Api\JobTitleController;
-use App\Http\Controllers\Api\LetterTemplateController;
-use App\Http\Controllers\Api\LocationTransferController;
-use App\Http\Controllers\Api\MediaDirectoryController;
-use App\Http\Controllers\Api\MediaFileController;
-use App\Http\Controllers\Api\MeetingController;
-use App\Http\Controllers\Api\MeetingRoomController;
-use App\Http\Controllers\Api\MeetingTypeController;
-use App\Http\Controllers\Api\MinimumTaxLimitController;
-use App\Http\Controllers\Api\OffboardingController;
-use App\Http\Controllers\Api\OfferController;
-use App\Http\Controllers\Api\OfferTemplateController;
-use App\Http\Controllers\Api\OfficeLocationController;
-use App\Http\Controllers\Api\OnboardingTemplateController;
-use App\Http\Controllers\Api\OrganizationDocumentController;
-use App\Http\Controllers\Api\OrganizationPolicyController;
-use App\Http\Controllers\Api\PerformanceObjectiveController;
-use App\Http\Controllers\Api\RecognitionCategoryController;
-use App\Http\Controllers\Api\RecognitionRecordController;
-use App\Http\Controllers\Api\RecurringDeductionController;
-use App\Http\Controllers\Api\ReportController;
-use App\Http\Controllers\Api\RoleUpgradeController;
-use App\Http\Controllers\Api\SalaryAdvanceController;
-use App\Http\Controllers\Api\SalarySlipController;
-use App\Http\Controllers\Api\ShiftController;
-use App\Http\Controllers\Api\StaffBenefitController;
-use App\Http\Controllers\Api\StaffFileController;
-use App\Http\Controllers\Api\StaffMemberController;
-use App\Http\Controllers\Api\SystemConfigurationController;
-use App\Http\Controllers\Api\TaxExemptionController;
-use App\Http\Controllers\Api\TaxSlabController;
-use App\Http\Controllers\Api\TimeOffCategoryController;
-use App\Http\Controllers\Api\TimeOffRequestController;
-use App\Http\Controllers\Api\TimesheetController;
-use App\Http\Controllers\Api\TimesheetProjectController;
-use App\Http\Controllers\Api\TrainingProgramController;
-use App\Http\Controllers\Api\TrainingSessionController;
-use App\Http\Controllers\Api\TrainingTypeController;
-use App\Http\Controllers\Api\VoluntaryExitController;
-use App\Http\Controllers\Api\WithholdingTypeController;
-use App\Http\Controllers\Api\WorkLogController;
+// Auth Controllers
+use App\Http\Controllers\Api\Assets\AssetController;
+// Attendance Controllers
+use App\Http\Controllers\Api\Assets\AssetTypeController;
+use App\Http\Controllers\Api\Attendance\AttendanceRegularizationController;
+use App\Http\Controllers\Api\Attendance\ExtraHoursRecordController;
+use App\Http\Controllers\Api\Attendance\ShiftController;
+use App\Http\Controllers\Api\Attendance\TimesheetController;
+use App\Http\Controllers\Api\Attendance\TimesheetProjectController;
+// Leave Controllers
+use App\Http\Controllers\Api\Attendance\WorkLogController;
+use App\Http\Controllers\Api\Auth\AccessController;
+// Payroll Controllers
+use App\Http\Controllers\Api\Company\CompanyEventController;
+use App\Http\Controllers\Api\Company\CompanyHolidayController;
+use App\Http\Controllers\Api\Company\CompanyNoticeController;
+use App\Http\Controllers\Api\Company\MeetingController;
+use App\Http\Controllers\Api\Company\MeetingRoomController;
+use App\Http\Controllers\Api\Company\MeetingTypeController;
+use App\Http\Controllers\Api\Documents\DocumentCategoryController;
+use App\Http\Controllers\Api\Documents\DocumentTypeController;
+use App\Http\Controllers\Api\Documents\FileCategoryController;
+use App\Http\Controllers\Api\Documents\GeneratedLetterController;
+use App\Http\Controllers\Api\Documents\HrDocumentController;
+use App\Http\Controllers\Api\Documents\LetterTemplateController;
+use App\Http\Controllers\Api\Documents\MediaDirectoryController;
+use App\Http\Controllers\Api\Documents\MediaFileController;
+// Recruitment Controllers
+use App\Http\Controllers\Api\Leave\TimeOffCategoryController;
+use App\Http\Controllers\Api\Leave\TimeOffRequestController;
+use App\Http\Controllers\Api\Organization\DivisionController;
+use App\Http\Controllers\Api\Organization\OfficeLocationController;
+use App\Http\Controllers\Api\Organization\OrganizationDocumentController;
+use App\Http\Controllers\Api\Organization\OrganizationPolicyController;
+use App\Http\Controllers\Api\Payroll\AdvanceTypeController;
+use App\Http\Controllers\Api\Payroll\BenefitTypeController;
+use App\Http\Controllers\Api\Payroll\BonusPaymentController;
+use App\Http\Controllers\Api\Payroll\CompensationCategoryController;
+use App\Http\Controllers\Api\Payroll\EmployerContributionController;
+// Performance Controllers
+use App\Http\Controllers\Api\Payroll\IncentiveRecordController;
+use App\Http\Controllers\Api\Payroll\MinimumTaxLimitController;
+use App\Http\Controllers\Api\Payroll\RecurringDeductionController;
+use App\Http\Controllers\Api\Payroll\SalaryAdvanceController;
+use App\Http\Controllers\Api\Payroll\SalarySlipController;
+// Staff Controllers
+use App\Http\Controllers\Api\Payroll\StaffBenefitController;
+use App\Http\Controllers\Api\Payroll\TaxExemptionController;
+use App\Http\Controllers\Api\Payroll\TaxSlabController;
+use App\Http\Controllers\Api\Payroll\WithholdingTypeController;
+use App\Http\Controllers\Api\Performance\AppraisalCycleController;
+use App\Http\Controllers\Api\Performance\AppraisalRecordController;
+use App\Http\Controllers\Api\Performance\PerformanceObjectiveController;
+use App\Http\Controllers\Api\Performance\RecognitionCategoryController;
+use App\Http\Controllers\Api\Performance\RecognitionRecordController;
+use App\Http\Controllers\Api\Recruitment\CandidateAssessmentController;
+use App\Http\Controllers\Api\Recruitment\CandidateController;
+use App\Http\Controllers\Api\Recruitment\InterviewScheduleController;
+use App\Http\Controllers\Api\Recruitment\JobApplicationController;
+// Organization Controllers
+use App\Http\Controllers\Api\Recruitment\JobCategoryController;
+use App\Http\Controllers\Api\Recruitment\JobController;
+use App\Http\Controllers\Api\Recruitment\JobRequisitionController;
+use App\Http\Controllers\Api\Recruitment\JobStageController;
+// Assets Controllers
+use App\Http\Controllers\Api\Recruitment\JobTitleController;
+use App\Http\Controllers\Api\Recruitment\OfferController;
+// Company Controllers
+use App\Http\Controllers\Api\Recruitment\OfferTemplateController;
+use App\Http\Controllers\Api\Reports\DashboardController;
+use App\Http\Controllers\Api\Reports\DataExportController;
+use App\Http\Controllers\Api\Reports\DataImportController;
+use App\Http\Controllers\Api\Reports\DataTableController;
+use App\Http\Controllers\Api\Reports\ReportController;
+// Training Controllers
+use App\Http\Controllers\Api\Settings\AllowedIpAddressController;
+use App\Http\Controllers\Api\Settings\SystemConfigurationController;
+use App\Http\Controllers\Api\Staff\ContractController;
+// Documents Controllers
+use App\Http\Controllers\Api\Staff\ContractTypeController;
+use App\Http\Controllers\Api\Staff\DisciplineNoteController;
+use App\Http\Controllers\Api\Staff\EmployeeOnboardingController;
+use App\Http\Controllers\Api\Staff\ExitCategoryController;
+use App\Http\Controllers\Api\Staff\GrievanceController;
+use App\Http\Controllers\Api\Staff\LocationTransferController;
+use App\Http\Controllers\Api\Staff\OffboardingController;
+use App\Http\Controllers\Api\Staff\OnboardingTemplateController;
+// Reports Controllers
+use App\Http\Controllers\Api\Staff\RoleUpgradeController;
+use App\Http\Controllers\Api\Staff\StaffFileController;
+use App\Http\Controllers\Api\Staff\StaffMemberController;
+use App\Http\Controllers\Api\Staff\VoluntaryExitController;
+use App\Http\Controllers\Api\Training\TrainingProgramController;
+// Settings Controllers
+use App\Http\Controllers\Api\Training\TrainingSessionController;
+use App\Http\Controllers\Api\Training\TrainingTypeController;
+// Travel Controllers
+use App\Http\Controllers\Api\Travel\BusinessTripController;
 use Illuminate\Support\Facades\Route;
 
 /*
