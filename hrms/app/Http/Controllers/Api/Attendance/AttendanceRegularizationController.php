@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api\Attendance;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceRegularization;
 use App\Models\WorkLog;
+use Dedoc\Scramble\Attributes\QueryParameter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+
 
 class AttendanceRegularizationController extends Controller
 {
@@ -41,7 +43,9 @@ class AttendanceRegularizationController extends Controller
 
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        // Inline validation for Scramble to detect request body parameters
+        $validated = $request->validate([
+            'staff_member_id' => 'nullable|exists:staff_members,id',
             'work_log_id' => 'nullable|exists:work_logs,id',
             'date' => 'required|date|before_or_equal:today',
             'requested_clock_in' => 'required|date',
@@ -49,15 +53,13 @@ class AttendanceRegularizationController extends Controller
             'reason' => 'required|string|max:1000',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
+        // Use provided staff_member_id or fall back to logged-in user's staff member
+        $staffMemberId = $request->staff_member_id ?? auth()->user()->staffMember?->id;
 
-        $staffMemberId = auth()->user()->staffMember?->id;
-        if (! $staffMemberId) {
+        if (!$staffMemberId) {
             return response()->json([
                 'success' => false,
-                'message' => 'Staff member not found',
+                'message' => 'Staff member not found. Please provide staff_member_id or login as a staff member.',
             ], 400);
         }
 
@@ -66,8 +68,8 @@ class AttendanceRegularizationController extends Controller
         $originalClockOut = null;
         if ($request->work_log_id) {
             $workLog = WorkLog::find($request->work_log_id);
-            $originalClockIn = $workLog->clock_in;
-            $originalClockOut = $workLog->clock_out;
+            $originalClockIn = $workLog?->clock_in;
+            $originalClockOut = $workLog?->clock_out;
         }
 
         $regularization = AttendanceRegularization::create([
@@ -85,7 +87,7 @@ class AttendanceRegularizationController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Regularization request submitted successfully',
-            'data' => $regularization,
+            'data' => $regularization->load('staffMember'),
         ], 201);
     }
 
@@ -125,10 +127,14 @@ class AttendanceRegularizationController extends Controller
             // Create a new work log entry
             WorkLog::create([
                 'staff_member_id' => $attendanceRegularization->staff_member_id,
+                'log_date' => \Carbon\Carbon::parse(
+                    $attendanceRegularization->requested_clock_in
+                )->toDateString(),
                 'clock_in' => $attendanceRegularization->requested_clock_in,
                 'clock_out' => $attendanceRegularization->requested_clock_out,
                 'notes' => 'Created via regularization request',
             ]);
+
         }
 
         return response()->json([
@@ -182,19 +188,19 @@ class AttendanceRegularizationController extends Controller
         ]);
     }
 
-    public function myRequests()
+    /**
+     * Get regularization requests for a specific staff member.
+     */
+    #[QueryParameter('staff_member_id', description: 'The ID of the staff member to fetch regularization requests for', required: true, type: 'integer', example: 1)]
+    public function myRequests(Request $request)
     {
-        $staffMemberId = auth()->user()->staffMember?->id;
+        // Validate that staff_member_id is required
+        $validated = $request->validate([
+            'staff_member_id' => 'required|integer|exists:staff_members,id',
+        ]);
 
-        if (! $staffMemberId) {
-            return response()->json([
-                'success' => true,
-                'data' => [],
-            ]);
-        }
-
-        $requests = AttendanceRegularization::where('staff_member_id', $staffMemberId)
-            ->with(['workLog', 'reviewer'])
+        $requests = AttendanceRegularization::where('staff_member_id', $validated['staff_member_id'])
+            ->with(['staffMember', 'workLog', 'reviewer'])
             ->orderBy('created_at', 'desc')
             ->get();
 
