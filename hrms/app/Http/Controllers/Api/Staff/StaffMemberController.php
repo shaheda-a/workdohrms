@@ -54,11 +54,40 @@ class StaffMemberController extends Controller
 
     /**
      * Store a newly created staff member.
+     *
+     * Creates a new staff member along with an associated user account.
      */
     public function store(Request $request): JsonResponse
     {
         try {
-            $validated = $this->validateStoreRequest($request);
+            // Inline validation for Scramble to detect request body parameters
+            $validated = $request->validate([
+                'full_name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email',
+                'password' => 'nullable|string|min:8',
+                'personal_email' => 'nullable|email',
+                'mobile_number' => 'nullable|string|max:20',
+                'birth_date' => 'nullable|date',
+                'gender' => 'nullable|in:male,female,other',
+                'home_address' => 'nullable|string',
+                'nationality' => 'nullable|string|max:100',
+                'passport_number' => 'nullable|string|max:50',
+                'country_code' => 'nullable|string|max:3',
+                'region' => 'nullable|string|max:100',
+                'city_name' => 'nullable|string|max:100',
+                'postal_code' => 'nullable|string|max:20',
+                'biometric_id' => 'nullable|string|max:50',
+                'office_location_id' => 'nullable|exists:office_locations,id',
+                'division_id' => 'nullable|exists:divisions,id',
+                'job_title_id' => 'nullable|exists:job_titles,id',
+                'hire_date' => 'nullable|date',
+                'bank_account_name' => 'nullable|string',
+                'bank_account_number' => 'nullable|string|max:50',
+                'bank_name' => 'nullable|string',
+                'bank_branch' => 'nullable|string',
+                'compensation_type' => 'nullable|in:monthly,hourly,daily,contract',
+                'base_salary' => 'nullable|numeric|min:0',
+            ]);
 
             $staffMember = $this->service->createWithUser(
                 $validated,
@@ -67,7 +96,11 @@ class StaffMemberController extends Controller
 
             $staffMember->load(['user', 'officeLocation', 'division', 'jobTitle']);
 
-            return $this->created($staffMember, 'Staff member created successfully');
+            return response()->json([
+                'success' => true,
+                'data' => $staffMember,
+                'message' => 'Staff member created successfully',
+            ], 201);
         } catch (ValidationException $e) {
             return $this->validationError($e->errors());
         } catch (\Exception $e) {
@@ -97,11 +130,41 @@ class StaffMemberController extends Controller
     public function update(Request $request, int $id): JsonResponse
     {
         try {
-            $validated = $this->validateUpdateRequest($request);
+            // Inline validation for Scramble to detect request body parameters
+            $validated = $request->validate([
+                'full_name' => 'sometimes|required|string|max:255',
+                'personal_email' => 'nullable|email',
+                'mobile_number' => 'nullable|string|max:20',
+                'birth_date' => 'nullable|date',
+                'gender' => 'nullable|in:male,female,other',
+                'home_address' => 'nullable|string',
+                'nationality' => 'nullable|string|max:100',
+                'passport_number' => 'nullable|string|max:50',
+                'country_code' => 'nullable|string|max:3',
+                'region' => 'nullable|string|max:100',
+                'city_name' => 'nullable|string|max:100',
+                'postal_code' => 'nullable|string|max:20',
+                'biometric_id' => 'nullable|string|max:50',
+                'office_location_id' => 'nullable|exists:office_locations,id',
+                'division_id' => 'nullable|exists:divisions,id',
+                'job_title_id' => 'nullable|exists:job_titles,id',
+                'hire_date' => 'nullable|date',
+                'bank_account_name' => 'nullable|string',
+                'bank_account_number' => 'nullable|string|max:50',
+                'bank_name' => 'nullable|string',
+                'bank_branch' => 'nullable|string',
+                'compensation_type' => 'nullable|in:monthly,hourly,daily,contract',
+                'base_salary' => 'nullable|numeric|min:0',
+                'employment_status' => 'nullable|in:active,on_leave,suspended,terminated,resigned',
+            ]);
 
             $staffMember = $this->service->updateWithUser($id, $validated);
 
-            return $this->success($staffMember, 'Staff member updated successfully');
+            return response()->json([
+                'success' => true,
+                'data' => $staffMember,
+                'message' => 'Staff member updated successfully',
+            ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return $this->notFound('Staff member not found');
         } catch (ValidationException $e) {
