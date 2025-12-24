@@ -229,8 +229,12 @@ class ReportController extends Controller
         // Upcoming events
         $upcomingEvents = CompanyEvent::upcoming()->limit(5)->get();
 
-        // Recent announcements
-        $recentAnnouncements = CompanyNotice::where('is_active', true)
+        // Recent announcements (filter by publish_date and expire_date)
+        $recentAnnouncements = CompanyNotice::where('publish_date', '<=', $today)
+            ->where(function ($query) use ($today) {
+                $query->whereNull('expire_date')
+                    ->orWhere('expire_date', '>=', $today);
+            })
             ->latest()
             ->limit(5)
             ->get();
