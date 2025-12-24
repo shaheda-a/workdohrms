@@ -34,10 +34,10 @@ import {
 
 interface Location {
   id: number;
-  name: string;
+  title: string;
   address: string;
-  city: string;
-  country: string;
+  contact_phone: string;
+  contact_email: string;
   is_active: boolean;
 }
 
@@ -46,12 +46,12 @@ export default function OfficeLocations() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    address: '',
-    city: '',
-    country: '',
-  });
+    const [formData, setFormData] = useState({
+      title: '',
+      address: '',
+      contact_phone: '',
+      contact_email: '',
+    });
 
   useEffect(() => {
     fetchLocations();
@@ -86,16 +86,16 @@ export default function OfficeLocations() {
     }
   };
 
-  const handleEdit = (location: Location) => {
-    setEditingLocation(location);
-    setFormData({
-      name: location.name,
-      address: location.address,
-      city: location.city,
-      country: location.country,
-    });
-    setIsDialogOpen(true);
-  };
+    const handleEdit = (location: Location) => {
+      setEditingLocation(location);
+      setFormData({
+        title: location.title,
+        address: location.address || '',
+        contact_phone: location.contact_phone || '',
+        contact_email: location.contact_email || '',
+      });
+      setIsDialogOpen(true);
+    };
 
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this location?')) return;
@@ -107,9 +107,9 @@ export default function OfficeLocations() {
     }
   };
 
-  const resetForm = () => {
-    setFormData({ name: '', address: '', city: '', country: '' });
-  };
+    const resetForm = () => {
+      setFormData({ title: '', address: '', contact_phone: '', contact_email: '' });
+    };
 
   return (
     <div className="space-y-6">
@@ -140,16 +140,16 @@ export default function OfficeLocations() {
             </DialogHeader>
             <form onSubmit={handleSubmit}>
               <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Location Name</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="e.g., Headquarters"
-                    required
-                  />
-                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="title">Location Name</Label>
+                                  <Input
+                                    id="title"
+                                    value={formData.title}
+                                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                    placeholder="e.g., Headquarters"
+                                    required
+                                  />
+                                </div>
                 <div className="space-y-2">
                   <Label htmlFor="address">Address</Label>
                   <Textarea
@@ -160,24 +160,27 @@ export default function OfficeLocations() {
                     rows={2}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="city">City</Label>
-                    <Input
-                      id="city"
-                      value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="country">Country</Label>
-                    <Input
-                      id="country"
-                      value={formData.country}
-                      onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                    />
-                  </div>
-                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <Label htmlFor="contact_phone">Contact Phone</Label>
+                                    <Input
+                                      id="contact_phone"
+                                      value={formData.contact_phone}
+                                      onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
+                                      placeholder="e.g., +1 555-1234"
+                                    />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label htmlFor="contact_email">Contact Email</Label>
+                                    <Input
+                                      id="contact_email"
+                                      type="email"
+                                      value={formData.contact_email}
+                                      onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+                                      placeholder="e.g., office@company.com"
+                                    />
+                                  </div>
+                                </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -208,23 +211,23 @@ export default function OfficeLocations() {
             </div>
           ) : (
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Address</TableHead>
-                  <TableHead>City</TableHead>
-                  <TableHead>Country</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Address</TableHead>
+                                <TableHead>Contact Phone</TableHead>
+                                <TableHead>Contact Email</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="w-[50px]"></TableHead>
+                              </TableRow>
+                            </TableHeader>
               <TableBody>
-                {locations.map((location) => (
-                  <TableRow key={location.id}>
-                    <TableCell className="font-medium">{location.name}</TableCell>
-                    <TableCell>{location.address || '-'}</TableCell>
-                    <TableCell>{location.city || '-'}</TableCell>
-                    <TableCell>{location.country || '-'}</TableCell>
+                                {locations.map((location) => (
+                                  <TableRow key={location.id}>
+                                    <TableCell className="font-medium">{location.title}</TableCell>
+                                    <TableCell>{location.address || '-'}</TableCell>
+                                    <TableCell>{location.contact_phone || '-'}</TableCell>
+                                    <TableCell>{location.contact_email || '-'}</TableCell>
                     <TableCell>
                       <Badge
                         className={

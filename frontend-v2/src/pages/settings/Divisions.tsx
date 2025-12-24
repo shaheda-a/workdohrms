@@ -41,14 +41,14 @@ import {
 
 interface Location {
   id: number;
-  name: string;
+  title: string;
 }
 
 interface Division {
   id: number;
-  name: string;
-  description: string;
-  office_location?: { name: string };
+  title: string;
+  notes: string;
+  office_location?: { title: string };
   office_location_id: number;
   is_active: boolean;
 }
@@ -59,11 +59,11 @@ export default function Divisions() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDivision, setEditingDivision] = useState<Division | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    office_location_id: '',
-  });
+    const [formData, setFormData] = useState({
+      title: '',
+      notes: '',
+      office_location_id: '',
+    });
 
   useEffect(() => {
     fetchData();
@@ -102,15 +102,15 @@ export default function Divisions() {
     }
   };
 
-  const handleEdit = (division: Division) => {
-    setEditingDivision(division);
-    setFormData({
-      name: division.name,
-      description: division.description || '',
-      office_location_id: division.office_location_id?.toString() || '',
-    });
-    setIsDialogOpen(true);
-  };
+    const handleEdit = (division: Division) => {
+      setEditingDivision(division);
+      setFormData({
+        title: division.title,
+        notes: division.notes || '',
+        office_location_id: division.office_location_id?.toString() || '',
+      });
+      setIsDialogOpen(true);
+    };
 
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this division?')) return;
@@ -122,9 +122,9 @@ export default function Divisions() {
     }
   };
 
-  const resetForm = () => {
-    setFormData({ name: '', description: '', office_location_id: '' });
-  };
+    const resetForm = () => {
+      setFormData({ title: '', notes: '', office_location_id: '' });
+    };
 
   return (
     <div className="space-y-6">
@@ -155,16 +155,16 @@ export default function Divisions() {
             </DialogHeader>
             <form onSubmit={handleSubmit}>
               <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Division Name</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="e.g., Engineering"
-                    required
-                  />
-                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="title">Division Name</Label>
+                                  <Input
+                                    id="title"
+                                    value={formData.title}
+                                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                    placeholder="e.g., Engineering"
+                                    required
+                                  />
+                                </div>
                 <div className="space-y-2">
                   <Label htmlFor="office_location_id">Office Location</Label>
                   <Select
@@ -174,25 +174,25 @@ export default function Divisions() {
                     <SelectTrigger>
                       <SelectValue placeholder="Select location" />
                     </SelectTrigger>
-                    <SelectContent>
-                      {locations.map((loc) => (
-                        <SelectItem key={loc.id} value={loc.id.toString()}>
-                          {loc.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
+                                        <SelectContent>
+                                          {locations.map((loc) => (
+                                            <SelectItem key={loc.id} value={loc.id.toString()}>
+                                              {loc.title}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Division description"
-                    rows={3}
-                  />
-                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="notes">Notes</Label>
+                                  <Textarea
+                                    id="notes"
+                                    value={formData.notes}
+                                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                    placeholder="Division notes"
+                                    rows={3}
+                                  />
+                                </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -223,21 +223,21 @@ export default function Divisions() {
             </div>
           ) : (
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Office Location</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Office Location</TableHead>
+                                <TableHead>Notes</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="w-[50px]"></TableHead>
+                              </TableRow>
+                            </TableHeader>
               <TableBody>
-                {divisions.map((division) => (
-                  <TableRow key={division.id}>
-                    <TableCell className="font-medium">{division.name}</TableCell>
-                    <TableCell>{division.office_location?.name || '-'}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">{division.description || '-'}</TableCell>
+                                {divisions.map((division) => (
+                                  <TableRow key={division.id}>
+                                    <TableCell className="font-medium">{division.title}</TableCell>
+                                    <TableCell>{division.office_location?.title || '-'}</TableCell>
+                                    <TableCell className="max-w-[200px] truncate">{division.notes || '-'}</TableCell>
                     <TableCell>
                       <Badge
                         className={
