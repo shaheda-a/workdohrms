@@ -41,14 +41,14 @@ import {
 
 interface Division {
   id: number;
-  name: string;
+  title: string;
 }
 
 interface JobTitle {
   id: number;
-  name: string;
-  description: string;
-  division?: { name: string };
+  title: string;
+  notes: string;
+  division?: { title: string };
   division_id: number;
   is_active: boolean;
 }
@@ -59,11 +59,11 @@ export default function JobTitles() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingJobTitle, setEditingJobTitle] = useState<JobTitle | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    division_id: '',
-  });
+    const [formData, setFormData] = useState({
+      title: '',
+      notes: '',
+      division_id: '',
+    });
 
   useEffect(() => {
     fetchData();
@@ -102,15 +102,15 @@ export default function JobTitles() {
     }
   };
 
-  const handleEdit = (jobTitle: JobTitle) => {
-    setEditingJobTitle(jobTitle);
-    setFormData({
-      name: jobTitle.name,
-      description: jobTitle.description || '',
-      division_id: jobTitle.division_id?.toString() || '',
-    });
-    setIsDialogOpen(true);
-  };
+    const handleEdit = (jobTitle: JobTitle) => {
+      setEditingJobTitle(jobTitle);
+      setFormData({
+        title: jobTitle.title,
+        notes: jobTitle.notes || '',
+        division_id: jobTitle.division_id?.toString() || '',
+      });
+      setIsDialogOpen(true);
+    };
 
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this job title?')) return;
@@ -122,9 +122,9 @@ export default function JobTitles() {
     }
   };
 
-  const resetForm = () => {
-    setFormData({ name: '', description: '', division_id: '' });
-  };
+    const resetForm = () => {
+      setFormData({ title: '', notes: '', division_id: '' });
+    };
 
   return (
     <div className="space-y-6">
@@ -155,16 +155,16 @@ export default function JobTitles() {
             </DialogHeader>
             <form onSubmit={handleSubmit}>
               <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Job Title</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="e.g., Software Engineer"
-                    required
-                  />
-                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="title">Job Title</Label>
+                                  <Input
+                                    id="title"
+                                    value={formData.title}
+                                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                    placeholder="e.g., Software Engineer"
+                                    required
+                                  />
+                                </div>
                 <div className="space-y-2">
                   <Label htmlFor="division_id">Division</Label>
                   <Select
@@ -174,25 +174,25 @@ export default function JobTitles() {
                     <SelectTrigger>
                       <SelectValue placeholder="Select division" />
                     </SelectTrigger>
-                    <SelectContent>
-                      {divisions.map((div) => (
-                        <SelectItem key={div.id} value={div.id.toString()}>
-                          {div.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
+                                        <SelectContent>
+                                          {divisions.map((div) => (
+                                            <SelectItem key={div.id} value={div.id.toString()}>
+                                              {div.title}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Job title description"
-                    rows={3}
-                  />
-                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="notes">Notes</Label>
+                                  <Textarea
+                                    id="notes"
+                                    value={formData.notes}
+                                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                    placeholder="Job title notes"
+                                    rows={3}
+                                  />
+                                </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -223,21 +223,21 @@ export default function JobTitles() {
             </div>
           ) : (
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Division</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Title</TableHead>
+                                <TableHead>Division</TableHead>
+                                <TableHead>Notes</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="w-[50px]"></TableHead>
+                              </TableRow>
+                            </TableHeader>
               <TableBody>
-                {jobTitles.map((jobTitle) => (
-                  <TableRow key={jobTitle.id}>
-                    <TableCell className="font-medium">{jobTitle.name}</TableCell>
-                    <TableCell>{jobTitle.division?.name || '-'}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">{jobTitle.description || '-'}</TableCell>
+                                {jobTitles.map((jobTitle) => (
+                                  <TableRow key={jobTitle.id}>
+                                    <TableCell className="font-medium">{jobTitle.title}</TableCell>
+                                    <TableCell>{jobTitle.division?.title || '-'}</TableCell>
+                                    <TableCell className="max-w-[200px] truncate">{jobTitle.notes || '-'}</TableCell>
                     <TableCell>
                       <Badge
                         className={

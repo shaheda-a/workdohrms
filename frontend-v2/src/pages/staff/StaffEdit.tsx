@@ -19,7 +19,7 @@ import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 
 interface SelectOption {
   id: number;
-  name: string;
+  title: string;
 }
 
 export default function StaffEdit() {
@@ -283,11 +283,11 @@ export default function StaffEdit() {
                   <SelectTrigger>
                     <SelectValue placeholder="Select location" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {locations.map((loc) => (
-                      <SelectItem key={loc.id} value={loc.id.toString()}>{loc.name}</SelectItem>
-                    ))}
-                  </SelectContent>
+                                    <SelectContent>
+                                      {locations.map((loc) => (
+                                        <SelectItem key={loc.id} value={loc.id.toString()}>{loc.title}</SelectItem>
+                                      ))}
+                                    </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
@@ -299,11 +299,11 @@ export default function StaffEdit() {
                   <SelectTrigger>
                     <SelectValue placeholder="Select division" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {divisions.map((div) => (
-                      <SelectItem key={div.id} value={div.id.toString()}>{div.name}</SelectItem>
-                    ))}
-                  </SelectContent>
+                                    <SelectContent>
+                                      {divisions.map((div) => (
+                                        <SelectItem key={div.id} value={div.id.toString()}>{div.title}</SelectItem>
+                                      ))}
+                                    </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
@@ -315,11 +315,11 @@ export default function StaffEdit() {
                   <SelectTrigger>
                     <SelectValue placeholder="Select job title" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {jobTitles.map((job) => (
-                      <SelectItem key={job.id} value={job.id.toString()}>{job.name}</SelectItem>
-                    ))}
-                  </SelectContent>
+                                    <SelectContent>
+                                      {jobTitles.map((job) => (
+                                        <SelectItem key={job.id} value={job.id.toString()}>{job.title}</SelectItem>
+                                      ))}
+                                    </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
