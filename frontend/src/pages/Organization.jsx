@@ -110,8 +110,8 @@ export default function Organization() {
                                     </div>
                                     <div className="org-content">
                                         <h4>{loc.title}</h4>
-                                        <p>{loc.city}, {loc.state}</p>
-                                        {loc.is_headquarters && <span className="badge badge-info">HQ</span>}
+                                        <p>{loc.address || 'No address'}</p>
+                                        {loc.is_active && <span className="badge badge-success">Active</span>}
                                     </div>
                                 </div>
                             ))}

@@ -39,9 +39,9 @@ interface StaffMember {
   personal_email: string;
   work_email: string;
   phone_number: string;
-  job_title: { name: string } | null;
-  division: { name: string } | null;
-  office_location: { name: string } | null;
+  job_title: { title: string } | null;
+  division: { title: string } | null;
+  office_location: { title: string } | null;
   employment_status: string;
   hire_date: string;
 }
@@ -64,18 +64,38 @@ export default function StaffList() {
     fetchStaff();
   }, [page, search]);
 
-  const fetchStaff = async () => {
-    setIsLoading(true);
-    try {
-      const response = await staffService.getAll({ page, per_page: 10, search });
-      setStaff(response.data.data || []);
-      setMeta(response.data.meta);
-    } catch (error) {
-      console.error('Failed to fetch staff:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const fetchStaff = async () => {
+      setIsLoading(true);
+      try {
+        const response = await staffService.getAll({ page, per_page: 10, search });
+        // Handle paginated response: response.data.data is the paginator object
+        // The actual array is in response.data.data.data for paginated responses
+        const payload = response.data.data;
+        if (Array.isArray(payload)) {
+          // Non-paginated response
+          setStaff(payload);
+          setMeta(null);
+        } else if (payload && Array.isArray(payload.data)) {
+          // Paginated response - extract the array and meta from paginator
+          setStaff(payload.data);
+          setMeta({
+            current_page: payload.current_page,
+            last_page: payload.last_page,
+            per_page: payload.per_page,
+            total: payload.total,
+          });
+        } else {
+          // Fallback to empty array if response is unexpected
+          setStaff([]);
+          setMeta(null);
+        }
+      } catch (error) {
+        console.error('Failed to fetch staff:', error);
+        setStaff([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this staff member?')) return;
@@ -192,9 +212,9 @@ export default function StaffList() {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>{member.job_title?.name || '-'}</TableCell>
-                        <TableCell>{member.division?.name || '-'}</TableCell>
-                        <TableCell>{member.office_location?.name || '-'}</TableCell>
+                                                <TableCell>{member.job_title?.title || '-'}</TableCell>
+                                                <TableCell>{member.division?.title || '-'}</TableCell>
+                                                <TableCell>{member.office_location?.title || '-'}</TableCell>
                         <TableCell>
                           <Badge className={getStatusBadge(member.employment_status)}>
                             {member.employment_status?.replace('_', ' ') || 'Unknown'}
