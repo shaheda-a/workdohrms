@@ -33,8 +33,8 @@ import {
 
 interface Holiday {
   id: number;
-  name: string;
-  date: string;
+  title: string;
+  holiday_date: string;
   is_recurring: boolean;
 }
 
@@ -44,8 +44,8 @@ export default function Holidays() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingHoliday, setEditingHoliday] = useState<Holiday | null>(null);
   const [formData, setFormData] = useState({
-    name: '',
-    date: '',
+    title: '',
+    holiday_date: '',
     is_recurring: false,
   });
 
@@ -57,7 +57,7 @@ export default function Holidays() {
     setIsLoading(true);
     try {
       const response = await settingsService.getHolidays();
-      setHolidays(response.data.data || []);
+      setHolidays(response.data.data.data|| []);
     } catch (error) {
       console.error('Failed to fetch holidays:', error);
     } finally {
@@ -85,8 +85,8 @@ export default function Holidays() {
   const handleEdit = (holiday: Holiday) => {
     setEditingHoliday(holiday);
     setFormData({
-      name: holiday.name,
-      date: holiday.date,
+      title: holiday.title,
+      holiday_date: holiday.holiday_date,
       is_recurring: holiday.is_recurring,
     });
     setIsDialogOpen(true);
@@ -103,7 +103,7 @@ export default function Holidays() {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', date: '', is_recurring: false });
+    setFormData({ title: '', holiday_date: '', is_recurring: false });
   };
 
   const formatDate = (dateStr: string) => {
@@ -148,9 +148,9 @@ export default function Holidays() {
                 <div className="space-y-2">
                   <Label htmlFor="name">Holiday Name</Label>
                   <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    id="title"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     placeholder="e.g., Christmas Day"
                     required
                   />
@@ -160,8 +160,8 @@ export default function Holidays() {
                   <Input
                     id="date"
                     type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    value={formData.holiday_date}
+                    onChange={(e) => setFormData({ ...formData, holiday_date: e.target.value })}
                     required
                   />
                 </div>
@@ -216,8 +216,8 @@ export default function Holidays() {
               <TableBody>
                 {holidays.map((holiday) => (
                   <TableRow key={holiday.id}>
-                    <TableCell className="font-medium">{holiday.name}</TableCell>
-                    <TableCell>{formatDate(holiday.date)}</TableCell>
+                    <TableCell className="font-medium">{holiday.title}</TableCell>
+                    <TableCell>{formatDate(holiday.holiday_date)}</TableCell>
                     <TableCell>
                       <Badge
                         className={

@@ -24,7 +24,7 @@ interface SelectOption {
 
 interface FieldErrors {
   full_name?: string;
-  personal_email?: string;
+  email?: string;
   hire_date?: string;
   [key: string]: string | undefined;
 }
@@ -213,17 +213,17 @@ export default function StaffCreate() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="personal_email" className={fieldErrors.personal_email ? 'text-red-500' : ''}>Personal Email *</Label>
+                <Label htmlFor="email" className={fieldErrors.email ? 'text-red-500' : ''}>Personal Email *</Label>
                 <Input
-                  id="personal_email"
-                  name="personal_email"
+                  id="email"
+                  name="email"
                   type="email"
-                  value={formData.personal_email}
+                  value={formData.email}
                   onChange={handleChange}
-                  aria-invalid={!!fieldErrors.personal_email}
+                  aria-invalid={!!fieldErrors.email}
                 />
-                {fieldErrors.personal_email && (
-                  <p className="text-sm text-red-500">{fieldErrors.personal_email}</p>
+                {fieldErrors.email && (
+                  <p className="text-sm text-red-500">{fieldErrors.email}</p>
                 )}
               </div>
               <div className="space-y-2">
