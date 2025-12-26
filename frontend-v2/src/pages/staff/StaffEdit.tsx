@@ -358,9 +358,10 @@ export default function StaffEdit() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
                     <SelectItem value="on_leave">On Leave</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
                     <SelectItem value="terminated">Terminated</SelectItem>
+                    <SelectItem value="resigned">Resigned</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

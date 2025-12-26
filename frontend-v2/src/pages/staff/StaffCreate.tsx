@@ -106,6 +106,12 @@ export default function StaffCreate() {
       errors.full_name = 'Full name is required';
     }
 
+    if (!formData.email.trim()) {
+      errors.email = 'Work email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Please enter a valid email address';
+    }
+
     if (!formData.personal_email.trim()) {
       errors.personal_email = 'Personal email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.personal_email)) {
@@ -227,15 +233,18 @@ export default function StaffCreate() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Work Email (Login) *</Label>
+                <Label htmlFor="email" className={fieldErrors.email ? 'text-red-500' : ''}>Work Email (Login) *</Label>
                 <Input
                   id="email"
                   name="email"
                   type="email"
                   value={formData.email}
                   onChange={handleChange}
-                  required
+                  aria-invalid={!!fieldErrors.email}
                 />
+                {fieldErrors.email && (
+                  <p className="text-sm text-red-500">{fieldErrors.email}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="mobile_number">Mobile Number</Label>
@@ -434,9 +443,10 @@ export default function StaffCreate() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
                     <SelectItem value="on_leave">On Leave</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
                     <SelectItem value="terminated">Terminated</SelectItem>
+                    <SelectItem value="resigned">Resigned</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

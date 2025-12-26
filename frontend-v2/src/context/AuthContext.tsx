@@ -7,6 +7,7 @@ interface User {
   email: string;
   roles: string[];
   permissions: string[];
+  staff_member_id?: number;
 }
 
 interface AuthContextType {

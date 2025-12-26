@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { leaveService } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -33,6 +34,7 @@ interface LeaveCategory {
 
 export default function LeaveApply() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [categories, setCategories] = useState<LeaveCategory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -48,7 +50,10 @@ export default function LeaveApply() {
     const fetchCategories = async () => {
       try {
         const response = await leaveService.getCategories();
-        setCategories(response.data.data || []);
+        // Handle both paginated and non-paginated responses
+        const data = response.data.data;
+        const categoriesArray = Array.isArray(data) ? data : (data?.data || []);
+        setCategories(categoriesArray);
       } catch (error) {
         console.error('Failed to fetch categories:', error);
       }
@@ -107,8 +112,20 @@ export default function LeaveApply() {
     setIsLoading(true);
 
     try {
+      if (!user?.staff_member_id) {
+        setError('Unable to submit leave request. Your account is not linked to a staff profile.');
+        toast({
+          variant: 'destructive',
+          title: 'Submission Failed',
+          description: 'Your account is not linked to a staff profile. Please contact HR.',
+        });
+        setIsLoading(false);
+        return;
+      }
+      
       await leaveService.createRequest({
         ...formData,
+        staff_member_id: user.staff_member_id,
         total_days: calculateDays(),
       });
       toast({
