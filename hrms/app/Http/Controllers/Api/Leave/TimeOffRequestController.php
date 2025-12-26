@@ -249,4 +249,66 @@ class TimeOffRequestController extends Controller
             return $this->serverError('Failed to retrieve employees on leave: '.$e->getMessage());
         }
     }
+
+    /**
+     * Process leave request approval (approve or decline).
+     * Accepts both 'approve'/'decline' and 'approved'/'declined' action values for backward compatibility.
+     * Accepts both 'remarks' and 'approval_remarks' for backward compatibility.
+     */
+    public function processApproval(Request $request, int $id): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'action' => 'required|in:approve,decline,approved,declined',
+                'approval_remarks' => 'nullable|string|max:500',
+                'remarks' => 'nullable|string|max:500',
+            ]);
+
+            $approverId = $request->user()->id;
+
+            // Normalize action value (accept both formats)
+            $action = $validated['action'];
+            $isApproved = in_array($action, ['approve', 'approved']);
+
+            // Accept both 'remarks' and 'approval_remarks' for backward compatibility
+            $remarks = $validated['approval_remarks'] ?? $validated['remarks'] ?? null;
+
+            if ($isApproved) {
+                $leaveRequest = $this->service->approve($id, $approverId, $remarks);
+
+                return $this->success($leaveRequest, 'Leave request approved successfully');
+            } else {
+                $leaveRequest = $this->service->reject($id, $approverId, $remarks);
+
+                return $this->success($leaveRequest, 'Leave request declined');
+            }
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->notFound('Leave request not found');
+        } catch (ValidationException $e) {
+            return $this->validationError($e->errors());
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to process leave request: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Get leave balance for an employee.
+     */
+    public function getBalance(Request $request): JsonResponse
+    {
+        try {
+            $staffMemberId = $request->input('staff_member_id');
+            $year = $request->input('year', now()->year);
+
+            if (! $staffMemberId) {
+                return $this->error('Staff member ID is required', 422);
+            }
+
+            $balance = $this->service->getLeaveBalance($staffMemberId, $year);
+
+            return $this->success($balance, 'Leave balance retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to retrieve leave balance: '.$e->getMessage());
+        }
+    }
 }

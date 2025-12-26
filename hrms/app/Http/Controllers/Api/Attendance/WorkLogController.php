@@ -153,7 +153,7 @@ class WorkLogController extends Controller
                 'location' => $request->input('location'),
             ]);
 
-            return $this->created($workLog, 'Clocked in successfully');
+            return $this->success($workLog, 'Clocked in successfully');
         } catch (\Exception $e) {
             return $this->error($e->getMessage(), 400);
         }
@@ -270,6 +270,32 @@ class WorkLogController extends Controller
             return $this->validationError($e->errors());
         } catch (\Exception $e) {
             return $this->serverError('Failed to record bulk attendance: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Bulk store attendance (alias for bulkRecord for route compatibility).
+     */
+    public function bulkStore(Request $request): JsonResponse
+    {
+        return $this->bulkRecord($request);
+    }
+
+    /**
+     * Get attendance summary for a date range.
+     */
+    public function summary(Request $request): JsonResponse
+    {
+        try {
+            $staffMemberId = $request->input('staff_member_id');
+            $startDate = $request->input('start_date', now()->startOfMonth()->toDateString());
+            $endDate = $request->input('end_date', now()->endOfMonth()->toDateString());
+
+            $summary = $this->service->getSummaryForDateRange($startDate, $endDate, $staffMemberId);
+
+            return $this->success($summary, 'Attendance summary retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to retrieve attendance summary: '.$e->getMessage());
         }
     }
 }
