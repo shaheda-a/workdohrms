@@ -213,17 +213,17 @@ export default function StaffCreate() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email" className={fieldErrors.email ? 'text-red-500' : ''}>Personal Email *</Label>
+                <Label htmlFor="personal_email" className={fieldErrors.personal_email ? 'text-red-500' : ''}>Personal Email *</Label>
                 <Input
-                  id="email"
-                  name="email"
+                  id="personal_email"
+                  name="personal_email"
                   type="email"
-                  value={formData.email}
+                  value={formData.personal_email}
                   onChange={handleChange}
-                  aria-invalid={!!fieldErrors.email}
+                  aria-invalid={!!fieldErrors.personal_email}
                 />
-                {fieldErrors.email && (
-                  <p className="text-sm text-red-500">{fieldErrors.email}</p>
+                {fieldErrors.personal_email && (
+                  <p className="text-sm text-red-500">{fieldErrors.personal_email}</p>
                 )}
               </div>
               <div className="space-y-2">
