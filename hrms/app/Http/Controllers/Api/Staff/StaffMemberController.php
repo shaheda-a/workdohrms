@@ -173,6 +173,10 @@ class StaffMemberController extends Controller
             'bank_branch' => 'nullable|string',
             'compensation_type' => 'nullable|in:monthly,hourly,daily,contract',
             'base_salary' => 'nullable|numeric|min:0',
+            'employment_type' => 'nullable|in:full_time,part_time,contract,intern',
+            'emergency_contact_name' => 'nullable|string|max:255',
+            'emergency_contact_phone' => 'nullable|string|max:20',
+            'emergency_contact_relationship' => 'nullable|string|max:100',
         ]);
     }
 
@@ -206,6 +210,10 @@ class StaffMemberController extends Controller
             'compensation_type' => 'nullable|in:monthly,hourly,daily,contract',
             'base_salary' => 'nullable|numeric|min:0',
             'employment_status' => 'nullable|in:active,on_leave,suspended,terminated,resigned',
+            'employment_type' => 'nullable|in:full_time,part_time,contract,intern',
+            'emergency_contact_name' => 'nullable|string|max:255',
+            'emergency_contact_phone' => 'nullable|string|max:20',
+            'emergency_contact_relationship' => 'nullable|string|max:100',
         ]);
     }
 }

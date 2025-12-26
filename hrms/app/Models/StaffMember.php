@@ -37,6 +37,10 @@ class StaffMember extends Model
         'compensation_type',
         'base_salary',
         'employment_status',
+        'employment_type',
+        'emergency_contact_name',
+        'emergency_contact_phone',
+        'emergency_contact_relationship',
         'tenant_id',
         'author_id',
     ];

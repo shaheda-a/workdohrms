@@ -252,23 +252,33 @@ class TimeOffRequestController extends Controller
 
     /**
      * Process leave request approval (approve or decline).
+     * Accepts both 'approve'/'decline' and 'approved'/'declined' action values for backward compatibility.
+     * Accepts both 'remarks' and 'approval_remarks' for backward compatibility.
      */
     public function processApproval(Request $request, int $id): JsonResponse
     {
         try {
             $validated = $request->validate([
-                'action' => 'required|in:approved,declined',
+                'action' => 'required|in:approve,decline,approved,declined',
                 'approval_remarks' => 'nullable|string|max:500',
+                'remarks' => 'nullable|string|max:500',
             ]);
 
             $approverId = $request->user()->id;
 
-            if ($validated['action'] === 'approved') {
-                $leaveRequest = $this->service->approve($id, $approverId, $validated['approval_remarks'] ?? null);
+            // Normalize action value (accept both formats)
+            $action = $validated['action'];
+            $isApproved = in_array($action, ['approve', 'approved']);
+
+            // Accept both 'remarks' and 'approval_remarks' for backward compatibility
+            $remarks = $validated['approval_remarks'] ?? $validated['remarks'] ?? null;
+
+            if ($isApproved) {
+                $leaveRequest = $this->service->approve($id, $approverId, $remarks);
 
                 return $this->success($leaveRequest, 'Leave request approved successfully');
             } else {
-                $leaveRequest = $this->service->reject($id, $approverId, $validated['approval_remarks'] ?? null);
+                $leaveRequest = $this->service->reject($id, $approverId, $remarks);
 
                 return $this->success($leaveRequest, 'Leave request declined');
             }

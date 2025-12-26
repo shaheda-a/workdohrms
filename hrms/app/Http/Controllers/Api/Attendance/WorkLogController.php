@@ -274,6 +274,14 @@ class WorkLogController extends Controller
     }
 
     /**
+     * Bulk store attendance (alias for bulkRecord for route compatibility).
+     */
+    public function bulkStore(Request $request): JsonResponse
+    {
+        return $this->bulkRecord($request);
+    }
+
+    /**
      * Get attendance summary for a date range.
      */
     public function summary(Request $request): JsonResponse
