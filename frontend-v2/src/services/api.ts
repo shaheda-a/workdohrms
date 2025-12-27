@@ -58,11 +58,13 @@ export const staffService = {
   create: (data: Record<string, unknown>) => api.post('/staff-members', data),
   update: (id: number, data: Record<string, unknown>) => api.put(`/staff-members/${id}`, data),
   delete: (id: number) => api.delete(`/staff-members/${id}`),
-  getDocuments: (id: number) => api.get(`/staff-members/${id}/documents`),
-  uploadDocument: (id: number, data: FormData) => 
-    api.post(`/staff-members/${id}/documents`, data, {
+  getFiles: (id: number) => api.get(`/staff-members/${id}/files`),
+  uploadFile: (id: number, data: FormData) => 
+    api.post(`/staff-members/${id}/files`, data, {
       headers: { 'Content-Type': 'multipart/form-data' }
     }),
+  deleteFile: (id: number, fileId: number) => api.delete(`/staff-members/${id}/files/${fileId}`),
+  getFileCategories: () => api.get('/file-categories'),
 };
 
 export const attendanceService = {

@@ -21,7 +21,20 @@ import {
   MapPin,
   FileText,
   Building,
+  Upload,
+  Trash2,
+  Download,
+  Loader2,
 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
+import { Label } from '../../components/ui/label';
+import { Input } from '../../components/ui/input';
 
 /* =========================
    ✅ CORRECTED INTERFACE
@@ -56,11 +69,33 @@ interface StaffMember {
   emergency_contact_relationship?: string;
 }
 
+interface StaffFile {
+  id: number;
+  staff_member_id: number;
+  file_category_id: number;
+  file_path: string;
+  original_name: string;
+  created_at: string;
+  file_category?: { id: number; title: string };
+}
+
+interface FileCategory {
+  id: number;
+  title: string;
+  is_mandatory: boolean;
+  is_active: boolean;
+}
+
 export default function StaffProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [staff, setStaff] = useState<StaffMember | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [files, setFiles] = useState<StaffFile[]>([]);
+  const [fileCategories, setFileCategories] = useState<FileCategory[]>([]);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   useEffect(() => {
     const fetchStaff = async () => {
@@ -75,6 +110,61 @@ export default function StaffProfile() {
     };
     fetchStaff();
   }, [id]);
+
+  useEffect(() => {
+    const fetchFiles = async () => {
+      try {
+        const response = await staffService.getFiles(Number(id));
+        setFiles(response.data.data || []);
+      } catch (error) {
+        console.error('Failed to fetch files:', error);
+      }
+    };
+    const fetchCategories = async () => {
+      try {
+        const response = await staffService.getFileCategories();
+        const categories = response.data.data || response.data || [];
+        setFileCategories(Array.isArray(categories) ? categories : []);
+      } catch (error) {
+        console.error('Failed to fetch file categories:', error);
+      }
+    };
+    if (id) {
+      fetchFiles();
+      fetchCategories();
+    }
+  }, [id]);
+
+  const handleFileUpload = async () => {
+    if (!selectedFile || !selectedCategory) return;
+    setIsUploadingFile(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('file_category_id', selectedCategory);
+      await staffService.uploadFile(Number(id), formData);
+      const response = await staffService.getFiles(Number(id));
+      setFiles(response.data.data || []);
+      setSelectedFile(null);
+      setSelectedCategory('');
+      const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+    } catch (error) {
+      console.error('Failed to upload file:', error);
+    } finally {
+      setIsUploadingFile(false);
+    }
+  };
+
+  const handleFileDelete = async (fileId: number) => {
+    if (!confirm('Are you sure you want to delete this file?')) return;
+    try {
+      await staffService.deleteFile(Number(id), fileId);
+      setFiles(files.filter(f => f.id !== fileId));
+    } catch (error) {
+      console.error('Failed to delete file:', error);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
@@ -238,10 +328,101 @@ export default function StaffProfile() {
               <Card>
                 <CardHeader>
                   <CardTitle>Documents</CardTitle>
-                  <CardDescription>No documents uploaded</CardDescription>
+                  <CardDescription>Upload and manage staff documents</CardDescription>
                 </CardHeader>
-                <CardContent className="text-center py-8">
-                  <FileText className="mx-auto h-12 w-12 opacity-50" />
+                <CardContent className="space-y-6">
+                  <div className="border rounded-lg p-4 space-y-4">
+                    <h4 className="font-medium">Upload New Document</h4>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="file-category">Category</Label>
+                        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {fileCategories.map((cat) => (
+                              <SelectItem key={cat.id} value={String(cat.id)}>
+                                {cat.title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="file-upload">File</Label>
+                        <Input
+                          id="file-upload"
+                          type="file"
+                          onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      onClick={handleFileUpload}
+                      disabled={!selectedFile || !selectedCategory || isUploadingFile}
+                    >
+                      {isUploadingFile ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="mr-2 h-4 w-4" />
+                          Upload Document
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {files.length === 0 ? (
+                    <div className="text-center py-8">
+                      <FileText className="mx-auto h-12 w-12 opacity-50" />
+                      <p className="mt-2 text-solarized-base01">No documents uploaded yet</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Uploaded Documents</h4>
+                      <div className="border rounded-lg divide-y">
+                        {files.map((file) => (
+                          <div key={file.id} className="flex items-center justify-between p-3">
+                            <div className="flex items-center gap-3">
+                              <FileText className="h-5 w-5 text-solarized-blue" />
+                              <div>
+                                <p className="font-medium">{file.original_name}</p>
+                                <p className="text-sm text-solarized-base01">
+                                  {file.file_category?.title || 'Uncategorized'} • {new Date(file.created_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                asChild
+                              >
+                                <a
+                                  href={`http://127.0.0.1:8000/storage/${file.file_path}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </a>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleFileDelete(file.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-solarized-red" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

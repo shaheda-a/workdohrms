@@ -104,6 +104,7 @@ function App() {
             {/* Staff Management */}
             <Route path="/staff" element={<StaffList />} />
             <Route path="/staff/create" element={<StaffCreate />} />
+            <Route path="/staff/departments" element={<Divisions />} />
             <Route path="/staff/:id" element={<StaffProfile />} />
             <Route path="/staff/:id/edit" element={<StaffEdit />} />
 
