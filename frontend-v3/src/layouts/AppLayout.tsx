@@ -25,7 +25,6 @@ import {
   ChevronRight,
   LogOut,
   User,
-  Building2,
   Menu,
   FileText,
   BarChart3,
@@ -131,10 +130,12 @@ export default function AppLayout() {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      <div className="flex items-center h-16 px-4 border-b border-slate-700">
-        <Building2 className="h-8 w-8 text-primary shrink-0" />
+      <div className="flex items-center h-16 px-4 border-b border-solarized-base2">
+        <div className="w-8 h-8 bg-solarized-blue rounded-lg flex items-center justify-center shrink-0">
+          <span className="text-white font-bold text-sm">HR</span>
+        </div>
         {!collapsed && (
-          <span className="ml-3 text-lg font-semibold text-white">WorkDo HRMS</span>
+          <span className="ml-3 text-lg font-semibold text-solarized-base02">WorkDo HRMS</span>
         )}
       </div>
 
@@ -149,8 +150,8 @@ export default function AppLayout() {
                     className={cn(
                       'w-full flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                       isActive(item.href)
-                        ? 'bg-primary/10 text-primary'
-                        : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+                        ? 'bg-solarized-blue/10 text-solarized-blue'
+                        : 'text-solarized-base01 hover:bg-solarized-base2 hover:text-solarized-base02'
                     )}
                   >
                     <item.icon className="h-5 w-5 shrink-0" />
@@ -175,8 +176,8 @@ export default function AppLayout() {
                           className={cn(
                             'block px-3 py-2 rounded-lg text-sm transition-colors',
                             isActive(child.href)
-                              ? 'bg-primary/10 text-primary'
-                              : 'text-slate-400 hover:bg-slate-700/50 hover:text-white'
+                              ? 'bg-solarized-blue/10 text-solarized-blue'
+                              : 'text-solarized-base01 hover:bg-solarized-base2 hover:text-solarized-base02'
                           )}
                         >
                           {child.title}
@@ -191,8 +192,8 @@ export default function AppLayout() {
                   className={cn(
                     'flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                     isActive(item.href)
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+                      ? 'bg-solarized-blue/10 text-solarized-blue'
+                      : 'text-solarized-base01 hover:bg-solarized-base2 hover:text-solarized-base02'
                   )}
                 >
                   <item.icon className="h-5 w-5 shrink-0" />
@@ -204,12 +205,12 @@ export default function AppLayout() {
         </nav>
       </ScrollArea>
 
-      <div className="p-4 border-t border-slate-700">
+      <div className="p-4 border-t border-solarized-base2">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setCollapsed(!collapsed)}
-          className="w-full justify-center text-slate-400 hover:text-white hover:bg-slate-700/50"
+          className="w-full justify-center text-solarized-base01 hover:text-solarized-base02 hover:bg-solarized-base2"
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </Button>
@@ -218,7 +219,7 @@ export default function AppLayout() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen bg-solarized-base3">
       {/* Mobile sidebar backdrop */}
       {mobileOpen && (
         <div
@@ -230,7 +231,7 @@ export default function AppLayout() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed top-0 left-0 z-50 h-full bg-slate-800 border-r border-slate-700 transition-all duration-300',
+          'fixed top-0 left-0 z-50 h-full bg-white border-r border-solarized-base2 transition-all duration-300',
           collapsed ? 'w-16' : 'w-64',
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
@@ -246,12 +247,12 @@ export default function AppLayout() {
         )}
       >
         {/* Header */}
-        <header className="sticky top-0 z-30 h-16 bg-slate-800/95 backdrop-blur border-b border-slate-700">
+        <header className="sticky top-0 z-30 h-16 bg-white border-b border-solarized-base2">
           <div className="flex items-center justify-between h-full px-4">
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden text-slate-400 hover:text-white"
+              className="lg:hidden text-solarized-base01 hover:text-solarized-base02"
               onClick={() => setMobileOpen(true)}
             >
               <Menu className="h-5 w-5" />
@@ -261,35 +262,35 @@ export default function AppLayout() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2 text-slate-300 hover:text-white">
+                <Button variant="ghost" className="flex items-center gap-2 text-solarized-base01 hover:text-solarized-base02">
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary/20 text-primary">
+                    <AvatarFallback className="bg-solarized-cyan text-white">
                       {user?.name ? getInitials(user.name) : 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <span className="hidden sm:inline">{user?.name || 'User'}</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-slate-800 border-slate-700">
-                <DropdownMenuLabel className="text-slate-300">
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
                   <div className="flex flex-col">
                     <span>{user?.name}</span>
-                    <span className="text-xs text-slate-500">{user?.email}</span>
+                    <span className="text-xs text-solarized-base01">{user?.email}</span>
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-slate-700" />
-                <DropdownMenuItem className="text-slate-300 focus:bg-slate-700 focus:text-white">
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
                   <User className="mr-2 h-4 w-4" />
                   Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-slate-300 focus:bg-slate-700 focus:text-white">
+                <DropdownMenuItem>
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-slate-700" />
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={handleLogout}
-                  className="text-red-400 focus:bg-slate-700 focus:text-red-400"
+                  className="text-solarized-red focus:text-solarized-red"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign Out

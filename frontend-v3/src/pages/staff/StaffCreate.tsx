@@ -113,15 +113,15 @@ export default function StaffCreate() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/staff')} className="text-slate-400 hover:text-white">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/staff')} className="text-solarized-base01 hover:text-solarized-base02">
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-solarized-base02 flex items-center gap-2">
             <UserPlus className="h-6 w-6" />
             Add New Employee
           </h1>
-          <p className="text-slate-400">Create a new staff member account</p>
+          <p className="text-solarized-base01">Create a new staff member account</p>
         </div>
       </div>
 
@@ -132,74 +132,74 @@ export default function StaffCreate() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-white border-solarized-base2">
           <CardHeader>
-            <CardTitle className="text-white">Personal Information</CardTitle>
-            <CardDescription className="text-slate-400">Basic details about the employee</CardDescription>
+            <CardTitle className="text-solarized-base02">Personal Information</CardTitle>
+            <CardDescription className="text-solarized-base01">Basic details about the employee</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label className="text-slate-200">Full Name *</Label>
+              <Label className="text-solarized-base01">Full Name *</Label>
               <Input
                 value={formData.full_name}
                 onChange={(e) => handleChange('full_name', e.target.value)}
                 required
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Work Email *</Label>
+              <Label className="text-solarized-base01">Work Email *</Label>
               <Input
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleChange('email', e.target.value)}
                 required
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Password</Label>
+              <Label className="text-solarized-base01">Password</Label>
               <Input
                 type="password"
                 value={formData.password || ''}
                 onChange={(e) => handleChange('password', e.target.value)}
                 placeholder="Leave blank for auto-generated"
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Personal Email</Label>
+              <Label className="text-solarized-base01">Personal Email</Label>
               <Input
                 type="email"
                 value={formData.personal_email || ''}
                 onChange={(e) => handleChange('personal_email', e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Mobile Number</Label>
+              <Label className="text-solarized-base01">Mobile Number</Label>
               <Input
                 value={formData.mobile_number || ''}
                 onChange={(e) => handleChange('mobile_number', e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Birth Date</Label>
+              <Label className="text-solarized-base01">Birth Date</Label>
               <Input
                 type="date"
                 value={formData.birth_date || ''}
                 onChange={(e) => handleChange('birth_date', e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Gender</Label>
+              <Label className="text-solarized-base01">Gender</Label>
               <Select value={formData.gender || ''} onValueChange={(v) => handleChange('gender', v as 'male' | 'female' | 'other')}>
-                <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                   <SelectValue placeholder="Select gender" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent className="bg-white border-solarized-base2">
                   <SelectItem value="male">Male</SelectItem>
                   <SelectItem value="female">Female</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
@@ -207,40 +207,40 @@ export default function StaffCreate() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Nationality</Label>
+              <Label className="text-solarized-base01">Nationality</Label>
               <Input
                 value={formData.nationality || ''}
                 onChange={(e) => handleChange('nationality', e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
             <div className="space-y-2 md:col-span-2 lg:col-span-3">
-              <Label className="text-slate-200">Home Address</Label>
+              <Label className="text-solarized-base01">Home Address</Label>
               <Textarea
                 value={formData.home_address || ''}
                 onChange={(e) => handleChange('home_address', e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-white border-solarized-base2">
           <CardHeader>
-            <CardTitle className="text-white">Employment Details</CardTitle>
-            <CardDescription className="text-slate-400">Job and organizational information</CardDescription>
+            <CardTitle className="text-solarized-base02">Employment Details</CardTitle>
+            <CardDescription className="text-solarized-base01">Job and organizational information</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label className="text-slate-200">Office Location</Label>
+              <Label className="text-solarized-base01">Office Location</Label>
               <Select
                 value={formData.office_location_id?.toString() || ''}
                 onValueChange={(v) => handleChange('office_location_id', v ? parseInt(v) : undefined)}
               >
-                <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                   <SelectValue placeholder="Select location" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent className="bg-white border-solarized-base2">
                   {locations.map((loc) => (
                     <SelectItem key={loc.id} value={loc.id.toString()}>
                       {loc.name}
@@ -250,15 +250,15 @@ export default function StaffCreate() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Division</Label>
+              <Label className="text-solarized-base01">Division</Label>
               <Select
                 value={formData.division_id?.toString() || ''}
                 onValueChange={(v) => handleChange('division_id', v ? parseInt(v) : undefined)}
               >
-                <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                   <SelectValue placeholder="Select division" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent className="bg-white border-solarized-base2">
                   {filteredDivisions.map((div) => (
                     <SelectItem key={div.id} value={div.id.toString()}>
                       {div.name}
@@ -268,15 +268,15 @@ export default function StaffCreate() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Job Title</Label>
+              <Label className="text-solarized-base01">Job Title</Label>
               <Select
                 value={formData.job_title_id?.toString() || ''}
                 onValueChange={(v) => handleChange('job_title_id', v ? parseInt(v) : undefined)}
               >
-                <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                   <SelectValue placeholder="Select job title" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent className="bg-white border-solarized-base2">
                   {filteredJobTitles.map((job) => (
                     <SelectItem key={job.id} value={job.id.toString()}>
                       {job.name}
@@ -286,24 +286,24 @@ export default function StaffCreate() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Hire Date</Label>
+              <Label className="text-solarized-base01">Hire Date</Label>
               <Input
                 type="date"
                 value={formData.hire_date || ''}
                 onChange={(e) => handleChange('hire_date', e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Employment Type</Label>
+              <Label className="text-solarized-base01">Employment Type</Label>
               <Select
                 value={formData.employment_type || ''}
                 onValueChange={(v) => handleChange('employment_type', v as 'full_time' | 'part_time' | 'contract' | 'intern')}
               >
-                <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent className="bg-white border-solarized-base2">
                   <SelectItem value="full_time">Full Time</SelectItem>
                   <SelectItem value="part_time">Part Time</SelectItem>
                   <SelectItem value="contract">Contract</SelectItem>
@@ -312,15 +312,15 @@ export default function StaffCreate() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Compensation Type</Label>
+              <Label className="text-solarized-base01">Compensation Type</Label>
               <Select
                 value={formData.compensation_type || ''}
                 onValueChange={(v) => handleChange('compensation_type', v as 'monthly' | 'hourly' | 'daily' | 'contract')}
               >
-                <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent className="bg-white border-solarized-base2">
                   <SelectItem value="monthly">Monthly</SelectItem>
                   <SelectItem value="hourly">Hourly</SelectItem>
                   <SelectItem value="daily">Daily</SelectItem>
@@ -329,93 +329,93 @@ export default function StaffCreate() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Base Salary</Label>
+              <Label className="text-solarized-base01">Base Salary</Label>
               <Input
                 type="number"
                 value={formData.base_salary || ''}
                 onChange={(e) => handleChange('base_salary', e.target.value ? parseFloat(e.target.value) : undefined)}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-white border-solarized-base2">
           <CardHeader>
-            <CardTitle className="text-white">Bank Details</CardTitle>
-            <CardDescription className="text-slate-400">Payment information</CardDescription>
+            <CardTitle className="text-solarized-base02">Bank Details</CardTitle>
+            <CardDescription className="text-solarized-base01">Payment information</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-slate-200">Account Holder Name</Label>
+              <Label className="text-solarized-base01">Account Holder Name</Label>
               <Input
                 value={formData.bank_account_name || ''}
                 onChange={(e) => handleChange('bank_account_name', e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Account Number</Label>
+              <Label className="text-solarized-base01">Account Number</Label>
               <Input
                 value={formData.bank_account_number || ''}
                 onChange={(e) => handleChange('bank_account_number', e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Bank Name</Label>
+              <Label className="text-solarized-base01">Bank Name</Label>
               <Input
                 value={formData.bank_name || ''}
                 onChange={(e) => handleChange('bank_name', e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Branch</Label>
+              <Label className="text-solarized-base01">Branch</Label>
               <Input
                 value={formData.bank_branch || ''}
                 onChange={(e) => handleChange('bank_branch', e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-white border-solarized-base2">
           <CardHeader>
-            <CardTitle className="text-white">Emergency Contact</CardTitle>
-            <CardDescription className="text-slate-400">Contact in case of emergency</CardDescription>
+            <CardTitle className="text-solarized-base02">Emergency Contact</CardTitle>
+            <CardDescription className="text-solarized-base01">Contact in case of emergency</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label className="text-slate-200">Contact Name</Label>
+              <Label className="text-solarized-base01">Contact Name</Label>
               <Input
                 value={formData.emergency_contact_name || ''}
                 onChange={(e) => handleChange('emergency_contact_name', e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Contact Phone</Label>
+              <Label className="text-solarized-base01">Contact Phone</Label>
               <Input
                 value={formData.emergency_contact_phone || ''}
                 onChange={(e) => handleChange('emergency_contact_phone', e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Relationship</Label>
+              <Label className="text-solarized-base01">Relationship</Label>
               <Input
                 value={formData.emergency_contact_relationship || ''}
                 onChange={(e) => handleChange('emergency_contact_relationship', e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
           </CardContent>
         </Card>
 
         <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => navigate('/staff')} className="border-slate-600 text-slate-300 hover:bg-slate-700">
+          <Button type="button" variant="outline" onClick={() => navigate('/staff')} className="border-solarized-base2 text-solarized-base01 hover:bg-solarized-base2">
             Cancel
           </Button>
           <Button type="submit" disabled={isLoading}>

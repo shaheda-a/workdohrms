@@ -85,11 +85,11 @@ export default function OfficeLocations() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-solarized-base02 flex items-center gap-2">
             <MapPin className="h-6 w-6" />
             Office Locations
           </h1>
-          <p className="text-slate-400">Manage your organization's office locations</p>
+          <p className="text-solarized-base01">Manage your organization's office locations</p>
         </div>
         <Button onClick={() => handleOpenDialog()}>
           <Plus className="h-4 w-4 mr-2" />
@@ -97,36 +97,36 @@ export default function OfficeLocations() {
         </Button>
       </div>
 
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-white border-solarized-base2">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-solarized-blue"></div>
             </div>
           ) : locations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+            <div className="flex flex-col items-center justify-center h-64 text-solarized-base01">
               <MapPin className="h-12 w-12 mb-4" />
               <p>No office locations found</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-700 hover:bg-slate-700/50">
-                  <TableHead className="text-slate-300">Name</TableHead>
-                  <TableHead className="text-slate-300">Address</TableHead>
-                  <TableHead className="text-slate-300">City</TableHead>
-                  <TableHead className="text-slate-300">Country</TableHead>
-                  <TableHead className="text-slate-300">Status</TableHead>
-                  <TableHead className="text-slate-300 text-right">Actions</TableHead>
+                <TableRow className="border-solarized-base2 hover:bg-solarized-base2">
+                  <TableHead className="text-solarized-base01">Name</TableHead>
+                  <TableHead className="text-solarized-base01">Address</TableHead>
+                  <TableHead className="text-solarized-base01">City</TableHead>
+                  <TableHead className="text-solarized-base01">Country</TableHead>
+                  <TableHead className="text-solarized-base01">Status</TableHead>
+                  <TableHead className="text-solarized-base01 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {locations.map((location) => (
-                  <TableRow key={location.id} className="border-slate-700 hover:bg-slate-700/50">
-                    <TableCell className="font-medium text-white">{location.name}</TableCell>
-                    <TableCell className="text-slate-300">{location.address || '-'}</TableCell>
-                    <TableCell className="text-slate-300">{location.city || '-'}</TableCell>
-                    <TableCell className="text-slate-300">{location.country || '-'}</TableCell>
+                  <TableRow key={location.id} className="border-solarized-base2 hover:bg-solarized-base2">
+                    <TableCell className="font-medium text-solarized-base02">{location.name}</TableCell>
+                    <TableCell className="text-solarized-base01">{location.address || '-'}</TableCell>
+                    <TableCell className="text-solarized-base01">{location.city || '-'}</TableCell>
+                    <TableCell className="text-solarized-base01">{location.country || '-'}</TableCell>
                     <TableCell>
                       <Badge variant={location.is_active ? 'default' : 'secondary'}>
                         {location.is_active ? 'Active' : 'Inactive'}
@@ -134,10 +134,10 @@ export default function OfficeLocations() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(location)} className="text-slate-400 hover:text-white">
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(location)} className="text-solarized-base01 hover:text-solarized-base02">
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(location.id)} className="text-slate-400 hover:text-red-400">
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(location.id)} className="text-solarized-base01 hover:text-red-400">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -151,55 +151,55 @@ export default function OfficeLocations() {
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-white border-solarized-base2">
           <DialogHeader>
-            <DialogTitle className="text-white">{editingId ? 'Edit Location' : 'Add Location'}</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogTitle className="text-solarized-base02">{editingId ? 'Edit Location' : 'Add Location'}</DialogTitle>
+            <DialogDescription className="text-solarized-base01">
               {editingId ? 'Update the office location details' : 'Create a new office location'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-slate-200">Name *</Label>
+              <Label className="text-solarized-base01">Name *</Label>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Address</Label>
+              <Label className="text-solarized-base01">Address</Label>
               <Input
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-slate-200">City</Label>
+                <Label className="text-solarized-base01">City</Label>
                 <Input
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-200">Country</Label>
+                <Label className="text-solarized-base01">Country</Label>
                 <Input
                   value={formData.country}
                   onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
                 />
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <Label className="text-slate-200">Active</Label>
+              <Label className="text-solarized-base01">Active</Label>
               <Switch checked={formData.is_active} onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="border-slate-600 text-slate-300 hover:bg-slate-700">
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="border-solarized-base2 text-solarized-base01 hover:bg-solarized-base2">
               Cancel
             </Button>
             <Button onClick={handleSave} disabled={isSaving || !formData.name}>
@@ -210,15 +210,15 @@ export default function OfficeLocations() {
       </Dialog>
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent className="bg-slate-800 border-slate-700">
+        <AlertDialogContent className="bg-white border-solarized-base2">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Delete Location?</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
+            <AlertDialogTitle className="text-solarized-base02">Delete Location?</AlertDialogTitle>
+            <AlertDialogDescription className="text-solarized-base01">
               This action cannot be undone. This will permanently delete the office location.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="bg-solarized-base2 text-solarized-base02 border-solarized-base2 hover:bg-solarized-base2">Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

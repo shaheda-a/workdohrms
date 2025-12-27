@@ -1,12 +1,56 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
 import { Alert, AlertDescription } from '../../components/ui/alert';
-import { Loader2, Building2 } from 'lucide-react';
+import { Loader2, AlertCircle, Shield, Users, Briefcase, User } from 'lucide-react';
+
+interface FieldErrors {
+  email?: string;
+  password?: string;
+}
+
+const DEMO_ACCOUNTS = [
+  {
+    role: 'Administrator',
+    email: 'admin@hrms.local',
+    password: 'password',
+    icon: Shield,
+    color: 'bg-solarized-red',
+    permissions: 'Full system access (581 permissions)',
+    description: 'Complete control over all modules, users, and settings',
+  },
+  {
+    role: 'HR Officer',
+    email: 'hr@hrms.local',
+    password: 'password',
+    icon: Users,
+    color: 'bg-solarized-blue',
+    permissions: '~400 permissions',
+    description: 'Manage employees, leave, payroll, recruitment',
+  },
+  {
+    role: 'Manager',
+    email: 'manager@hrms.local',
+    password: 'password',
+    icon: Briefcase,
+    color: 'bg-solarized-yellow',
+    permissions: '~200 permissions',
+    description: 'Approve team leave, view attendance, performance reviews',
+  },
+  {
+    role: 'Staff Member',
+    email: 'staff@hrms.local',
+    password: 'password',
+    icon: User,
+    color: 'bg-solarized-green',
+    permissions: '~50 permissions',
+    description: 'Self-service: clock in/out, apply leave, view payslips',
+  },
+];
 
 export default function Login() {
   const navigate = useNavigate();
@@ -14,170 +58,211 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState<string | null>(null);
+
+  const validateForm = (): boolean => {
+    const errors: FieldErrors = {};
+    
+    if (!email.trim()) {
+      errors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.email = 'Please enter a valid email address';
+    }
+    
+    if (!password) {
+      errors.password = 'Password is required';
+    } else if (password.length < 6) {
+      errors.password = 'Password must be at least 6 characters';
+    }
+    
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
       await login(email, password);
       navigate('/dashboard');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid credentials');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
+      const errorMessage = error.response?.data?.message || 'Invalid credentials. Please try again.';
+      
+      if (error.response?.data?.errors) {
+        const apiErrors: FieldErrors = {};
+        const errors = error.response.data.errors;
+        if (errors.email) apiErrors.email = errors.email[0];
+        if (errors.password) apiErrors.password = errors.password[0];
+        setFieldErrors(apiErrors);
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleDemoLogin = async (role: string) => {
+  const handleDemoLogin = async (demoEmail: string, demoPassword: string, role: string) => {
     setError('');
-    setIsLoading(true);
-    
-    const demoAccounts: Record<string, { email: string; password: string }> = {
-      admin: { email: 'admin@hrms.com', password: 'password123' },
-      hr: { email: 'hr@hrms.com', password: 'password123' },
-      manager: { email: 'manager@hrms.com', password: 'password123' },
-      employee: { email: 'employee@hrms.com', password: 'password123' },
-    };
+    setDemoLoading(role);
 
-    const account = demoAccounts[role];
-    if (account) {
-      try {
-        await login(account.email, account.password);
-        navigate('/dashboard');
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Demo login failed');
-      } finally {
-        setIsLoading(false);
-      }
+    try {
+      await login(demoEmail, demoPassword);
+      navigate('/dashboard');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || `Failed to login as ${role}. Please try again.`);
+    } finally {
+      setDemoLoading(null);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-solarized-base3 to-solarized-base2 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-            <Building2 className="w-8 h-8 text-primary" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-solarized-blue rounded-2xl mb-4">
+            <span className="text-white font-bold text-2xl">HR</span>
           </div>
-          <h1 className="text-3xl font-bold text-white">WorkDo HRMS</h1>
-          <p className="text-slate-400 mt-2">Human Resource Management System</p>
+          <h1 className="text-2xl font-bold text-solarized-base02">WorkDo HRMS</h1>
+          <p className="text-solarized-base01 mt-1">Human Resource Management System</p>
         </div>
 
-        <Card className="border-slate-700 bg-slate-800/50 backdrop-blur">
-          <CardHeader>
-            <CardTitle className="text-white">Sign In</CardTitle>
-            <CardDescription className="text-slate-400">
-              Enter your credentials to access the dashboard
+        <Card className="border-0 shadow-xl">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
+            <CardDescription className="text-center">
+              Enter your credentials to access your account
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit}>
+            <CardContent className="space-y-4">
               {error && (
                 <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-200">Email</Label>
+                <Label htmlFor="email" className={fieldErrors.email ? 'text-red-500' : ''}>Email</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder="admin@hrms.local"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400"
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (fieldErrors.email) setFieldErrors(prev => ({ ...prev, email: undefined }));
+                  }}
+                  aria-invalid={!!fieldErrors.email}
+                  className="h-11"
                 />
+                {fieldErrors.email && (
+                  <p className="text-sm text-red-500">{fieldErrors.email}</p>
+                )}
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-slate-200">Password</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className={fieldErrors.password ? 'text-red-500' : ''}>Password</Label>
+                  <Link
+                    to="/forgot-password"
+                    className="text-sm text-solarized-blue hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
                 <Input
                   id="password"
                   type="password"
                   placeholder="Enter your password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400"
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (fieldErrors.password) setFieldErrors(prev => ({ ...prev, password: undefined }));
+                  }}
+                  aria-invalid={!!fieldErrors.password}
+                  className="h-11"
                 />
+                {fieldErrors.password && (
+                  <p className="text-sm text-red-500">{fieldErrors.password}</p>
+                )}
               </div>
-
-              <Button type="submit" className="w-full" disabled={isLoading}>
+            </CardContent>
+            <CardFooter className="flex flex-col space-y-4">
+              <Button
+                type="submit"
+                className="w-full h-11 bg-solarized-blue hover:bg-solarized-blue/90 text-white"
+                disabled={isLoading}
+              >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Signing in...
                   </>
                 ) : (
-                  'Sign In'
+                  'Sign in'
                 )}
               </Button>
-            </form>
-
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-slate-600" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-slate-800 px-2 text-slate-400">Quick Demo Login</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 mt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleDemoLogin('admin')}
-                  disabled={isLoading}
-                  className="border-slate-600 text-slate-200 hover:bg-slate-700"
-                >
-                  Admin
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleDemoLogin('hr')}
-                  disabled={isLoading}
-                  className="border-slate-600 text-slate-200 hover:bg-slate-700"
-                >
-                  HR Officer
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleDemoLogin('manager')}
-                  disabled={isLoading}
-                  className="border-slate-600 text-slate-200 hover:bg-slate-700"
-                >
-                  Manager
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleDemoLogin('employee')}
-                  disabled={isLoading}
-                  className="border-slate-600 text-slate-200 hover:bg-slate-700"
-                >
-                  Employee
-                </Button>
-              </div>
+              <p className="text-sm text-center text-solarized-base01">
+                Don't have an account?{' '}
+                <Link to="/register" className="text-solarized-blue hover:underline">
+                  Sign up
+                </Link>
+              </p>
+            </CardFooter>
+          </form>
+          
+          <div className="mt-6 pt-6 border-t border-solarized-base2 px-6 pb-6">
+            <p className="text-sm font-medium text-solarized-base01 mb-4 text-center">
+              Quick Demo Login
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {DEMO_ACCOUNTS.map((account) => {
+                const Icon = account.icon;
+                return (
+                  <Button
+                    key={account.role}
+                    type="button"
+                    variant="outline"
+                    className="h-auto py-3 px-3 flex flex-col items-start gap-1 hover:bg-solarized-base2/50 relative group"
+                    onClick={() => handleDemoLogin(account.email, account.password, account.role)}
+                    disabled={demoLoading !== null || isLoading}
+                  >
+                    {demoLoading === account.role ? (
+                      <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2 w-full">
+                          <div className={`w-6 h-6 rounded-full ${account.color} flex items-center justify-center`}>
+                            <Icon className="h-3 w-3 text-white" />
+                          </div>
+                          <span className="font-medium text-sm">{account.role}</span>
+                        </div>
+                        <span className="text-xs text-solarized-base01 text-left">
+                          {account.permissions}
+                        </span>
+                      </>
+                    )}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-solarized-base02 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                      {account.description}
+                    </div>
+                  </Button>
+                );
+              })}
             </div>
-          </CardContent>
+          </div>
         </Card>
-
-        <p className="text-center text-slate-500 text-sm mt-6">
-          WorkDo HRMS v3.0 - Built with React + TypeScript
-        </p>
       </div>
     </div>
   );

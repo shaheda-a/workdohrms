@@ -132,11 +132,11 @@ export default function LeaveRequests() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-solarized-base02 flex items-center gap-2">
             <Calendar className="h-6 w-6" />
             Leave Requests
           </h1>
-          <p className="text-slate-400">Manage time off requests</p>
+          <p className="text-solarized-base01">Manage time off requests</p>
         </div>
         <Button onClick={() => setIsCreateOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
@@ -144,17 +144,17 @@ export default function LeaveRequests() {
         </Button>
       </div>
 
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-white border-solarized-base2">
         <CardHeader>
-          <CardTitle className="text-white">Filters</CardTitle>
+          <CardTitle className="text-solarized-base02">Filters</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+              <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-white border-solarized-base2">
                 <SelectItem value="">All Status</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="approved">Approved</SelectItem>
@@ -163,10 +163,10 @@ export default function LeaveRequests() {
               </SelectContent>
             </Select>
             <Select value={staffFilter} onValueChange={setStaffFilter}>
-              <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+              <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                 <SelectValue placeholder="All Employees" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-white border-solarized-base2">
                 <SelectItem value="">All Employees</SelectItem>
                 {staffMembers.map((staff) => (
                   <SelectItem key={staff.id} value={staff.id.toString()}>
@@ -179,43 +179,43 @@ export default function LeaveRequests() {
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-white border-solarized-base2">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-solarized-blue"></div>
             </div>
           ) : requests.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+            <div className="flex flex-col items-center justify-center h-64 text-solarized-base01">
               <Calendar className="h-12 w-12 mb-4" />
               <p>No leave requests found</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-700 hover:bg-slate-700/50">
-                  <TableHead className="text-slate-300">Employee</TableHead>
-                  <TableHead className="text-slate-300">Category</TableHead>
-                  <TableHead className="text-slate-300">From</TableHead>
-                  <TableHead className="text-slate-300">To</TableHead>
-                  <TableHead className="text-slate-300">Duration</TableHead>
-                  <TableHead className="text-slate-300">Status</TableHead>
-                  <TableHead className="text-slate-300 text-right">Actions</TableHead>
+                <TableRow className="border-solarized-base2 hover:bg-solarized-base2">
+                  <TableHead className="text-solarized-base01">Employee</TableHead>
+                  <TableHead className="text-solarized-base01">Category</TableHead>
+                  <TableHead className="text-solarized-base01">From</TableHead>
+                  <TableHead className="text-solarized-base01">To</TableHead>
+                  <TableHead className="text-solarized-base01">Duration</TableHead>
+                  <TableHead className="text-solarized-base01">Status</TableHead>
+                  <TableHead className="text-solarized-base01 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {requests.map((request) => (
-                  <TableRow key={request.id} className="border-slate-700 hover:bg-slate-700/50">
-                    <TableCell className="font-medium text-white">{request.staff_member?.full_name || '-'}</TableCell>
-                    <TableCell className="text-slate-300">{request.time_off_category?.name || '-'}</TableCell>
-                    <TableCell className="text-slate-300">{request.start_date}</TableCell>
-                    <TableCell className="text-slate-300">{request.end_date}</TableCell>
-                    <TableCell className="text-slate-300">{calculateDays(request.start_date, request.end_date)}</TableCell>
+                  <TableRow key={request.id} className="border-solarized-base2 hover:bg-solarized-base2">
+                    <TableCell className="font-medium text-solarized-base02">{request.staff_member?.full_name || '-'}</TableCell>
+                    <TableCell className="text-solarized-base01">{request.time_off_category?.name || '-'}</TableCell>
+                    <TableCell className="text-solarized-base01">{request.start_date}</TableCell>
+                    <TableCell className="text-solarized-base01">{request.end_date}</TableCell>
+                    <TableCell className="text-solarized-base01">{calculateDays(request.start_date, request.end_date)}</TableCell>
                     <TableCell>{getStatusBadge(request.status)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Link to={`/leave/requests/${request.id}`}>
-                          <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white">
+                          <Button variant="ghost" size="icon" className="text-solarized-base01 hover:text-solarized-base02">
                             <Eye className="h-4 w-4" />
                           </Button>
                         </Link>
@@ -250,19 +250,19 @@ export default function LeaveRequests() {
       </Card>
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-white border-solarized-base2">
           <DialogHeader>
-            <DialogTitle className="text-white">Apply for Leave</DialogTitle>
-            <DialogDescription className="text-slate-400">Submit a new leave request</DialogDescription>
+            <DialogTitle className="text-solarized-base02">Apply for Leave</DialogTitle>
+            <DialogDescription className="text-solarized-base01">Submit a new leave request</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-slate-200">Leave Type *</Label>
+              <Label className="text-solarized-base01">Leave Type *</Label>
               <Select value={createForm.time_off_category_id} onValueChange={(v) => setCreateForm({ ...createForm, time_off_category_id: v })}>
-                <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent className="bg-white border-solarized-base2">
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>
                   ))}
@@ -271,36 +271,36 @@ export default function LeaveRequests() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-slate-200">Start Date *</Label>
+                <Label className="text-solarized-base01">Start Date *</Label>
                 <Input
                   type="date"
                   value={createForm.start_date}
                   onChange={(e) => setCreateForm({ ...createForm, start_date: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-200">End Date *</Label>
+                <Label className="text-solarized-base01">End Date *</Label>
                 <Input
                   type="date"
                   value={createForm.end_date}
                   onChange={(e) => setCreateForm({ ...createForm, end_date: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Reason</Label>
+              <Label className="text-solarized-base01">Reason</Label>
               <Textarea
                 value={createForm.reason}
                 onChange={(e) => setCreateForm({ ...createForm, reason: e.target.value })}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
                 placeholder="Optional reason for leave"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateOpen(false)} className="border-slate-600 text-slate-300 hover:bg-slate-700">Cancel</Button>
+            <Button variant="outline" onClick={() => setIsCreateOpen(false)} className="border-solarized-base2 text-solarized-base01 hover:bg-solarized-base2">Cancel</Button>
             <Button onClick={handleCreate} disabled={isProcessing || !createForm.time_off_category_id || !createForm.start_date || !createForm.end_date}>
               {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Submit'}
             </Button>
@@ -309,26 +309,26 @@ export default function LeaveRequests() {
       </Dialog>
 
       <Dialog open={!!processAction} onOpenChange={() => { setProcessAction(null); setSelectedRequest(null); }}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-white border-solarized-base2">
           <DialogHeader>
-            <DialogTitle className="text-white">{processAction === 'approve' ? 'Approve' : 'Decline'} Leave Request</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogTitle className="text-solarized-base02">{processAction === 'approve' ? 'Approve' : 'Decline'} Leave Request</DialogTitle>
+            <DialogDescription className="text-solarized-base01">
               {processAction === 'approve' ? 'Approve this leave request?' : 'Decline this leave request?'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-slate-200">Notes (Optional)</Label>
+              <Label className="text-solarized-base01">Notes (Optional)</Label>
               <Textarea
                 value={processNotes}
                 onChange={(e) => setProcessNotes(e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
                 placeholder="Add any notes..."
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setProcessAction(null); setSelectedRequest(null); }} className="border-slate-600 text-slate-300 hover:bg-slate-700">Cancel</Button>
+            <Button variant="outline" onClick={() => { setProcessAction(null); setSelectedRequest(null); }} className="border-solarized-base2 text-solarized-base01 hover:bg-solarized-base2">Cancel</Button>
             <Button onClick={handleProcess} disabled={isProcessing} className={processAction === 'decline' ? 'bg-red-600 hover:bg-red-700' : ''}>
               {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : processAction === 'approve' ? 'Approve' : 'Decline'}
             </Button>

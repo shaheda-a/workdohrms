@@ -81,18 +81,18 @@ export default function ClockInOut() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-solarized-base02 flex items-center gap-2">
           <Clock className="h-6 w-6" />
           Clock In / Out
         </h1>
-        <p className="text-slate-400">Record your attendance</p>
+        <p className="text-solarized-base01">Record your attendance</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-white border-solarized-base2">
           <CardHeader className="text-center">
-            <CardTitle className="text-white text-4xl font-mono">{formatTime(currentTime)}</CardTitle>
-            <CardDescription className="text-slate-400 text-lg">{formatDate(currentTime)}</CardDescription>
+            <CardTitle className="text-solarized-base02 text-4xl font-mono">{formatTime(currentTime)}</CardTitle>
+            <CardDescription className="text-solarized-base01 text-lg">{formatDate(currentTime)}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {message && (
@@ -120,7 +120,7 @@ export default function ClockInOut() {
               <Button
                 size="lg"
                 variant="outline"
-                className="h-24 text-lg border-slate-600 text-slate-300 hover:bg-slate-700"
+                className="h-24 text-lg border-solarized-base2 text-solarized-base01 hover:bg-solarized-base2"
                 onClick={handleClockOut}
                 disabled={isLoading || !todayLog?.clock_in || !!todayLog?.clock_out}
               >
@@ -137,58 +137,58 @@ export default function ClockInOut() {
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-white border-solarized-base2">
           <CardHeader>
-            <CardTitle className="text-white">Today's Status</CardTitle>
-            <CardDescription className="text-slate-400">Your attendance for today</CardDescription>
+            <CardTitle className="text-solarized-base02">Today's Status</CardTitle>
+            <CardDescription className="text-solarized-base01">Your attendance for today</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 rounded-lg bg-slate-700/50">
+            <div className="flex items-center justify-between p-4 rounded-lg bg-solarized-base2">
               <div className="flex items-center gap-3">
                 <div className={`p-2 rounded-full ${todayLog?.clock_in ? 'bg-green-500/20' : 'bg-slate-600'}`}>
-                  <LogIn className={`h-5 w-5 ${todayLog?.clock_in ? 'text-green-500' : 'text-slate-400'}`} />
+                  <LogIn className={`h-5 w-5 ${todayLog?.clock_in ? 'text-green-500' : 'text-solarized-base01'}`} />
                 </div>
                 <div>
-                  <p className="text-white font-medium">Clock In</p>
-                  <p className="text-sm text-slate-400">Start of work</p>
+                  <p className="text-solarized-base02 font-medium">Clock In</p>
+                  <p className="text-sm text-solarized-base01">Start of work</p>
                 </div>
               </div>
               <div className="text-right">
                 {todayLog?.clock_in ? (
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500" />
-                    <span className="text-white font-mono">{todayLog.clock_in}</span>
+                    <span className="text-solarized-base02 font-mono">{todayLog.clock_in}</span>
                   </div>
                 ) : (
-                  <span className="text-slate-400">Not recorded</span>
+                  <span className="text-solarized-base01">Not recorded</span>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 rounded-lg bg-slate-700/50">
+            <div className="flex items-center justify-between p-4 rounded-lg bg-solarized-base2">
               <div className="flex items-center gap-3">
                 <div className={`p-2 rounded-full ${todayLog?.clock_out ? 'bg-green-500/20' : 'bg-slate-600'}`}>
-                  <LogOut className={`h-5 w-5 ${todayLog?.clock_out ? 'text-green-500' : 'text-slate-400'}`} />
+                  <LogOut className={`h-5 w-5 ${todayLog?.clock_out ? 'text-green-500' : 'text-solarized-base01'}`} />
                 </div>
                 <div>
-                  <p className="text-white font-medium">Clock Out</p>
-                  <p className="text-sm text-slate-400">End of work</p>
+                  <p className="text-solarized-base02 font-medium">Clock Out</p>
+                  <p className="text-sm text-solarized-base01">End of work</p>
                 </div>
               </div>
               <div className="text-right">
                 {todayLog?.clock_out ? (
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500" />
-                    <span className="text-white font-mono">{todayLog.clock_out}</span>
+                    <span className="text-solarized-base02 font-mono">{todayLog.clock_out}</span>
                   </div>
                 ) : (
-                  <span className="text-slate-400">Not recorded</span>
+                  <span className="text-solarized-base01">Not recorded</span>
                 )}
               </div>
             </div>
 
             {todayLog?.clock_in && todayLog?.clock_out && (
-              <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+              <div className="p-4 rounded-lg bg-primary/10 border border-solarized-blue/20">
                 <p className="text-primary text-center font-medium">Work day completed!</p>
               </div>
             )}

@@ -79,45 +79,45 @@ export default function WorkLogs() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-solarized-base02 flex items-center gap-2">
             <FileText className="h-6 w-6" />
             Work Logs
           </h1>
-          <p className="text-slate-400">View attendance records</p>
+          <p className="text-solarized-base01">View attendance records</p>
         </div>
       </div>
 
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-white border-solarized-base2">
         <CardHeader>
-          <CardTitle className="text-white">Filters</CardTitle>
+          <CardTitle className="text-solarized-base02">Filters</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
-              <label className="text-sm text-slate-400">From Date</label>
+              <label className="text-sm text-solarized-base01">From Date</label>
               <Input
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-slate-400">To Date</label>
+              <label className="text-sm text-solarized-base01">To Date</label>
               <Input
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-slate-400">Employee</label>
+              <label className="text-sm text-solarized-base01">Employee</label>
               <Select value={staffFilter} onValueChange={setStaffFilter}>
-                <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                   <SelectValue placeholder="All Employees" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent className="bg-white border-solarized-base2">
                   <SelectItem value="">All Employees</SelectItem>
                   {staffMembers.map((staff) => (
                     <SelectItem key={staff.id} value={staff.id.toString()}>
@@ -137,50 +137,50 @@ export default function WorkLogs() {
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-white border-solarized-base2">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-solarized-blue"></div>
             </div>
           ) : workLogs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+            <div className="flex flex-col items-center justify-center h-64 text-solarized-base01">
               <Calendar className="h-12 w-12 mb-4" />
               <p>No work logs found</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-700 hover:bg-slate-700/50">
-                  <TableHead className="text-slate-300">Date</TableHead>
-                  <TableHead className="text-slate-300">Employee</TableHead>
-                  <TableHead className="text-slate-300">Clock In</TableHead>
-                  <TableHead className="text-slate-300">Clock Out</TableHead>
-                  <TableHead className="text-slate-300">Hours</TableHead>
-                  <TableHead className="text-slate-300">Status</TableHead>
-                  <TableHead className="text-slate-300">Notes</TableHead>
+                <TableRow className="border-solarized-base2 hover:bg-solarized-base2">
+                  <TableHead className="text-solarized-base01">Date</TableHead>
+                  <TableHead className="text-solarized-base01">Employee</TableHead>
+                  <TableHead className="text-solarized-base01">Clock In</TableHead>
+                  <TableHead className="text-solarized-base01">Clock Out</TableHead>
+                  <TableHead className="text-solarized-base01">Hours</TableHead>
+                  <TableHead className="text-solarized-base01">Status</TableHead>
+                  <TableHead className="text-solarized-base01">Notes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {workLogs.map((log) => (
-                  <TableRow key={log.id} className="border-slate-700 hover:bg-slate-700/50">
-                    <TableCell className="text-white font-medium">{log.date}</TableCell>
-                    <TableCell className="text-slate-300">{log.staff_member?.full_name || '-'}</TableCell>
-                    <TableCell className="text-slate-300">
+                  <TableRow key={log.id} className="border-solarized-base2 hover:bg-solarized-base2">
+                    <TableCell className="text-solarized-base02 font-medium">{log.date}</TableCell>
+                    <TableCell className="text-solarized-base01">{log.staff_member?.full_name || '-'}</TableCell>
+                    <TableCell className="text-solarized-base01">
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {log.clock_in || '-'}
                       </div>
                     </TableCell>
-                    <TableCell className="text-slate-300">
+                    <TableCell className="text-solarized-base01">
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {log.clock_out || '-'}
                       </div>
                     </TableCell>
-                    <TableCell className="text-slate-300">{calculateHours(log.clock_in, log.clock_out)}</TableCell>
+                    <TableCell className="text-solarized-base01">{calculateHours(log.clock_in, log.clock_out)}</TableCell>
                     <TableCell>{getStatusBadge(log.status)}</TableCell>
-                    <TableCell className="text-slate-300 max-w-xs truncate">{log.notes || '-'}</TableCell>
+                    <TableCell className="text-solarized-base01 max-w-xs truncate">{log.notes || '-'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

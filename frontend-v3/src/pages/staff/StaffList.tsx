@@ -114,11 +114,11 @@ export default function StaffList() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-solarized-base02 flex items-center gap-2">
             <Users className="h-6 w-6" />
             Staff Members
           </h1>
-          <p className="text-slate-400">Manage your organization's employees</p>
+          <p className="text-solarized-base01">Manage your organization's employees</p>
         </div>
         <Link to="/staff/new">
           <Button>
@@ -128,26 +128,26 @@ export default function StaffList() {
         </Link>
       </div>
 
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-white border-solarized-base2">
         <CardHeader>
-          <CardTitle className="text-white">Filters</CardTitle>
+          <CardTitle className="text-solarized-base02">Filters</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="relative lg:col-span-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-solarized-base01" />
               <Input
                 placeholder="Search by name, email, or staff code..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 bg-slate-700/50 border-slate-600 text-white"
+                className="pl-9 bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
             <Select value={locationFilter} onValueChange={setLocationFilter}>
-              <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+              <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                 <SelectValue placeholder="All Locations" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-white border-solarized-base2">
                 <SelectItem value="">All Locations</SelectItem>
                 {locations.map((loc) => (
                   <SelectItem key={loc.id} value={loc.id.toString()}>
@@ -157,10 +157,10 @@ export default function StaffList() {
               </SelectContent>
             </Select>
             <Select value={divisionFilter} onValueChange={setDivisionFilter}>
-              <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+              <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                 <SelectValue placeholder="All Divisions" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-white border-solarized-base2">
                 <SelectItem value="">All Divisions</SelectItem>
                 {divisions.map((div) => (
                   <SelectItem key={div.id} value={div.id.toString()}>
@@ -170,10 +170,10 @@ export default function StaffList() {
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+              <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-white border-solarized-base2">
                 <SelectItem value="">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="on_leave">On Leave</SelectItem>
@@ -186,33 +186,33 @@ export default function StaffList() {
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-white border-solarized-base2">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-solarized-blue"></div>
             </div>
           ) : staff.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+            <div className="flex flex-col items-center justify-center h-64 text-solarized-base01">
               <Users className="h-12 w-12 mb-4" />
               <p>No staff members found</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-700 hover:bg-slate-700/50">
-                  <TableHead className="text-slate-300">Employee</TableHead>
-                  <TableHead className="text-slate-300">Staff Code</TableHead>
-                  <TableHead className="text-slate-300">Location</TableHead>
-                  <TableHead className="text-slate-300">Division</TableHead>
-                  <TableHead className="text-slate-300">Job Title</TableHead>
-                  <TableHead className="text-slate-300">Status</TableHead>
-                  <TableHead className="text-slate-300 text-right">Actions</TableHead>
+                <TableRow className="border-solarized-base2 hover:bg-solarized-base2">
+                  <TableHead className="text-solarized-base01">Employee</TableHead>
+                  <TableHead className="text-solarized-base01">Staff Code</TableHead>
+                  <TableHead className="text-solarized-base01">Location</TableHead>
+                  <TableHead className="text-solarized-base01">Division</TableHead>
+                  <TableHead className="text-solarized-base01">Job Title</TableHead>
+                  <TableHead className="text-solarized-base01">Status</TableHead>
+                  <TableHead className="text-solarized-base01 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {staff.map((member) => (
-                  <TableRow key={member.id} className="border-slate-700 hover:bg-slate-700/50">
+                  <TableRow key={member.id} className="border-solarized-base2 hover:bg-solarized-base2">
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
@@ -221,32 +221,32 @@ export default function StaffList() {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium text-white">{member.full_name}</p>
-                          <p className="text-sm text-slate-400">{member.user?.email || member.personal_email}</p>
+                          <p className="font-medium text-solarized-base02">{member.full_name}</p>
+                          <p className="text-sm text-solarized-base01">{member.user?.email || member.personal_email}</p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-slate-300">{member.staff_code}</TableCell>
-                    <TableCell className="text-slate-300">{member.office_location?.name || '-'}</TableCell>
-                    <TableCell className="text-slate-300">{member.division?.name || '-'}</TableCell>
-                    <TableCell className="text-slate-300">{member.job_title?.name || '-'}</TableCell>
+                    <TableCell className="text-solarized-base01">{member.staff_code}</TableCell>
+                    <TableCell className="text-solarized-base01">{member.office_location?.name || '-'}</TableCell>
+                    <TableCell className="text-solarized-base01">{member.division?.name || '-'}</TableCell>
+                    <TableCell className="text-solarized-base01">{member.job_title?.name || '-'}</TableCell>
                     <TableCell>{getStatusBadge(member.employment_status)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Link to={`/staff/${member.id}`}>
-                          <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white">
+                          <Button variant="ghost" size="icon" className="text-solarized-base01 hover:text-solarized-base02">
                             <Eye className="h-4 w-4" />
                           </Button>
                         </Link>
                         <Link to={`/staff/${member.id}/edit`}>
-                          <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white">
+                          <Button variant="ghost" size="icon" className="text-solarized-base01 hover:text-solarized-base02">
                             <Edit className="h-4 w-4" />
                           </Button>
                         </Link>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-slate-400 hover:text-red-400"
+                          className="text-solarized-base01 hover:text-red-400"
                           onClick={() => setDeleteId(member.id)}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -262,15 +262,15 @@ export default function StaffList() {
       </Card>
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent className="bg-slate-800 border-slate-700">
+        <AlertDialogContent className="bg-white border-solarized-base2">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Deactivate Employee?</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
+            <AlertDialogTitle className="text-solarized-base02">Deactivate Employee?</AlertDialogTitle>
+            <AlertDialogDescription className="text-solarized-base01">
               This will deactivate the employee account. They will no longer be able to access the system.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600">
+            <AlertDialogCancel className="bg-solarized-base2 text-solarized-base02 border-solarized-base2 hover:bg-solarized-base2">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">

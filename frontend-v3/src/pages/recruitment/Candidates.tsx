@@ -149,11 +149,11 @@ export default function Candidates() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-solarized-base02 flex items-center gap-2">
             <Users className="h-6 w-6" />
             Candidates
           </h1>
-          <p className="text-slate-400">Manage candidate pool</p>
+          <p className="text-solarized-base01">Manage candidate pool</p>
         </div>
         <Button onClick={() => handleOpenDialog()}>
           <Plus className="h-4 w-4 mr-2" />
@@ -161,26 +161,26 @@ export default function Candidates() {
         </Button>
       </div>
 
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-white border-solarized-base2">
         <CardHeader>
-          <CardTitle className="text-white">Filters</CardTitle>
+          <CardTitle className="text-solarized-base02">Filters</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative md:col-span-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-solarized-base01" />
               <Input
                 placeholder="Search by name or email..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 bg-slate-700/50 border-slate-600 text-white"
+                className="pl-9 bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+              <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-white border-solarized-base2">
                 <SelectItem value="">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="hired">Hired</SelectItem>
@@ -192,32 +192,32 @@ export default function Candidates() {
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-white border-solarized-base2">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-solarized-blue"></div>
             </div>
           ) : candidates.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+            <div className="flex flex-col items-center justify-center h-64 text-solarized-base01">
               <Users className="h-12 w-12 mb-4" />
               <p>No candidates found</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-700 hover:bg-slate-700/50">
-                  <TableHead className="text-slate-300">Candidate</TableHead>
-                  <TableHead className="text-slate-300">Email</TableHead>
-                  <TableHead className="text-slate-300">Phone</TableHead>
-                  <TableHead className="text-slate-300">Source</TableHead>
-                  <TableHead className="text-slate-300">Status</TableHead>
-                  <TableHead className="text-slate-300 text-right">Actions</TableHead>
+                <TableRow className="border-solarized-base2 hover:bg-solarized-base2">
+                  <TableHead className="text-solarized-base01">Candidate</TableHead>
+                  <TableHead className="text-solarized-base01">Email</TableHead>
+                  <TableHead className="text-solarized-base01">Phone</TableHead>
+                  <TableHead className="text-solarized-base01">Source</TableHead>
+                  <TableHead className="text-solarized-base01">Status</TableHead>
+                  <TableHead className="text-solarized-base01 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {candidates.map((candidate) => (
-                  <TableRow key={candidate.id} className="border-slate-700 hover:bg-slate-700/50">
+                  <TableRow key={candidate.id} className="border-solarized-base2 hover:bg-solarized-base2">
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
@@ -226,17 +226,17 @@ export default function Candidates() {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium text-white">{candidate.first_name} {candidate.last_name}</p>
+                          <p className="font-medium text-solarized-base02">{candidate.first_name} {candidate.last_name}</p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-slate-300">{candidate.email}</TableCell>
-                    <TableCell className="text-slate-300">{candidate.phone || '-'}</TableCell>
-                    <TableCell className="text-slate-300">{candidate.source || '-'}</TableCell>
+                    <TableCell className="text-solarized-base01">{candidate.email}</TableCell>
+                    <TableCell className="text-solarized-base01">{candidate.phone || '-'}</TableCell>
+                    <TableCell className="text-solarized-base01">{candidate.source || '-'}</TableCell>
                     <TableCell>{getStatusBadge(candidate.status)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(candidate)} className="text-slate-400 hover:text-white">
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(candidate)} className="text-solarized-base01 hover:text-solarized-base02">
                           <Edit className="h-4 w-4" />
                         </Button>
                         {candidate.status === 'active' && (
@@ -249,7 +249,7 @@ export default function Candidates() {
                             </Button>
                           </>
                         )}
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(candidate.id)} className="text-slate-400 hover:text-red-400">
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(candidate.id)} className="text-solarized-base01 hover:text-red-400">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -263,57 +263,57 @@ export default function Candidates() {
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-white border-solarized-base2">
           <DialogHeader>
-            <DialogTitle className="text-white">{editingId ? 'Edit Candidate' : 'Add Candidate'}</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogTitle className="text-solarized-base02">{editingId ? 'Edit Candidate' : 'Add Candidate'}</DialogTitle>
+            <DialogDescription className="text-solarized-base01">
               {editingId ? 'Update candidate details' : 'Add a new candidate to the pool'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-slate-200">First Name *</Label>
+                <Label className="text-solarized-base01">First Name *</Label>
                 <Input
                   value={formData.first_name}
                   onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-200">Last Name *</Label>
+                <Label className="text-solarized-base01">Last Name *</Label>
                 <Input
                   value={formData.last_name}
                   onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Email *</Label>
+              <Label className="text-solarized-base01">Email *</Label>
               <Input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-slate-200">Phone</Label>
+                <Label className="text-solarized-base01">Phone</Label>
                 <Input
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-200">Source</Label>
+                <Label className="text-solarized-base01">Source</Label>
                 <Select value={formData.source} onValueChange={(v) => setFormData({ ...formData, source: v })}>
-                  <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                  <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                     <SelectValue placeholder="Select source" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectContent className="bg-white border-solarized-base2">
                     <SelectItem value="">None</SelectItem>
                     <SelectItem value="linkedin">LinkedIn</SelectItem>
                     <SelectItem value="indeed">Indeed</SelectItem>
@@ -325,17 +325,17 @@ export default function Candidates() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Notes</Label>
+              <Label className="text-solarized-base01">Notes</Label>
               <Input
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
                 placeholder="Any additional notes..."
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="border-slate-600 text-slate-300 hover:bg-slate-700">Cancel</Button>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="border-solarized-base2 text-solarized-base01 hover:bg-solarized-base2">Cancel</Button>
             <Button onClick={handleSave} disabled={isSaving || !formData.first_name || !formData.last_name || !formData.email}>
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
             </Button>
@@ -344,13 +344,13 @@ export default function Candidates() {
       </Dialog>
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent className="bg-slate-800 border-slate-700">
+        <AlertDialogContent className="bg-white border-solarized-base2">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Delete Candidate?</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">This action cannot be undone.</AlertDialogDescription>
+            <AlertDialogTitle className="text-solarized-base02">Delete Candidate?</AlertDialogTitle>
+            <AlertDialogDescription className="text-solarized-base01">This action cannot be undone.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="bg-solarized-base2 text-solarized-base02 border-solarized-base2 hover:bg-solarized-base2">Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -116,11 +116,11 @@ export default function SalarySlips() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-solarized-base02 flex items-center gap-2">
             <DollarSign className="h-6 w-6" />
             Salary Slips
           </h1>
-          <p className="text-slate-400">Manage employee payroll</p>
+          <p className="text-solarized-base01">Manage employee payroll</p>
         </div>
         <Button onClick={() => setIsGenerateOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
@@ -128,17 +128,17 @@ export default function SalarySlips() {
         </Button>
       </div>
 
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-white border-solarized-base2">
         <CardHeader>
-          <CardTitle className="text-white">Filters</CardTitle>
+          <CardTitle className="text-solarized-base02">Filters</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Select value={monthFilter} onValueChange={setMonthFilter}>
-              <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+              <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                 <SelectValue placeholder="All Months" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-white border-solarized-base2">
                 <SelectItem value="">All Months</SelectItem>
                 {months.map((m) => (
                   <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
@@ -146,20 +146,20 @@ export default function SalarySlips() {
               </SelectContent>
             </Select>
             <Select value={yearFilter} onValueChange={setYearFilter}>
-              <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+              <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                 <SelectValue placeholder="Select Year" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-white border-solarized-base2">
                 {years.map((y) => (
                   <SelectItem key={y} value={y}>{y}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Select value={staffFilter} onValueChange={setStaffFilter}>
-              <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+              <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                 <SelectValue placeholder="All Employees" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-white border-solarized-base2">
                 <SelectItem value="">All Employees</SelectItem>
                 {staffMembers.map((staff) => (
                   <SelectItem key={staff.id} value={staff.id.toString()}>{staff.full_name}</SelectItem>
@@ -167,10 +167,10 @@ export default function SalarySlips() {
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+              <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-white border-solarized-base2">
                 <SelectItem value="">All Status</SelectItem>
                 <SelectItem value="draft">Draft</SelectItem>
                 <SelectItem value="generated">Generated</SelectItem>
@@ -181,42 +181,42 @@ export default function SalarySlips() {
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-white border-solarized-base2">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-solarized-blue"></div>
             </div>
           ) : salarySlips.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+            <div className="flex flex-col items-center justify-center h-64 text-solarized-base01">
               <FileText className="h-12 w-12 mb-4" />
               <p>No salary slips found</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-700 hover:bg-slate-700/50">
-                  <TableHead className="text-slate-300">Employee</TableHead>
-                  <TableHead className="text-slate-300">Period</TableHead>
-                  <TableHead className="text-slate-300">Gross</TableHead>
-                  <TableHead className="text-slate-300">Deductions</TableHead>
-                  <TableHead className="text-slate-300">Net Pay</TableHead>
-                  <TableHead className="text-slate-300">Status</TableHead>
-                  <TableHead className="text-slate-300 text-right">Actions</TableHead>
+                <TableRow className="border-solarized-base2 hover:bg-solarized-base2">
+                  <TableHead className="text-solarized-base01">Employee</TableHead>
+                  <TableHead className="text-solarized-base01">Period</TableHead>
+                  <TableHead className="text-solarized-base01">Gross</TableHead>
+                  <TableHead className="text-solarized-base01">Deductions</TableHead>
+                  <TableHead className="text-solarized-base01">Net Pay</TableHead>
+                  <TableHead className="text-solarized-base01">Status</TableHead>
+                  <TableHead className="text-solarized-base01 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {salarySlips.map((slip) => (
-                  <TableRow key={slip.id} className="border-slate-700 hover:bg-slate-700/50">
-                    <TableCell className="font-medium text-white">{slip.staff_member?.full_name || '-'}</TableCell>
-                    <TableCell className="text-slate-300">{months.find(m => m.value === slip.month.toString())?.label} {slip.year}</TableCell>
-                    <TableCell className="text-slate-300">{formatCurrency(slip.gross_salary)}</TableCell>
-                    <TableCell className="text-slate-300">{formatCurrency(slip.total_deductions)}</TableCell>
-                    <TableCell className="text-white font-medium">{formatCurrency(slip.net_salary)}</TableCell>
+                  <TableRow key={slip.id} className="border-solarized-base2 hover:bg-solarized-base2">
+                    <TableCell className="font-medium text-solarized-base02">{slip.staff_member?.full_name || '-'}</TableCell>
+                    <TableCell className="text-solarized-base01">{months.find(m => m.value === slip.month.toString())?.label} {slip.year}</TableCell>
+                    <TableCell className="text-solarized-base01">{formatCurrency(slip.gross_salary)}</TableCell>
+                    <TableCell className="text-solarized-base01">{formatCurrency(slip.total_deductions)}</TableCell>
+                    <TableCell className="text-solarized-base02 font-medium">{formatCurrency(slip.net_salary)}</TableCell>
                     <TableCell>{getStatusBadge(slip.status)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => setSelectedSlip(slip)} className="text-slate-400 hover:text-white">
+                        <Button variant="ghost" size="icon" onClick={() => setSelectedSlip(slip)} className="text-solarized-base01 hover:text-solarized-base02">
                           <Eye className="h-4 w-4" />
                         </Button>
                         {slip.status !== 'paid' && (
@@ -235,19 +235,19 @@ export default function SalarySlips() {
       </Card>
 
       <Dialog open={isGenerateOpen} onOpenChange={setIsGenerateOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-white border-solarized-base2">
           <DialogHeader>
-            <DialogTitle className="text-white">Generate Salary Slip</DialogTitle>
-            <DialogDescription className="text-slate-400">Generate a new salary slip for an employee</DialogDescription>
+            <DialogTitle className="text-solarized-base02">Generate Salary Slip</DialogTitle>
+            <DialogDescription className="text-solarized-base01">Generate a new salary slip for an employee</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-slate-200">Employee *</Label>
+              <Label className="text-solarized-base01">Employee *</Label>
               <Select value={generateForm.staff_member_id} onValueChange={(v) => setGenerateForm({ ...generateForm, staff_member_id: v })}>
-                <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                   <SelectValue placeholder="Select employee" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent className="bg-white border-solarized-base2">
                   {staffMembers.map((staff) => (
                     <SelectItem key={staff.id} value={staff.id.toString()}>{staff.full_name}</SelectItem>
                   ))}
@@ -256,12 +256,12 @@ export default function SalarySlips() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-slate-200">Month *</Label>
+                <Label className="text-solarized-base01">Month *</Label>
                 <Select value={generateForm.month} onValueChange={(v) => setGenerateForm({ ...generateForm, month: v })}>
-                  <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                  <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                     <SelectValue placeholder="Select month" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectContent className="bg-white border-solarized-base2">
                     {months.map((m) => (
                       <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
                     ))}
@@ -269,12 +269,12 @@ export default function SalarySlips() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-200">Year *</Label>
+                <Label className="text-solarized-base01">Year *</Label>
                 <Select value={generateForm.year} onValueChange={(v) => setGenerateForm({ ...generateForm, year: v })}>
-                  <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                  <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                     <SelectValue placeholder="Select year" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectContent className="bg-white border-solarized-base2">
                     {years.map((y) => (
                       <SelectItem key={y} value={y}>{y}</SelectItem>
                     ))}
@@ -284,7 +284,7 @@ export default function SalarySlips() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsGenerateOpen(false)} className="border-slate-600 text-slate-300 hover:bg-slate-700">Cancel</Button>
+            <Button variant="outline" onClick={() => setIsGenerateOpen(false)} className="border-solarized-base2 text-solarized-base01 hover:bg-solarized-base2">Cancel</Button>
             <Button onClick={handleGenerate} disabled={isGenerating || !generateForm.staff_member_id || !generateForm.month}>
               {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Generate'}
             </Button>
@@ -293,47 +293,47 @@ export default function SalarySlips() {
       </Dialog>
 
       <Dialog open={!!selectedSlip} onOpenChange={() => setSelectedSlip(null)}>
-        <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl">
+        <DialogContent className="bg-white border-solarized-base2 max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-white">Salary Slip Details</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogTitle className="text-solarized-base02">Salary Slip Details</DialogTitle>
+            <DialogDescription className="text-solarized-base01">
               {selectedSlip?.staff_member?.full_name} - {months.find(m => m.value === selectedSlip?.month.toString())?.label} {selectedSlip?.year}
             </DialogDescription>
           </DialogHeader>
           {selectedSlip && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-lg bg-slate-700/50">
-                  <p className="text-sm text-slate-400">Basic Salary</p>
-                  <p className="text-xl font-bold text-white">{formatCurrency(selectedSlip.basic_salary)}</p>
+                <div className="p-4 rounded-lg bg-solarized-base2">
+                  <p className="text-sm text-solarized-base01">Basic Salary</p>
+                  <p className="text-xl font-bold text-solarized-base02">{formatCurrency(selectedSlip.basic_salary)}</p>
                 </div>
-                <div className="p-4 rounded-lg bg-slate-700/50">
-                  <p className="text-sm text-slate-400">Gross Salary</p>
-                  <p className="text-xl font-bold text-white">{formatCurrency(selectedSlip.gross_salary)}</p>
+                <div className="p-4 rounded-lg bg-solarized-base2">
+                  <p className="text-sm text-solarized-base01">Gross Salary</p>
+                  <p className="text-xl font-bold text-solarized-base02">{formatCurrency(selectedSlip.gross_salary)}</p>
                 </div>
-                <div className="p-4 rounded-lg bg-slate-700/50">
-                  <p className="text-sm text-slate-400">Total Deductions</p>
+                <div className="p-4 rounded-lg bg-solarized-base2">
+                  <p className="text-sm text-solarized-base01">Total Deductions</p>
                   <p className="text-xl font-bold text-red-400">{formatCurrency(selectedSlip.total_deductions)}</p>
                 </div>
                 <div className="p-4 rounded-lg bg-primary/20">
-                  <p className="text-sm text-slate-400">Net Salary</p>
+                  <p className="text-sm text-solarized-base01">Net Salary</p>
                   <p className="text-xl font-bold text-primary">{formatCurrency(selectedSlip.net_salary)}</p>
                 </div>
               </div>
-              <div className="flex items-center justify-between p-4 rounded-lg bg-slate-700/50">
-                <span className="text-slate-300">Status</span>
+              <div className="flex items-center justify-between p-4 rounded-lg bg-solarized-base2">
+                <span className="text-solarized-base01">Status</span>
                 {getStatusBadge(selectedSlip.status)}
               </div>
               {selectedSlip.paid_at && (
-                <div className="flex items-center justify-between p-4 rounded-lg bg-slate-700/50">
-                  <span className="text-slate-300">Paid On</span>
-                  <span className="text-white">{new Date(selectedSlip.paid_at).toLocaleDateString()}</span>
+                <div className="flex items-center justify-between p-4 rounded-lg bg-solarized-base2">
+                  <span className="text-solarized-base01">Paid On</span>
+                  <span className="text-solarized-base02">{new Date(selectedSlip.paid_at).toLocaleDateString()}</span>
                 </div>
               )}
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSelectedSlip(null)} className="border-slate-600 text-slate-300 hover:bg-slate-700">Close</Button>
+            <Button variant="outline" onClick={() => setSelectedSlip(null)} className="border-solarized-base2 text-solarized-base01 hover:bg-solarized-base2">Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

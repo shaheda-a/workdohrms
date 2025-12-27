@@ -97,11 +97,11 @@ export default function JobTitles() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-solarized-base02 flex items-center gap-2">
             <Briefcase className="h-6 w-6" />
             Job Titles
           </h1>
-          <p className="text-slate-400">Manage job titles and positions</p>
+          <p className="text-solarized-base01">Manage job titles and positions</p>
         </div>
         <Button onClick={() => handleOpenDialog()}>
           <Plus className="h-4 w-4 mr-2" />
@@ -109,34 +109,34 @@ export default function JobTitles() {
         </Button>
       </div>
 
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-white border-solarized-base2">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-solarized-blue"></div>
             </div>
           ) : jobTitles.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+            <div className="flex flex-col items-center justify-center h-64 text-solarized-base01">
               <Briefcase className="h-12 w-12 mb-4" />
               <p>No job titles found</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-700 hover:bg-slate-700/50">
-                  <TableHead className="text-slate-300">Name</TableHead>
-                  <TableHead className="text-slate-300">Division</TableHead>
-                  <TableHead className="text-slate-300">Description</TableHead>
-                  <TableHead className="text-slate-300">Status</TableHead>
-                  <TableHead className="text-slate-300 text-right">Actions</TableHead>
+                <TableRow className="border-solarized-base2 hover:bg-solarized-base2">
+                  <TableHead className="text-solarized-base01">Name</TableHead>
+                  <TableHead className="text-solarized-base01">Division</TableHead>
+                  <TableHead className="text-solarized-base01">Description</TableHead>
+                  <TableHead className="text-solarized-base01">Status</TableHead>
+                  <TableHead className="text-solarized-base01 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {jobTitles.map((jobTitle) => (
-                  <TableRow key={jobTitle.id} className="border-slate-700 hover:bg-slate-700/50">
-                    <TableCell className="font-medium text-white">{jobTitle.name}</TableCell>
-                    <TableCell className="text-slate-300">{jobTitle.division?.name || '-'}</TableCell>
-                    <TableCell className="text-slate-300 max-w-xs truncate">{jobTitle.description || '-'}</TableCell>
+                  <TableRow key={jobTitle.id} className="border-solarized-base2 hover:bg-solarized-base2">
+                    <TableCell className="font-medium text-solarized-base02">{jobTitle.name}</TableCell>
+                    <TableCell className="text-solarized-base01">{jobTitle.division?.name || '-'}</TableCell>
+                    <TableCell className="text-solarized-base01 max-w-xs truncate">{jobTitle.description || '-'}</TableCell>
                     <TableCell>
                       <Badge variant={jobTitle.is_active ? 'default' : 'secondary'}>
                         {jobTitle.is_active ? 'Active' : 'Inactive'}
@@ -144,10 +144,10 @@ export default function JobTitles() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(jobTitle)} className="text-slate-400 hover:text-white">
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(jobTitle)} className="text-solarized-base01 hover:text-solarized-base02">
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(jobTitle.id)} className="text-slate-400 hover:text-red-400">
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(jobTitle.id)} className="text-solarized-base01 hover:text-red-400">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -161,29 +161,29 @@ export default function JobTitles() {
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-white border-solarized-base2">
           <DialogHeader>
-            <DialogTitle className="text-white">{editingId ? 'Edit Job Title' : 'Add Job Title'}</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogTitle className="text-solarized-base02">{editingId ? 'Edit Job Title' : 'Add Job Title'}</DialogTitle>
+            <DialogDescription className="text-solarized-base01">
               {editingId ? 'Update the job title details' : 'Create a new job title'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-slate-200">Name *</Label>
+              <Label className="text-solarized-base01">Name *</Label>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Division</Label>
+              <Label className="text-solarized-base01">Division</Label>
               <Select value={formData.division_id} onValueChange={(v) => setFormData({ ...formData, division_id: v })}>
-                <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                <SelectTrigger className="bg-solarized-base2 border-solarized-base2 text-solarized-base02">
                   <SelectValue placeholder="Select division" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent className="bg-white border-solarized-base2">
                   <SelectItem value="">None</SelectItem>
                   {divisions.map((div) => (
                     <SelectItem key={div.id} value={div.id.toString()}>{div.name}</SelectItem>
@@ -192,20 +192,20 @@ export default function JobTitles() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Description</Label>
+              <Label className="text-solarized-base01">Description</Label>
               <Textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-solarized-base2 border-solarized-base2 text-solarized-base02"
               />
             </div>
             <div className="flex items-center justify-between">
-              <Label className="text-slate-200">Active</Label>
+              <Label className="text-solarized-base01">Active</Label>
               <Switch checked={formData.is_active} onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="border-slate-600 text-slate-300 hover:bg-slate-700">Cancel</Button>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="border-solarized-base2 text-solarized-base01 hover:bg-solarized-base2">Cancel</Button>
             <Button onClick={handleSave} disabled={isSaving || !formData.name}>
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
             </Button>
@@ -214,13 +214,13 @@ export default function JobTitles() {
       </Dialog>
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent className="bg-slate-800 border-slate-700">
+        <AlertDialogContent className="bg-white border-solarized-base2">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Delete Job Title?</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">This action cannot be undone.</AlertDialogDescription>
+            <AlertDialogTitle className="text-solarized-base02">Delete Job Title?</AlertDialogTitle>
+            <AlertDialogDescription className="text-solarized-base01">This action cannot be undone.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="bg-solarized-base2 text-solarized-base02 border-solarized-base2 hover:bg-solarized-base2">Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
