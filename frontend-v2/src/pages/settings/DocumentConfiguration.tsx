@@ -4,14 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Button } from '../../components/ui/button';
 import { Label } from '../../components/ui/label';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '../../components/ui/dialog';
-import {
     Select,
     SelectContent,
     SelectItem,
@@ -48,9 +40,6 @@ export default function DocumentConfiguration() {
     const [organizations, setOrganizations] = useState<Organization[]>([]);
     const [companies, setCompanies] = useState<Company[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [selectedType, setSelectedType] = useState<StorageType | null>(null);
-    const [selectedLocationType, setSelectedLocationType] = useState<number>(0);
 
     const [formData, setFormData] = useState({
         org_id: '',
@@ -109,16 +98,7 @@ export default function DocumentConfiguration() {
         return locations.filter(loc => loc.location_type === locationType);
     };
 
-    const handleCardClick = (type: StorageType, locationType: number) => {
-        setSelectedType(type);
-        setSelectedLocationType(locationType);
-        setFormData({ org_id: '', company_id: '' });
-        setIsDialogOpen(true);
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
+    const handleConfigureStorage = async (locationType: number, type: StorageType) => {
         if (!formData.org_id || !formData.company_id) {
             toast({
                 variant: 'destructive',
@@ -131,18 +111,16 @@ export default function DocumentConfiguration() {
         setIsLoading(true);
         try {
             await documentLocationService.create({
-                location_type: selectedLocationType,
+                location_type: locationType,
                 org_id: Number(formData.org_id),
                 company_id: Number(formData.company_id),
             });
 
             toast({
                 title: 'Success',
-                description: `${selectedType?.charAt(0).toUpperCase()}${selectedType?.slice(1)} storage configured successfully`,
+                description: `${type.charAt(0).toUpperCase()}${type.slice(1)} storage configured successfully`,
             });
 
-            setIsDialogOpen(false);
-            setFormData({ org_id: '', company_id: '' });
             fetchLocations();
         } catch (error) {
             console.error('Failed to configure storage:', error);
@@ -193,6 +171,55 @@ export default function DocumentConfiguration() {
                 </div>
             </div>
 
+            {/* Selection Form */}
+            <Card className="border-0 shadow-md">
+                <CardHeader>
+                    <CardTitle>Select Organization & Company</CardTitle>
+                    <CardDescription>Choose the organization and company for storage configuration</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="org_id">Organization *</Label>
+                            <Select
+                                value={formData.org_id}
+                                onValueChange={(value) => setFormData({ ...formData, org_id: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select organization" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {organizations.map((org) => (
+                                        <SelectItem key={org.id} value={String(org.id)}>
+                                            {org.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="company_id">Company *</Label>
+                            <Select
+                                value={formData.company_id}
+                                onValueChange={(value) => setFormData({ ...formData, company_id: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select company" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {companies.map((company) => (
+                                        <SelectItem key={company.id} value={String(company.id)}>
+                                            {company.company_name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Storage Type Cards */}
             <div className="grid gap-6 md:grid-cols-3">
                 {storageCards.map((card) => {
                     const Icon = card.icon;
@@ -221,9 +248,9 @@ export default function DocumentConfiguration() {
                             <CardContent>
                                 <div className="space-y-2">
                                     {configuredLocations.length > 0 && (
-                                        <div className="text-xs text-solarized-base01 mb-2">
+                                        <div className="text-xs text-solarized-base01 mb-2 max-h-20 overflow-y-auto">
                                             {configuredLocations.map(loc => (
-                                                <div key={loc.id}>
+                                                <div key={loc.id} className="truncate">
                                                     • {loc.organization?.name || 'N/A'} - {loc.company?.company_name || 'N/A'}
                                                 </div>
                                             ))}
@@ -232,10 +259,10 @@ export default function DocumentConfiguration() {
                                     <Button
                                         size="sm"
                                         className="bg-solarized-blue hover:bg-solarized-blue/90 w-full"
-                                        onClick={() => handleCardClick(card.type, card.locationType)}
+                                        onClick={() => handleConfigureStorage(card.locationType, card.type)}
                                         disabled={isLoading}
                                     >
-                                        Add Configuration
+                                        {isLoading ? 'Configuring...' : 'Configure'}
                                     </Button>
                                 </div>
                             </CardContent>
@@ -243,67 +270,6 @@ export default function DocumentConfiguration() {
                     );
                 })}
             </div>
-
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>
-                            Configure {selectedType === 'local' ? 'Local Storage' : selectedType === 'wasabi' ? 'Wasabi Cloud' : 'AWS S3'}
-                        </DialogTitle>
-                        <DialogDescription>
-                            Select organization and company for this storage location
-                        </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit}>
-                        <div className="grid gap-4 py-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="org_id">Organization *</Label>
-                                <Select
-                                    value={formData.org_id}
-                                    onValueChange={(value) => setFormData({ ...formData, org_id: value })}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select organization" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {organizations.map((org) => (
-                                            <SelectItem key={org.id} value={String(org.id)}>
-                                                {org.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="company_id">Company *</Label>
-                                <Select
-                                    value={formData.company_id}
-                                    onValueChange={(value) => setFormData({ ...formData, company_id: value })}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select company" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {companies.map((company) => (
-                                            <SelectItem key={company.id} value={String(company.id)}>
-                                                {company.company_name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                                Cancel
-                            </Button>
-                            <Button type="submit" className="bg-solarized-blue hover:bg-solarized-blue/90" disabled={isLoading}>
-                                {isLoading ? 'Saving...' : 'Save Configuration'}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }
