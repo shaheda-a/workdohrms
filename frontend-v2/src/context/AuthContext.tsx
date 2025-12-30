@@ -9,6 +9,10 @@ interface User {
   roles: string[];
   permissions: string[];
   staff_member_id?: number;
+  org_id?: number;
+  company_id?: number;
+  organization_name?: string;
+  company_name?: string;
 }
 
 interface AuthContextType {
