@@ -118,17 +118,25 @@ class AuthService
      */
     protected function formatUserData(User $user): array
     {
-        $user->load('roles.permissions', 'staffMember', 'organization', 'company');
-        $role = $user->roles->first();
-        $permissions = $user->getAllPermissions()->pluck('name')->toArray();
+        $user->load(['roles' => function ($query) {
+            $query->orderBy('hierarchy_level');
+        }, 'roles.permissions', 'staffMember', 'organization', 'company']);
+
+        $roles = $user->roles;
+        $primaryRole = $roles->sortBy('hierarchy_level')->first();
+        $permissions = $user->getAllPermissions()->pluck('name')->unique()->values()->toArray();
 
         return [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
-            'role' => $role ? $role->name : 'staff_member',
-            'role_display' => $role ? ucwords(str_replace('_', ' ', $role->name)) : 'Staff Member',
+            'role' => $primaryRole ? $primaryRole->name : 'staff',
+            'role_display' => $primaryRole ? ucwords(str_replace('_', ' ', $primaryRole->name)) : 'Staff',
+            'roles' => $roles->pluck('name')->toArray(),
             'permissions' => $permissions,
+            'primary_role' => $primaryRole ? $primaryRole->name : 'staff',
+            'primary_role_icon' => $primaryRole ? $primaryRole->icon : 'User',
+            'primary_role_hierarchy' => $primaryRole ? $primaryRole->hierarchy_level : 5,
             'staff_member_id' => $user->staffMember?->id,
             'org_id' => $user->org_id,
             'company_id' => $user->company_id,

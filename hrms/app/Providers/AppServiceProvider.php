@@ -5,6 +5,7 @@ namespace App\Providers;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -29,5 +30,12 @@ class AppServiceProvider extends ServiceProvider
                     SecurityScheme::http('bearer', 'JWT')
                 );
             });
+
+        // Admin users have full access to all gates/abilities
+        Gate::before(function ($user, $ability) {
+            if ($user->hasRole('admin')) {
+                return true;
+            }
+        });
     }
 }
