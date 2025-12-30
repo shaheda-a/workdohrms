@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Api\Attendance;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceRegularization;
 use App\Models\WorkLog;
+use App\Traits\ApiResponse;
 use Dedoc\Scramble\Attributes\QueryParameter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class AttendanceRegularizationController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = AttendanceRegularization::with(['staffMember', 'workLog', 'reviewer']);
@@ -34,10 +37,7 @@ class AttendanceRegularizationController extends Controller
         $regularizations = $query->orderBy('created_at', 'desc')
             ->paginate($request->per_page ?? 15);
 
-        return response()->json([
-            'success' => true,
-            'data' => $regularizations,
-        ]);
+        return $this->success($regularizations);
     }
 
     public function store(Request $request)
@@ -56,10 +56,7 @@ class AttendanceRegularizationController extends Controller
         $staffMemberId = $request->staff_member_id ?? auth()->user()->staffMember?->id;
 
         if (! $staffMemberId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Staff member not found. Please provide staff_member_id or login as a staff member.',
-            ], 400);
+            return $this->error('Staff member not found. Please provide staff_member_id or login as a staff member.', 400);
         }
 
         // Get original clock times if work_log_id provided
@@ -83,30 +80,20 @@ class AttendanceRegularizationController extends Controller
             'status' => 'pending',
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Regularization request submitted successfully',
-            'data' => $regularization->load('staffMember'),
-        ], 201);
+        return $this->created($regularization->load('staffMember'), 'Regularization request submitted successfully');
     }
 
     public function show(AttendanceRegularization $attendanceRegularization)
     {
         $attendanceRegularization->load(['staffMember', 'workLog', 'reviewer']);
 
-        return response()->json([
-            'success' => true,
-            'data' => $attendanceRegularization,
-        ]);
+        return $this->success($attendanceRegularization);
     }
 
     public function approve(Request $request, AttendanceRegularization $attendanceRegularization)
     {
         if ($attendanceRegularization->status !== 'pending') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Only pending requests can be approved',
-            ], 400);
+            return $this->error('Only pending requests can be approved', 400);
         }
 
         $attendanceRegularization->update([
@@ -136,20 +123,13 @@ class AttendanceRegularizationController extends Controller
 
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Regularization request approved',
-            'data' => $attendanceRegularization,
-        ]);
+        return $this->success($attendanceRegularization, 'Regularization request approved');
     }
 
     public function reject(Request $request, AttendanceRegularization $attendanceRegularization)
     {
         if ($attendanceRegularization->status !== 'pending') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Only pending requests can be rejected',
-            ], 400);
+            return $this->error('Only pending requests can be rejected', 400);
         }
 
         $validator = Validator::make($request->all(), [
@@ -157,7 +137,7 @@ class AttendanceRegularizationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $attendanceRegularization->update([
@@ -167,11 +147,7 @@ class AttendanceRegularizationController extends Controller
             'review_notes' => $request->notes,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Regularization request rejected',
-            'data' => $attendanceRegularization,
-        ]);
+        return $this->success($attendanceRegularization, 'Regularization request rejected');
     }
 
     public function pending()
@@ -181,10 +157,7 @@ class AttendanceRegularizationController extends Controller
             ->orderBy('created_at', 'asc')
             ->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $pending,
-        ]);
+        return $this->success($pending);
     }
 
     /**
@@ -203,9 +176,6 @@ class AttendanceRegularizationController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $requests,
-        ]);
+        return $this->success($requests);
     }
 }

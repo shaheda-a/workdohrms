@@ -7,10 +7,13 @@ use App\Models\GeneratedLetter;
 use App\Models\LetterTemplate;
 use App\Models\StaffMember;
 use App\Models\SystemConfiguration;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class GeneratedLetterController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = GeneratedLetter::with(['staffMember', 'template', 'author']);
@@ -28,7 +31,7 @@ class GeneratedLetterController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $letters]);
+        return $this->success($letters);
     }
 
     /**
@@ -81,19 +84,7 @@ class GeneratedLetterController extends Controller
             'author_id' => $request->user()->id,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Letter generated successfully',
-            'data' => $letter->load(['staffMember', 'template']),
-        ], 201);
-    }
-
-    public function show(GeneratedLetter $generatedLetter)
-    {
-        return response()->json([
-            'success' => true,
-            'data' => $generatedLetter->load(['staffMember', 'template', 'author']),
-        ]);
+        return $this->created($letter->load(['staffMember', 'template']), 'Letter generated successfully');
     }
 
     /**
@@ -109,9 +100,6 @@ class GeneratedLetterController extends Controller
     {
         $generatedLetter->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Generated letter deleted',
-        ]);
+        return $this->noContent('Generated letter deleted');
     }
 }

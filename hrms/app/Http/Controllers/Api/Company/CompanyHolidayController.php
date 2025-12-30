@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Company;
 
 use App\Http\Controllers\Controller;
 use App\Models\CompanyHoliday;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class CompanyHolidayController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = CompanyHoliday::query();
@@ -26,7 +29,7 @@ class CompanyHolidayController extends Controller
             ? $query->orderBy('holiday_date')->paginate($request->input('per_page', 15))
             : $query->orderBy('holiday_date')->get();
 
-        return response()->json(['success' => true, 'data' => $holidays]);
+        return $this->success($holidays);
     }
 
     public function store(Request $request)
@@ -40,19 +43,12 @@ class CompanyHolidayController extends Controller
 
         $holiday = CompanyHoliday::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Company holiday created',
-            'data' => $holiday,
-        ], 201);
+        return $this->created($holiday, 'Company holiday created');
     }
 
     public function show(CompanyHoliday $companyHoliday)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $companyHoliday,
-        ]);
+        return $this->success($companyHoliday);
     }
 
     public function update(Request $request, CompanyHoliday $companyHoliday)
@@ -66,21 +62,14 @@ class CompanyHolidayController extends Controller
 
         $companyHoliday->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Company holiday updated',
-            'data' => $companyHoliday->fresh(),
-        ]);
+        return $this->success($companyHoliday->fresh(), 'Company holiday updated');
     }
 
     public function destroy(CompanyHoliday $companyHoliday)
     {
         $companyHoliday->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Company holiday deleted',
-        ]);
+        return $this->noContent('Company holiday deleted');
     }
 
     /**
@@ -101,10 +90,6 @@ class CompanyHolidayController extends Controller
             $created[] = CompanyHoliday::create($holidayData);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => count($created).' holidays imported',
-            'data' => $created,
-        ], 201);
+        return $this->created($created, count($created).' holidays imported');
     }
 }

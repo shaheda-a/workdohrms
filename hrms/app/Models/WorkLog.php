@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\HasOrgAndCompany;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class WorkLog extends Model
 {
-    use HasFactory;
+    use HasFactory, HasOrgAndCompany;
 
     protected $fillable = [
         'staff_member_id',

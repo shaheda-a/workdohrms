@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Api\Staff;
 use App\Http\Controllers\Controller;
 use App\Models\EmployeeOnboarding;
 use App\Models\OnboardingTaskCompletion;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class EmployeeOnboardingController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = EmployeeOnboarding::with(['staffMember', 'template']);
@@ -23,7 +26,7 @@ class EmployeeOnboardingController extends Controller
 
         $onboardings = $query->paginate($request->per_page ?? 15);
 
-        return response()->json(['success' => true, 'data' => $onboardings]);
+        return $this->success($onboardings);
     }
 
     public function store(Request $request)
@@ -35,7 +38,7 @@ class EmployeeOnboardingController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $onboarding = EmployeeOnboarding::create([
@@ -45,19 +48,10 @@ class EmployeeOnboardingController extends Controller
             'status' => 'pending',
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Onboarding assigned successfully',
-            'data' => $onboarding->load(['staffMember', 'template.tasks']),
-        ], 201);
-    }
-
-    public function show(EmployeeOnboarding $employeeOnboarding)
-    {
-        $employeeOnboarding->load(['staffMember', 'template.tasks', 'taskCompletions']);
+        return $this->created($onboarding->load(['staffMember', 'template.tasks']), 'Onboarding assigned successfully');
         $employeeOnboarding->progress = $employeeOnboarding->progress;
 
-        return response()->json(['success' => true, 'data' => $employeeOnboarding]);
+        return $this->success($employeeOnboarding);
     }
 
     public function completeTask(Request $request, EmployeeOnboarding $employeeOnboarding)
@@ -68,7 +62,7 @@ class EmployeeOnboardingController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $existing = OnboardingTaskCompletion::where('employee_onboarding_id', $employeeOnboarding->id)
@@ -76,7 +70,7 @@ class EmployeeOnboardingController extends Controller
             ->first();
 
         if ($existing) {
-            return response()->json(['success' => false, 'message' => 'Task already completed'], 400);
+            return $this->error('Task already completed', 400);
         }
 
         $completion = OnboardingTaskCompletion::create([
@@ -100,11 +94,7 @@ class EmployeeOnboardingController extends Controller
             $employeeOnboarding->update(['status' => 'completed']);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Task completed',
-            'data' => $completion,
-        ]);
+        return $this->success($completion, 'Task completed');
     }
 
     public function pending()
@@ -113,6 +103,6 @@ class EmployeeOnboardingController extends Controller
             ->whereIn('status', ['pending', 'in_progress'])
             ->get();
 
-        return response()->json(['success' => true, 'data' => $onboardings]);
+        return $this->success($onboardings);
     }
 }

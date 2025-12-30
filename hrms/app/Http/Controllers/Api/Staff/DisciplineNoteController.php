@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Staff;
 
 use App\Http\Controllers\Controller;
 use App\Models\DisciplineNote;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class DisciplineNoteController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = DisciplineNote::with(['staffMember', 'issuedToUser', 'author']);
@@ -20,7 +23,7 @@ class DisciplineNoteController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $notes]);
+        return $this->success($notes);
     }
 
     public function store(Request $request)
@@ -36,19 +39,7 @@ class DisciplineNoteController extends Controller
         $validated['author_id'] = $request->user()->id;
         $note = DisciplineNote::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Discipline note created',
-            'data' => $note->load(['staffMember', 'issuedToUser']),
-        ], 201);
-    }
-
-    public function show(DisciplineNote $disciplineNote)
-    {
-        return response()->json([
-            'success' => true,
-            'data' => $disciplineNote->load(['staffMember', 'issuedToUser', 'author']),
-        ]);
+        return $this->created($note->load(['staffMember', 'issuedToUser']), 'Discipline note created');
     }
 
     public function update(Request $request, DisciplineNote $disciplineNote)
@@ -61,20 +52,13 @@ class DisciplineNoteController extends Controller
 
         $disciplineNote->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Discipline note updated',
-            'data' => $disciplineNote->fresh(['staffMember', 'issuedToUser']),
-        ]);
+        return $this->success($disciplineNote->fresh(['staffMember', 'issuedToUser']), 'Discipline note updated');
     }
 
     public function destroy(DisciplineNote $disciplineNote)
     {
         $disciplineNote->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Discipline note deleted',
-        ]);
+        return $this->noContent('Discipline note deleted');
     }
 }

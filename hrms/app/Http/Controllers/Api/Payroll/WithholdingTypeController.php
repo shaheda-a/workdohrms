@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Payroll;
 
 use App\Http\Controllers\Controller;
 use App\Models\WithholdingType;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class WithholdingTypeController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = WithholdingType::query();
@@ -23,7 +26,7 @@ class WithholdingTypeController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $types]);
+        return $this->success($types);
     }
 
     public function store(Request $request)
@@ -37,19 +40,12 @@ class WithholdingTypeController extends Controller
 
         $type = WithholdingType::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Withholding type created',
-            'data' => $type,
-        ], 201);
+        return $this->created($type, 'Withholding type created');
     }
 
     public function show(WithholdingType $withholdingType)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $withholdingType,
-        ]);
+        return $this->success($withholdingType);
     }
 
     public function update(Request $request, WithholdingType $withholdingType)
@@ -63,27 +59,17 @@ class WithholdingTypeController extends Controller
 
         $withholdingType->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Withholding type updated',
-            'data' => $withholdingType->fresh(),
-        ]);
+        return $this->success($withholdingType->fresh(), 'Withholding type updated');
     }
 
     public function destroy(WithholdingType $withholdingType)
     {
         if ($withholdingType->recurringDeductions()->exists()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot delete type with existing deductions',
-            ], 422);
+            return $this->error('Cannot delete type with existing deductions', 422);
         }
 
         $withholdingType->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Withholding type deleted',
-        ]);
+        return $this->noContent('Withholding type deleted');
     }
 }

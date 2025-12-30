@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Payroll;
 
 use App\Http\Controllers\Controller;
 use App\Models\BonusPayment;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class BonusPaymentController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = BonusPayment::with(['staffMember', 'author']);
@@ -23,7 +26,7 @@ class BonusPaymentController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $payments]);
+        return $this->success($payments);
     }
 
     public function store(Request $request)
@@ -40,19 +43,12 @@ class BonusPaymentController extends Controller
         $validated['author_id'] = $request->user()->id;
         $payment = BonusPayment::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Bonus payment created',
-            'data' => $payment->load('staffMember'),
-        ], 201);
+        return $this->created($payment->load('staffMember'), 'Bonus payment created');
     }
 
     public function show(BonusPayment $bonusPayment)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $bonusPayment->load(['staffMember', 'author']),
-        ]);
+        return $this->success($bonusPayment->load(['staffMember', 'author']));
     }
 
     public function update(Request $request, BonusPayment $bonusPayment)
@@ -67,20 +63,13 @@ class BonusPaymentController extends Controller
 
         $bonusPayment->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Bonus payment updated',
-            'data' => $bonusPayment->fresh('staffMember'),
-        ]);
+        return $this->success($bonusPayment->fresh('staffMember'), 'Bonus payment updated');
     }
 
     public function destroy(BonusPayment $bonusPayment)
     {
         $bonusPayment->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Bonus payment deleted',
-        ]);
+        return $this->noContent('Bonus payment deleted');
     }
 }

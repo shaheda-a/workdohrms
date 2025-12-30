@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api\Training;
 
 use App\Http\Controllers\Controller;
 use App\Models\TrainingType;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class TrainingTypeController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = TrainingType::withCount('programs');
@@ -21,10 +24,7 @@ class TrainingTypeController extends Controller
             ? $query->get()
             : $query->paginate($request->per_page ?? 15);
 
-        return response()->json([
-            'success' => true,
-            'data' => $types,
-        ]);
+        return $this->success($types);
     }
 
     public function store(Request $request)
@@ -36,26 +36,19 @@ class TrainingTypeController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $type = TrainingType::create($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Training type created successfully',
-            'data' => $type,
-        ], 201);
+        return $this->created($type, 'Training type created successfully');
     }
 
     public function show(TrainingType $trainingType)
     {
         $trainingType->load('programs');
 
-        return response()->json([
-            'success' => true,
-            'data' => $trainingType,
-        ]);
+        return $this->success($trainingType);
     }
 
     public function update(Request $request, TrainingType $trainingType)
@@ -67,25 +60,18 @@ class TrainingTypeController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $trainingType->update($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Training type updated successfully',
-            'data' => $trainingType,
-        ]);
+        return $this->success($trainingType, 'Training type updated successfully');
     }
 
     public function destroy(TrainingType $trainingType)
     {
         $trainingType->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Training type deleted successfully',
-        ]);
+        return $this->noContent('Training type deleted successfully');
     }
 }

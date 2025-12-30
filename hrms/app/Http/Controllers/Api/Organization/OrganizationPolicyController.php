@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Api\Organization;
 use App\Http\Controllers\Controller;
 use App\Models\OrganizationPolicy;
 use App\Models\StaffMember;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class OrganizationPolicyController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = OrganizationPolicy::with('author');
@@ -22,7 +25,7 @@ class OrganizationPolicyController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $policies]);
+        return $this->success($policies);
     }
 
     public function store(Request $request)
@@ -45,19 +48,12 @@ class OrganizationPolicyController extends Controller
         $validated['author_id'] = $request->user()->id;
         $policy = OrganizationPolicy::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Policy created',
-            'data' => $policy,
-        ], 201);
+        return $this->created($policy, 'Policy created');
     }
 
     public function show(OrganizationPolicy $organizationPolicy)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $organizationPolicy->load(['author', 'acknowledgments']),
-        ]);
+        return $this->success($organizationPolicy->load(['author', 'acknowledgments']));
     }
 
     public function update(Request $request, OrganizationPolicy $organizationPolicy)
@@ -82,11 +78,7 @@ class OrganizationPolicyController extends Controller
 
         $organizationPolicy->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Policy updated',
-            'data' => $organizationPolicy->fresh(),
-        ]);
+        return $this->success($organizationPolicy->fresh(), 'Policy updated');
     }
 
     /**
@@ -97,10 +89,7 @@ class OrganizationPolicyController extends Controller
         $staffMember = StaffMember::where('user_id', $request->user()->id)->first();
 
         if (! $staffMember) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Staff member not found',
-            ], 404);
+            return $this->error('Staff member not found', 404);
         }
 
         $organizationPolicy->acknowledgments()->syncWithoutDetaching([
@@ -110,10 +99,7 @@ class OrganizationPolicyController extends Controller
             ],
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Policy acknowledged',
-        ]);
+        return $this->noContent('Policy acknowledged');
     }
 
     /**
@@ -124,7 +110,7 @@ class OrganizationPolicyController extends Controller
         $staffMember = StaffMember::where('user_id', $request->user()->id)->first();
 
         if (! $staffMember) {
-            return response()->json(['success' => true, 'data' => []]);
+            return $this->success([]);
         }
 
         $acknowledgedIds = $staffMember->belongsToMany(OrganizationPolicy::class, 'policy_acknowledgments')
@@ -135,7 +121,7 @@ class OrganizationPolicyController extends Controller
             ->whereNotIn('id', $acknowledgedIds)
             ->get();
 
-        return response()->json(['success' => true, 'data' => $pending]);
+        return $this->success($pending);
     }
 
     public function destroy(OrganizationPolicy $organizationPolicy)
@@ -146,9 +132,6 @@ class OrganizationPolicyController extends Controller
 
         $organizationPolicy->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Policy deleted',
-        ]);
+        return $this->noContent('Policy deleted');
     }
 }

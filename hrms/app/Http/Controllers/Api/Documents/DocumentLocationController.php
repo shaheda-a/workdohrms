@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Api\Documents;
 
 use App\Http\Controllers\Controller;
 use App\Models\DocumentLocation;
+use App\Traits\ApiResponse;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use Exception;
 
 class DocumentLocationController extends Controller
 {
+    use ApiResponse;
+
     /**
      * List all Document Locations
      */
@@ -33,12 +36,12 @@ class DocumentLocationController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $locations
+                'data' => $locations,
             ]);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -58,7 +61,7 @@ class DocumentLocationController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation Error',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -68,12 +71,12 @@ class DocumentLocationController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Document location created successfully',
-                'data' => $location
+                'data' => $location,
             ], 201);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -86,21 +89,21 @@ class DocumentLocationController extends Controller
         try {
             $location = DocumentLocation::with(['localConfig', 'wasabiConfig', 'awsConfig'])->find($id);
 
-            if (!$location) {
+            if (! $location) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Document location not found'
+                    'message' => 'Document location not found',
                 ], 404);
             }
 
             return response()->json([
                 'success' => true,
-                'data' => $location
+                'data' => $location,
             ]);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -120,7 +123,7 @@ class DocumentLocationController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation Error',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -131,12 +134,12 @@ class DocumentLocationController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Document location updated successfully',
-                'data' => $location
+                'data' => $location,
             ]);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -152,12 +155,12 @@ class DocumentLocationController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Document location deleted successfully'
+                'message' => 'Document location deleted successfully',
             ]);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -172,7 +175,7 @@ class DocumentLocationController extends Controller
                 ->where('location_type', $type)
                 ->get();
 
-            $typeName = match($type) {
+            $typeName = match ($type) {
                 1 => 'Local',
                 2 => 'Wasabi',
                 3 => 'AWS',
@@ -182,12 +185,12 @@ class DocumentLocationController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => "{$typeName} locations retrieved",
-                'data' => $locations
+                'data' => $locations,
             ]);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -205,19 +208,19 @@ class DocumentLocationController extends Controller
             if ($locations->isEmpty()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No locations found for this organization'
+                    'message' => 'No locations found for this organization',
                 ], 404);
             }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Organization locations retrieved successfully',
-                'data' => $locations
+                'data' => $locations,
             ]);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -235,19 +238,19 @@ class DocumentLocationController extends Controller
             if ($locations->isEmpty()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No locations found for this company'
+                    'message' => 'No locations found for this company',
                 ], 404);
             }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Company locations retrieved successfully',
-                'data' => $locations
+                'data' => $locations,
             ]);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }

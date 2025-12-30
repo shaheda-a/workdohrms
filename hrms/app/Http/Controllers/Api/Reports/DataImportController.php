@@ -7,12 +7,15 @@ use App\Models\CompanyHoliday;
 use App\Models\DataImport;
 use App\Models\StaffMember;
 use App\Models\WorkLog;
+use App\Traits\ApiResponse;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class DataImportController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = DataImport::with('author');

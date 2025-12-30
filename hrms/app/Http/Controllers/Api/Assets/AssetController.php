@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Api\Assets;
 use App\Http\Controllers\Controller;
 use App\Models\Asset;
 use App\Models\AssetAssignment;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class AssetController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = Asset::with(['assetType', 'assignedEmployee']);
@@ -33,10 +36,7 @@ class AssetController extends Controller
             ? $query->get()
             : $query->paginate($request->per_page ?? 15);
 
-        return response()->json([
-            'success' => true,
-            'data' => $assets,
-        ]);
+        return $this->success($assets);
     }
 
     public function store(Request $request)
@@ -52,7 +52,7 @@ class AssetController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $data = $request->all();
@@ -62,21 +62,14 @@ class AssetController extends Controller
 
         $asset = Asset::create($data);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Asset created successfully',
-            'data' => $asset->load('assetType'),
-        ], 201);
+        return $this->created($asset->load('assetType'), 'Asset created successfully');
     }
 
     public function show(Asset $asset)
     {
         $asset->load(['assetType', 'assignedEmployee', 'assignments.staffMember']);
 
-        return response()->json([
-            'success' => true,
-            'data' => $asset,
-        ]);
+        return $this->success($asset);
     }
 
     public function update(Request $request, Asset $asset)
@@ -88,26 +81,19 @@ class AssetController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $asset->update($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Asset updated successfully',
-            'data' => $asset->load('assetType'),
-        ]);
+        return $this->success($asset->load('assetType'), 'Asset updated successfully');
     }
 
     public function destroy(Asset $asset)
     {
         $asset->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Asset deleted successfully',
-        ]);
+        return $this->noContent('Asset deleted successfully');
     }
 
     public function assign(Request $request, Asset $asset)
@@ -118,14 +104,11 @@ class AssetController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         if ($asset->status === 'assigned') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Asset is already assigned',
-            ], 400);
+            return $this->error('Asset is already assigned', 400);
         }
 
         // Create assignment record
@@ -144,20 +127,13 @@ class AssetController extends Controller
             'assigned_date' => now(),
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Asset assigned successfully',
-            'data' => $asset->load(['assetType', 'assignedEmployee']),
-        ]);
+        return $this->success($asset->load(['assetType', 'assignedEmployee']), 'Asset assigned successfully');
     }
 
     public function returnAsset(Request $request, Asset $asset)
     {
         if ($asset->status !== 'assigned') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Asset is not currently assigned',
-            ], 400);
+            return $this->error('Asset is not currently assigned', 400);
         }
 
         // Update last assignment record
@@ -176,32 +152,21 @@ class AssetController extends Controller
             'assigned_date' => null,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Asset returned successfully',
-            'data' => $asset->load('assetType'),
-        ]);
+        return $this->success($asset->load('assetType'), 'Asset returned successfully');
     }
 
     public function setMaintenance(Request $request, Asset $asset)
     {
         $asset->update(['status' => 'maintenance']);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Asset marked for maintenance',
-            'data' => $asset,
-        ]);
+        return $this->success($asset, 'Asset marked for maintenance');
     }
 
     public function available()
     {
         $assets = Asset::available()->with('assetType')->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $assets,
-        ]);
+        return $this->success($assets);
     }
 
     public function byEmployee($staffMemberId)
@@ -210,9 +175,6 @@ class AssetController extends Controller
             ->with('assetType')
             ->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $assets,
-        ]);
+        return $this->success($assets);
     }
 }

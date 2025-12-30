@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Payroll;
 
 use App\Http\Controllers\Controller;
 use App\Models\TaxSlab;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class TaxSlabController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = TaxSlab::with('author');

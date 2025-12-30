@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Api\Recruitment;
 use App\Http\Controllers\Controller;
 use App\Models\Candidate;
 use App\Models\StaffMember;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class CandidateController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = Candidate::withCount('applications');
@@ -37,10 +40,7 @@ class CandidateController extends Controller
             ? $query->get()
             : $query->paginate($request->per_page ?? 15);
 
-        return response()->json([
-            'success' => true,
-            'data' => $candidates,
-        ]);
+        return $this->success($candidates);
     }
 
     public function store(Request $request)
@@ -57,7 +57,7 @@ class CandidateController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         // Handle resume upload
@@ -68,21 +68,14 @@ class CandidateController extends Controller
 
         $candidate = Candidate::create($data);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Candidate created successfully',
-            'data' => $candidate,
-        ], 201);
+        return $this->created($candidate, 'Candidate created successfully');
     }
 
     public function show(Candidate $candidate)
     {
         $candidate->load(['applications.job', 'applications.stage']);
 
-        return response()->json([
-            'success' => true,
-            'data' => $candidate,
-        ]);
+        return $this->success($candidate);
     }
 
     public function update(Request $request, Candidate $candidate)
@@ -94,37 +87,26 @@ class CandidateController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $candidate->update($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Candidate updated successfully',
-            'data' => $candidate,
-        ]);
+        return $this->success($candidate, 'Candidate updated successfully');
     }
 
     public function destroy(Candidate $candidate)
     {
         $candidate->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Candidate deleted successfully',
-        ]);
+        return $this->noContent('Candidate deleted successfully');
     }
 
     public function archive(Candidate $candidate)
     {
         $candidate->update(['is_archived' => true]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Candidate archived successfully',
-            'data' => $candidate,
-        ]);
+        return $this->success($candidate, 'Candidate archived successfully');
     }
 
     public function convertToEmployee(Request $request, Candidate $candidate)
@@ -139,7 +121,7 @@ class CandidateController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         // Create staff member from candidate
@@ -165,10 +147,6 @@ class CandidateController extends Controller
         // Update candidate status
         $candidate->update(['status' => 'hired']);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Candidate converted to employee successfully',
-            'data' => $staffMember->load(['officeLocation', 'division', 'jobTitle']),
-        ]);
+        return $this->success($staffMember->load(['officeLocation', 'division', 'jobTitle']), 'Candidate converted to employee successfully');
     }
 }

@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Performance;
 
 use App\Http\Controllers\Controller;
 use App\Models\RecognitionCategory;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class RecognitionCategoryController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = RecognitionCategory::with('author');
@@ -23,7 +26,7 @@ class RecognitionCategoryController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $categories]);
+        return $this->success($categories);
     }
 
     public function store(Request $request)
@@ -37,19 +40,12 @@ class RecognitionCategoryController extends Controller
         $validated['author_id'] = $request->user()->id;
         $category = RecognitionCategory::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Recognition category created',
-            'data' => $category,
-        ], 201);
+        return $this->created($category, 'Recognition category created');
     }
 
     public function show(RecognitionCategory $recognitionCategory)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $recognitionCategory->load('records.staffMember'),
-        ]);
+        return $this->success($recognitionCategory->load('records.staffMember'));
     }
 
     public function update(Request $request, RecognitionCategory $recognitionCategory)
@@ -62,27 +58,17 @@ class RecognitionCategoryController extends Controller
 
         $recognitionCategory->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Recognition category updated',
-            'data' => $recognitionCategory->fresh(),
-        ]);
+        return $this->success($recognitionCategory->fresh(), 'Recognition category updated');
     }
 
     public function destroy(RecognitionCategory $recognitionCategory)
     {
         if ($recognitionCategory->records()->exists()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot delete category with existing records',
-            ], 422);
+            return $this->error('Cannot delete category with existing records', 422);
         }
 
         $recognitionCategory->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Recognition category deleted',
-        ]);
+        return $this->noContent('Recognition category deleted');
     }
 }

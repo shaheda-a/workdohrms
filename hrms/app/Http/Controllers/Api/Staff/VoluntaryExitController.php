@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Api\Staff;
 use App\Http\Controllers\Controller;
 use App\Models\StaffMember;
 use App\Models\VoluntaryExit;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class VoluntaryExitController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = VoluntaryExit::with(['staffMember', 'approvedByUser', 'author']);
@@ -24,7 +27,7 @@ class VoluntaryExitController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $exits]);
+        return $this->success($exits);
     }
 
     public function store(Request $request)
@@ -40,19 +43,12 @@ class VoluntaryExitController extends Controller
         $validated['approval_status'] = 'pending';
         $exit = VoluntaryExit::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Voluntary exit request submitted',
-            'data' => $exit->load('staffMember'),
-        ], 201);
+        return $this->created($exit->load('staffMember'), 'Voluntary exit request submitted');
     }
 
     public function show(VoluntaryExit $voluntaryExit)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $voluntaryExit->load(['staffMember', 'approvedByUser', 'author']),
-        ]);
+        return $this->success($voluntaryExit->load(['staffMember', 'approvedByUser', 'author']));
     }
 
     public function update(Request $request, VoluntaryExit $voluntaryExit)
@@ -65,11 +61,7 @@ class VoluntaryExitController extends Controller
 
         $voluntaryExit->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Voluntary exit updated',
-            'data' => $voluntaryExit->fresh('staffMember'),
-        ]);
+        return $this->success($voluntaryExit->fresh('staffMember'), 'Voluntary exit updated');
     }
 
     /**
@@ -94,20 +86,13 @@ class VoluntaryExitController extends Controller
                 ->update(['employment_status' => 'resigned']);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Voluntary exit '.$validated['action'],
-            'data' => $voluntaryExit->fresh(['staffMember', 'approvedByUser']),
-        ]);
+        return $this->success($voluntaryExit->fresh(['staffMember', 'approvedByUser']), 'Voluntary exit ');
     }
 
     public function destroy(VoluntaryExit $voluntaryExit)
     {
         $voluntaryExit->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Voluntary exit record deleted',
-        ]);
+        return $this->noContent('Voluntary exit record deleted');
     }
 }

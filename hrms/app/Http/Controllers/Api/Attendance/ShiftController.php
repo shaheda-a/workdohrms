@@ -5,16 +5,19 @@ namespace App\Http\Controllers\Api\Attendance;
 use App\Http\Controllers\Controller;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class ShiftController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $shifts = Shift::withCount('assignments')->get();
 
-        return response()->json(['success' => true, 'data' => $shifts]);
+        return $this->success($shifts);
     }
 
     public function store(Request $request)
@@ -30,33 +33,33 @@ class ShiftController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $shift = Shift::create($request->all());
 
-        return response()->json(['success' => true, 'message' => 'Shift created', 'data' => $shift], 201);
+        return $this->created($shift, 'Shift created');
     }
 
     public function show(Shift $shift)
     {
         $shift->load('assignments.staffMember');
 
-        return response()->json(['success' => true, 'data' => $shift]);
+        return $this->success($shift);
     }
 
     public function update(Request $request, Shift $shift)
     {
         $shift->update($request->all());
 
-        return response()->json(['success' => true, 'message' => 'Updated', 'data' => $shift]);
+        return $this->success($shift, 'Updated');
     }
 
     public function destroy(Shift $shift)
     {
         $shift->delete();
 
-        return response()->json(['success' => true, 'message' => 'Deleted']);
+        return $this->noContent('Deleted');
     }
 
     public function assign(Request $request, Shift $shift)
@@ -68,7 +71,7 @@ class ShiftController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $assignment = ShiftAssignment::create([
@@ -78,7 +81,7 @@ class ShiftController extends Controller
             'effective_to' => $request->effective_to,
         ]);
 
-        return response()->json(['success' => true, 'message' => 'Shift assigned', 'data' => $assignment->load('staffMember')]);
+        return $this->success($assignment->load('staffMember'), 'Shift assigned');
     }
 
     public function roster(Request $request)
@@ -93,7 +96,7 @@ class ShiftController extends Controller
                 });
         }
 
-        return response()->json(['success' => true, 'data' => $query->get()]);
+        return $this->success($query->get());
     }
 
     public function employeeShifts($staffMemberId)
@@ -103,6 +106,6 @@ class ShiftController extends Controller
             ->orderBy('effective_from', 'desc')
             ->get();
 
-        return response()->json(['success' => true, 'data' => $assignments]);
+        return $this->success($assignments);
     }
 }

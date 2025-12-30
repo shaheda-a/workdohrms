@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Api\Staff;
 use App\Http\Controllers\Controller;
 use App\Models\LocationTransfer;
 use App\Models\StaffMember;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class LocationTransferController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = LocationTransfer::with(['staffMember', 'newOfficeLocation', 'newDivision', 'author']);
@@ -21,7 +24,7 @@ class LocationTransferController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $transfers]);
+        return $this->success($transfers);
     }
 
     public function store(Request $request)
@@ -43,19 +46,7 @@ class LocationTransferController extends Controller
             'division_id' => $validated['new_division_id'] ?? null,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Location transfer recorded and staff member updated',
-            'data' => $transfer->load(['staffMember', 'newOfficeLocation', 'newDivision']),
-        ], 201);
-    }
-
-    public function show(LocationTransfer $locationTransfer)
-    {
-        return response()->json([
-            'success' => true,
-            'data' => $locationTransfer->load(['staffMember', 'newOfficeLocation', 'newDivision', 'author']),
-        ]);
+        return $this->created($transfer->load(['staffMember', 'newOfficeLocation', 'newDivision']), 'Location transfer recorded and staff member updated');
     }
 
     public function update(Request $request, LocationTransfer $locationTransfer)
@@ -67,20 +58,13 @@ class LocationTransferController extends Controller
 
         $locationTransfer->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Location transfer updated',
-            'data' => $locationTransfer->fresh(['staffMember', 'newOfficeLocation', 'newDivision']),
-        ]);
+        return $this->success($locationTransfer->fresh(['staffMember', 'newOfficeLocation', 'newDivision']), 'Location transfer updated');
     }
 
     public function destroy(LocationTransfer $locationTransfer)
     {
         $locationTransfer->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Location transfer record deleted',
-        ]);
+        return $this->noContent('Location transfer record deleted');
     }
 }

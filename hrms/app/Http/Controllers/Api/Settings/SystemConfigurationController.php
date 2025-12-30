@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Models\SystemConfiguration;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class SystemConfigurationController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = SystemConfiguration::query();
@@ -18,7 +21,7 @@ class SystemConfigurationController extends Controller
 
         $configs = $query->orderBy('category')->orderBy('config_key')->get();
 
-        return response()->json(['success' => true, 'data' => $configs]);
+        return $this->success($configs);
     }
 
     /**
@@ -33,12 +36,9 @@ class SystemConfigurationController extends Controller
 
         $value = SystemConfiguration::getValue($request->key, $request->default);
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'key' => $request->key,
-                'value' => $value,
-            ],
+        return $this->success([
+            'key' => $request->key,
+            'value' => $value,
         ]);
     }
 
@@ -61,10 +61,7 @@ class SystemConfigurationController extends Controller
             $validated['category'] ?? 'general'
         );
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Configuration saved',
-        ]);
+        return $this->noContent('Configuration saved');
     }
 
     /**
@@ -89,10 +86,7 @@ class SystemConfigurationController extends Controller
             );
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => count($validated['configs']).' configurations updated',
-        ]);
+        return $this->noContent(count($validated['configs']).' configurations updated');
     }
 
     /**
@@ -102,19 +96,13 @@ class SystemConfigurationController extends Controller
     {
         $configs = SystemConfiguration::getByCategory($category);
 
-        return response()->json([
-            'success' => true,
-            'data' => $configs,
-        ]);
+        return $this->success($configs);
     }
 
     public function destroy(SystemConfiguration $systemConfiguration)
     {
         $systemConfiguration->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Configuration deleted',
-        ]);
+        return $this->noContent('Configuration deleted');
     }
 }

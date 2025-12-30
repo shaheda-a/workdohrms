@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Payroll;
 
 use App\Http\Controllers\Controller;
 use App\Models\CompensationCategory;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class CompensationCategoryController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = CompensationCategory::query();
@@ -20,7 +23,7 @@ class CompensationCategoryController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $categories]);
+        return $this->success($categories);
     }
 
     public function store(Request $request)
@@ -33,19 +36,12 @@ class CompensationCategoryController extends Controller
 
         $category = CompensationCategory::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Compensation category created',
-            'data' => $category,
-        ], 201);
+        return $this->created($category, 'Compensation category created');
     }
 
     public function show(CompensationCategory $compensationCategory)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $compensationCategory,
-        ]);
+        return $this->success($compensationCategory);
     }
 
     public function update(Request $request, CompensationCategory $compensationCategory)
@@ -58,20 +54,13 @@ class CompensationCategoryController extends Controller
 
         $compensationCategory->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Compensation category updated',
-            'data' => $compensationCategory->fresh(),
-        ]);
+        return $this->success($compensationCategory->fresh(), 'Compensation category updated');
     }
 
     public function destroy(CompensationCategory $compensationCategory)
     {
         $compensationCategory->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Compensation category deleted',
-        ]);
+        return $this->noContent('Compensation category deleted');
     }
 }

@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Payroll;
 
 use App\Http\Controllers\Controller;
 use App\Models\MinimumTaxLimit;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class MinimumTaxLimitController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = MinimumTaxLimit::query();
@@ -20,7 +23,7 @@ class MinimumTaxLimitController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $limits]);
+        return $this->success($limits);
     }
 
     public function store(Request $request)
@@ -34,19 +37,12 @@ class MinimumTaxLimitController extends Controller
 
         $limit = MinimumTaxLimit::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Minimum tax limit created',
-            'data' => $limit,
-        ], 201);
+        return $this->created($limit, 'Minimum tax limit created');
     }
 
     public function show(MinimumTaxLimit $minimumTaxLimit)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $minimumTaxLimit,
-        ]);
+        return $this->success($minimumTaxLimit);
     }
 
     public function update(Request $request, MinimumTaxLimit $minimumTaxLimit)
@@ -60,20 +56,13 @@ class MinimumTaxLimitController extends Controller
 
         $minimumTaxLimit->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Minimum tax limit updated',
-            'data' => $minimumTaxLimit->fresh(),
-        ]);
+        return $this->success($minimumTaxLimit->fresh(), 'Minimum tax limit updated');
     }
 
     public function destroy(MinimumTaxLimit $minimumTaxLimit)
     {
         $minimumTaxLimit->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Minimum tax limit deleted',
-        ]);
+        return $this->noContent('Minimum tax limit deleted');
     }
 }

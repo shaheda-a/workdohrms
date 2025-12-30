@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Payroll;
 
 use App\Http\Controllers\Controller;
 use App\Models\RecurringDeduction;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class RecurringDeductionController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = RecurringDeduction::with(['staffMember', 'withholdingType', 'author']);
@@ -26,7 +29,7 @@ class RecurringDeductionController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $deductions]);
+        return $this->success($deductions);
     }
 
     public function store(Request $request)
@@ -45,19 +48,7 @@ class RecurringDeductionController extends Controller
         $validated['author_id'] = $request->user()->id;
         $deduction = RecurringDeduction::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Recurring deduction created',
-            'data' => $deduction->load(['staffMember', 'withholdingType']),
-        ], 201);
-    }
-
-    public function show(RecurringDeduction $recurringDeduction)
-    {
-        return response()->json([
-            'success' => true,
-            'data' => $recurringDeduction->load(['staffMember', 'withholdingType', 'author']),
-        ]);
+        return $this->created($deduction->load(['staffMember', 'withholdingType']), 'Recurring deduction created');
     }
 
     public function update(Request $request, RecurringDeduction $recurringDeduction)
@@ -74,20 +65,13 @@ class RecurringDeductionController extends Controller
 
         $recurringDeduction->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Recurring deduction updated',
-            'data' => $recurringDeduction->fresh(['staffMember', 'withholdingType']),
-        ]);
+        return $this->success($recurringDeduction->fresh(['staffMember', 'withholdingType']), 'Recurring deduction updated');
     }
 
     public function destroy(RecurringDeduction $recurringDeduction)
     {
         $recurringDeduction->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Recurring deduction deleted',
-        ]);
+        return $this->noContent('Recurring deduction deleted');
     }
 }

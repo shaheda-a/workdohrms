@@ -22,6 +22,8 @@ class User extends Authenticatable
         'email',
         'password',
         'is_active',
+        'org_id',
+        'company_id',
     ];
 
     /**
@@ -54,5 +56,21 @@ class User extends Authenticatable
     public function staffMember()
     {
         return $this->hasOne(StaffMember::class);
+    }
+
+    /**
+     * Get the organization associated with this user.
+     */
+    public function organization()
+    {
+        return $this->belongsTo(Organization::class, 'org_id');
+    }
+
+    /**
+     * Get the company associated with this user.
+     */
+    public function company()
+    {
+        return $this->belongsTo(Company::class, 'company_id');
     }
 }

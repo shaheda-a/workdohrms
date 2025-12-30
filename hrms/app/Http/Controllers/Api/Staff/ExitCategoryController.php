@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Staff;
 
 use App\Http\Controllers\Controller;
 use App\Models\ExitCategory;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class ExitCategoryController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = ExitCategory::query();
@@ -20,7 +23,7 @@ class ExitCategoryController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $categories]);
+        return $this->success($categories);
     }
 
     public function store(Request $request)
@@ -33,19 +36,12 @@ class ExitCategoryController extends Controller
 
         $category = ExitCategory::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Exit category created',
-            'data' => $category,
-        ], 201);
+        return $this->created($category, 'Exit category created');
     }
 
     public function show(ExitCategory $exitCategory)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $exitCategory,
-        ]);
+        return $this->success($exitCategory);
     }
 
     public function update(Request $request, ExitCategory $exitCategory)
@@ -58,27 +54,17 @@ class ExitCategoryController extends Controller
 
         $exitCategory->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Exit category updated',
-            'data' => $exitCategory->fresh(),
-        ]);
+        return $this->success($exitCategory->fresh(), 'Exit category updated');
     }
 
     public function destroy(ExitCategory $exitCategory)
     {
         if ($exitCategory->offboardings()->exists()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot delete category with existing offboardings',
-            ], 422);
+            return $this->error('Cannot delete category with existing offboardings', 422);
         }
 
         $exitCategory->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Exit category deleted',
-        ]);
+        return $this->noContent('Exit category deleted');
     }
 }

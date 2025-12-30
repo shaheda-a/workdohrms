@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api\Training;
 
 use App\Http\Controllers\Controller;
 use App\Models\TrainingProgram;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class TrainingProgramController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = TrainingProgram::with('trainingType')->withCount('sessions');
@@ -27,10 +30,7 @@ class TrainingProgramController extends Controller
             ? $query->get()
             : $query->paginate($request->per_page ?? 15);
 
-        return response()->json([
-            'success' => true,
-            'data' => $programs,
-        ]);
+        return $this->success($programs);
     }
 
     public function store(Request $request)
@@ -46,26 +46,19 @@ class TrainingProgramController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $program = TrainingProgram::create($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Training program created successfully',
-            'data' => $program->load('trainingType'),
-        ], 201);
+        return $this->created($program->load('trainingType'), 'Training program created successfully');
     }
 
     public function show(TrainingProgram $trainingProgram)
     {
         $trainingProgram->load(['trainingType', 'sessions.participants']);
 
-        return response()->json([
-            'success' => true,
-            'data' => $trainingProgram,
-        ]);
+        return $this->success($trainingProgram);
     }
 
     public function update(Request $request, TrainingProgram $trainingProgram)
@@ -77,25 +70,18 @@ class TrainingProgramController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $trainingProgram->update($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Training program updated successfully',
-            'data' => $trainingProgram->load('trainingType'),
-        ]);
+        return $this->success($trainingProgram->load('trainingType'), 'Training program updated successfully');
     }
 
     public function destroy(TrainingProgram $trainingProgram)
     {
         $trainingProgram->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Training program deleted successfully',
-        ]);
+        return $this->noContent('Training program deleted successfully');
     }
 }

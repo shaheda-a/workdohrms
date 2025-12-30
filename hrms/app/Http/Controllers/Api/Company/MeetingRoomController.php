@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api\Company;
 
 use App\Http\Controllers\Controller;
 use App\Models\MeetingRoom;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class MeetingRoomController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = MeetingRoom::query();
@@ -17,7 +20,7 @@ class MeetingRoomController extends Controller
         }
         $rooms = $query->get();
 
-        return response()->json(['success' => true, 'data' => $rooms]);
+        return $this->success($rooms);
     }
 
     public function store(Request $request)
@@ -30,37 +33,37 @@ class MeetingRoomController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $room = MeetingRoom::create($request->all());
 
-        return response()->json(['success' => true, 'message' => 'Created', 'data' => $room], 201);
+        return $this->created($room, 'Created');
     }
 
     public function show(MeetingRoom $meetingRoom)
     {
-        return response()->json(['success' => true, 'data' => $meetingRoom]);
+        return $this->success($meetingRoom);
     }
 
     public function update(Request $request, MeetingRoom $meetingRoom)
     {
         $meetingRoom->update($request->all());
 
-        return response()->json(['success' => true, 'message' => 'Updated', 'data' => $meetingRoom]);
+        return $this->success($meetingRoom, 'Updated');
     }
 
     public function destroy(MeetingRoom $meetingRoom)
     {
         $meetingRoom->delete();
 
-        return response()->json(['success' => true, 'message' => 'Deleted']);
+        return $this->noContent('Deleted');
     }
 
     public function available(Request $request)
     {
         $rooms = MeetingRoom::available()->get();
 
-        return response()->json(['success' => true, 'data' => $rooms]);
+        return $this->success($rooms);
     }
 }

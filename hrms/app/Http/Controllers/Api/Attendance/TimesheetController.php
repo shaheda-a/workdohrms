@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Api\Attendance;
 
 use App\Http\Controllers\Controller;
 use App\Models\Timesheet;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class TimesheetController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = Timesheet::with(['staffMember', 'project']);
@@ -32,7 +35,7 @@ class TimesheetController extends Controller
 
         $timesheets = $query->orderBy('date', 'desc')->paginate($request->per_page ?? 15);
 
-        return response()->json(['success' => true, 'data' => $timesheets]);
+        return $this->success($timesheets);
     }
 
     public function store(Request $request)
@@ -49,39 +52,39 @@ class TimesheetController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $timesheet = Timesheet::create($request->all());
 
-        return response()->json(['success' => true, 'message' => 'Timesheet created', 'data' => $timesheet->load('project')], 201);
+        return $this->created($timesheet->load('project'), 'Timesheet created');
     }
 
     public function show(Timesheet $timesheet)
     {
         $timesheet->load(['staffMember', 'project', 'approvedByUser']);
 
-        return response()->json(['success' => true, 'data' => $timesheet]);
+        return $this->success($timesheet);
     }
 
     public function update(Request $request, Timesheet $timesheet)
     {
         if ($timesheet->status === 'approved') {
-            return response()->json(['success' => false, 'message' => 'Cannot edit approved timesheet'], 400);
+            return $this->error('Cannot edit approved timesheet', 400);
         }
         $timesheet->update($request->all());
 
-        return response()->json(['success' => true, 'message' => 'Updated', 'data' => $timesheet]);
+        return $this->success($timesheet, 'Updated');
     }
 
     public function destroy(Timesheet $timesheet)
     {
         if ($timesheet->status === 'approved') {
-            return response()->json(['success' => false, 'message' => 'Cannot delete approved timesheet'], 400);
+            return $this->error('Cannot delete approved timesheet', 400);
         }
         $timesheet->delete();
 
-        return response()->json(['success' => true, 'message' => 'Deleted']);
+        return $this->noContent('Deleted');
     }
 
     public function bulkStore(Request $request)
@@ -94,7 +97,7 @@ class TimesheetController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $timesheets = [];
@@ -102,23 +105,23 @@ class TimesheetController extends Controller
             $timesheets[] = Timesheet::create($entry);
         }
 
-        return response()->json(['success' => true, 'message' => 'Timesheets created', 'data' => $timesheets], 201);
+        return $this->created($timesheets, 'Timesheets created');
     }
 
     public function submit(Timesheet $timesheet)
     {
         if ($timesheet->status !== 'draft') {
-            return response()->json(['success' => false, 'message' => 'Can only submit draft timesheets'], 400);
+            return $this->error('Can only submit draft timesheets', 400);
         }
         $timesheet->update(['status' => 'submitted']);
 
-        return response()->json(['success' => true, 'message' => 'Timesheet submitted', 'data' => $timesheet]);
+        return $this->success($timesheet, 'Timesheet submitted');
     }
 
     public function approve(Timesheet $timesheet)
     {
         if ($timesheet->status !== 'submitted') {
-            return response()->json(['success' => false, 'message' => 'Can only approve submitted timesheets'], 400);
+            return $this->error('Can only approve submitted timesheets', 400);
         }
         $timesheet->update([
             'status' => 'approved',
@@ -126,14 +129,14 @@ class TimesheetController extends Controller
             'approved_at' => now(),
         ]);
 
-        return response()->json(['success' => true, 'message' => 'Timesheet approved', 'data' => $timesheet]);
+        return $this->success($timesheet, 'Timesheet approved');
     }
 
     public function reject(Request $request, Timesheet $timesheet)
     {
         $timesheet->update(['status' => 'rejected']);
 
-        return response()->json(['success' => true, 'message' => 'Timesheet rejected', 'data' => $timesheet]);
+        return $this->success($timesheet, 'Timesheet rejected');
     }
 
     public function summary(Request $request)
@@ -156,7 +159,7 @@ class TimesheetController extends Controller
             DB::raw('COUNT(*) as total_entries'),
         ])->first();
 
-        return response()->json(['success' => true, 'data' => $summary]);
+        return $this->success($summary);
     }
 
     public function employeeTimesheets($staffMemberId)
@@ -166,7 +169,7 @@ class TimesheetController extends Controller
             ->orderBy('date', 'desc')
             ->paginate(15);
 
-        return response()->json(['success' => true, 'data' => $timesheets]);
+        return $this->success($timesheets);
     }
 
     public function report(Request $request)
@@ -190,6 +193,6 @@ class TimesheetController extends Controller
             ];
         })->values();
 
-        return response()->json(['success' => true, 'data' => $data]);
+        return $this->success($data);
     }
 }

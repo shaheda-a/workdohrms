@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\DocumentOwnerType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Enums\DocumentOwnerType;
 
 class Document extends Model
 {
@@ -23,7 +23,7 @@ class Document extends Model
         'document_name',
         'document_size',
         'document_extension',
-        'mime_type'
+        'mime_type',
     ];
 
     /**

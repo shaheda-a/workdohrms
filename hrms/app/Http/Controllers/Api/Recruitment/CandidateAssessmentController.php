@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api\Recruitment;
 
 use App\Http\Controllers\Controller;
 use App\Models\CandidateAssessment;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class CandidateAssessmentController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = CandidateAssessment::with(['candidate', 'jobApplication', 'assessor']);
@@ -32,10 +35,7 @@ class CandidateAssessmentController extends Controller
         $assessments = $query->orderBy('assessment_date', 'desc')
             ->paginate($request->per_page ?? 15);
 
-        return response()->json([
-            'success' => true,
-            'data' => $assessments,
-        ]);
+        return $this->success($assessments);
     }
 
     public function store(Request $request)
@@ -52,7 +52,7 @@ class CandidateAssessmentController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $data = $request->all();
@@ -61,21 +61,14 @@ class CandidateAssessmentController extends Controller
 
         $assessment = CandidateAssessment::create($data);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Assessment scheduled successfully',
-            'data' => $assessment->load('candidate'),
-        ], 201);
+        return $this->created($assessment->load('candidate'), 'Assessment scheduled successfully');
     }
 
     public function show(CandidateAssessment $candidateAssessment)
     {
         $candidateAssessment->load(['candidate', 'jobApplication.job', 'assessor']);
 
-        return response()->json([
-            'success' => true,
-            'data' => $candidateAssessment,
-        ]);
+        return $this->success($candidateAssessment);
     }
 
     public function update(Request $request, CandidateAssessment $candidateAssessment)
@@ -91,26 +84,19 @@ class CandidateAssessmentController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $candidateAssessment->update($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Assessment updated successfully',
-            'data' => $candidateAssessment,
-        ]);
+        return $this->success($candidateAssessment, 'Assessment updated successfully');
     }
 
     public function destroy(CandidateAssessment $candidateAssessment)
     {
         $candidateAssessment->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Assessment deleted successfully',
-        ]);
+        return $this->noContent('Assessment deleted successfully');
     }
 
     public function complete(Request $request, CandidateAssessment $candidateAssessment)
@@ -122,7 +108,7 @@ class CandidateAssessmentController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $candidateAssessment->update([
@@ -133,29 +119,18 @@ class CandidateAssessmentController extends Controller
             'assessed_by' => auth()->user()->staffMember?->id,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Assessment completed successfully',
-            'data' => $candidateAssessment,
-        ]);
+        return $this->success($candidateAssessment, 'Assessment completed successfully');
     }
 
     public function cancel(CandidateAssessment $candidateAssessment)
     {
         if ($candidateAssessment->status === 'completed') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot cancel completed assessment',
-            ], 400);
+            return $this->error('Cannot cancel completed assessment', 400);
         }
 
         $candidateAssessment->update(['status' => 'cancelled']);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Assessment cancelled',
-            'data' => $candidateAssessment,
-        ]);
+        return $this->success($candidateAssessment, 'Assessment cancelled');
     }
 
     public function candidateAssessments($candidateId)
@@ -165,9 +140,6 @@ class CandidateAssessmentController extends Controller
             ->orderBy('assessment_date', 'desc')
             ->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $assessments,
-        ]);
+        return $this->success($assessments);
     }
 }

@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Api\Documents;
 use App\Http\Controllers\Controller;
 use App\Models\DocumentAcknowledgment;
 use App\Models\HrDocument;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class HrDocumentController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = HrDocument::with(['category', 'uploader']);

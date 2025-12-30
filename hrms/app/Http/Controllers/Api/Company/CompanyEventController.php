@@ -6,10 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\CompanyEvent;
 use App\Models\CompanyHoliday;
 use App\Models\TimeOffRequest;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class CompanyEventController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = CompanyEvent::with(['author', 'attendees']);
@@ -25,7 +28,7 @@ class CompanyEventController extends Controller
             ? $query->orderBy('event_start')->paginate($request->input('per_page', 15))
             : $query->orderBy('event_start')->get();
 
-        return response()->json(['success' => true, 'data' => $events]);
+        return $this->success($events);
     }
 
     public function store(Request $request)
@@ -53,19 +56,12 @@ class CompanyEventController extends Controller
             $event->attendees()->attach($validated['attendee_ids']);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Event created',
-            'data' => $event->load('attendees'),
-        ], 201);
+        return $this->created($event->load('attendees'), 'Event created');
     }
 
     public function show(CompanyEvent $companyEvent)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $companyEvent->load(['author', 'attendees']),
-        ]);
+        return $this->success($companyEvent->load(['author', 'attendees']));
     }
 
     public function update(Request $request, CompanyEvent $companyEvent)
@@ -91,11 +87,7 @@ class CompanyEventController extends Controller
             $companyEvent->attendees()->sync($validated['attendee_ids']);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Event updated',
-            'data' => $companyEvent->fresh(['author', 'attendees']),
-        ]);
+        return $this->success($companyEvent->fresh(['author', 'attendees']), 'Event updated');
     }
 
     /**
@@ -110,10 +102,7 @@ class CompanyEventController extends Controller
         $staffMember = \App\Models\StaffMember::where('user_id', $request->user()->id)->first();
 
         if (! $staffMember) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Staff member not found',
-            ], 404);
+            return $this->error('Staff member not found', 404);
         }
 
         $companyEvent->attendees()->syncWithoutDetaching([
@@ -123,10 +112,7 @@ class CompanyEventController extends Controller
             ],
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'RSVP recorded',
-        ]);
+        return $this->noContent('RSVP recorded');
     }
 
     /**
@@ -181,19 +167,13 @@ class CompanyEventController extends Controller
                 ];
             });
 
-        return response()->json([
-            'success' => true,
-            'data' => $events->merge($holidays)->merge($leaves)->values(),
-        ]);
+        return $this->success($events->merge($holidays)->merge($leaves)->values());
     }
 
     public function destroy(CompanyEvent $companyEvent)
     {
         $companyEvent->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Event deleted',
-        ]);
+        return $this->noContent('Event deleted');
     }
 }

@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api\Organization;
 
 use App\Http\Controllers\Controller;
 use App\Models\OrganizationDocument;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class OrganizationDocumentController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = OrganizationDocument::with(['documentType', 'author']);
@@ -24,7 +27,7 @@ class OrganizationDocumentController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $documents]);
+        return $this->success($documents);
     }
 
     public function store(Request $request)
@@ -45,11 +48,7 @@ class OrganizationDocumentController extends Controller
 
         $document = OrganizationDocument::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Document uploaded',
-            'data' => $document->load('documentType'),
-        ], 201);
+        return $this->created($document->load('documentType'), 'Document uploaded');
     }
 
     public function show(OrganizationDocument $organizationDocument)
@@ -57,10 +56,7 @@ class OrganizationDocumentController extends Controller
         $data = $organizationDocument->load(['documentType', 'author'])->toArray();
         $data['file_size_formatted'] = $organizationDocument->file_size_formatted;
 
-        return response()->json([
-            'success' => true,
-            'data' => $data,
-        ]);
+        return $this->success($data);
     }
 
     /**
@@ -95,11 +91,7 @@ class OrganizationDocumentController extends Controller
 
         $organizationDocument->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Document updated',
-            'data' => $organizationDocument->fresh('documentType'),
-        ]);
+        return $this->success($organizationDocument->fresh('documentType'), 'Document updated');
     }
 
     public function destroy(OrganizationDocument $organizationDocument)
@@ -107,9 +99,6 @@ class OrganizationDocumentController extends Controller
         Storage::disk('public')->delete($organizationDocument->file_path);
         $organizationDocument->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Document deleted',
-        ]);
+        return $this->noContent('Document deleted');
     }
 }

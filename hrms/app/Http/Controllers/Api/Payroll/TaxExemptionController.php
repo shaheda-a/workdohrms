@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Payroll;
 
 use App\Http\Controllers\Controller;
 use App\Models\TaxExemption;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class TaxExemptionController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = TaxExemption::query();
@@ -20,7 +23,7 @@ class TaxExemptionController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $exemptions]);
+        return $this->success($exemptions);
     }
 
     public function store(Request $request)
@@ -34,19 +37,12 @@ class TaxExemptionController extends Controller
 
         $exemption = TaxExemption::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Tax exemption created',
-            'data' => $exemption,
-        ], 201);
+        return $this->created($exemption, 'Tax exemption created');
     }
 
     public function show(TaxExemption $taxExemption)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $taxExemption,
-        ]);
+        return $this->success($taxExemption);
     }
 
     public function update(Request $request, TaxExemption $taxExemption)
@@ -60,20 +56,13 @@ class TaxExemptionController extends Controller
 
         $taxExemption->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Tax exemption updated',
-            'data' => $taxExemption->fresh(),
-        ]);
+        return $this->success($taxExemption->fresh(), 'Tax exemption updated');
     }
 
     public function destroy(TaxExemption $taxExemption)
     {
         $taxExemption->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Tax exemption deleted',
-        ]);
+        return $this->noContent('Tax exemption deleted');
     }
 }

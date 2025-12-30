@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Payroll;
 
 use App\Http\Controllers\Controller;
 use App\Models\SalaryAdvance;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class SalaryAdvanceController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = SalaryAdvance::with(['staffMember', 'advanceType', 'author']);
@@ -26,7 +29,7 @@ class SalaryAdvanceController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $advances]);
+        return $this->success($advances);
     }
 
     public function store(Request $request)
@@ -56,19 +59,7 @@ class SalaryAdvanceController extends Controller
 
         $advance = SalaryAdvance::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Salary advance created',
-            'data' => $advance->load(['staffMember', 'advanceType']),
-        ], 201);
-    }
-
-    public function show(SalaryAdvance $salaryAdvance)
-    {
-        return response()->json([
-            'success' => true,
-            'data' => $salaryAdvance->load(['staffMember', 'advanceType', 'author']),
-        ]);
+        return $this->created($advance->load(['staffMember', 'advanceType']), 'Salary advance created');
     }
 
     public function update(Request $request, SalaryAdvance $salaryAdvance)
@@ -82,11 +73,7 @@ class SalaryAdvanceController extends Controller
 
         $salaryAdvance->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Salary advance updated',
-            'data' => $salaryAdvance->fresh(['staffMember', 'advanceType']),
-        ]);
+        return $this->success($salaryAdvance->fresh(['staffMember', 'advanceType']), 'Salary advance updated');
     }
 
     /**
@@ -100,20 +87,13 @@ class SalaryAdvanceController extends Controller
 
         $salaryAdvance->recordDeduction($validated['amount'] ?? null);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Payment recorded',
-            'data' => $salaryAdvance->fresh(),
-        ]);
+        return $this->success($salaryAdvance->fresh(), 'Payment recorded');
     }
 
     public function destroy(SalaryAdvance $salaryAdvance)
     {
         $salaryAdvance->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Salary advance deleted',
-        ]);
+        return $this->noContent('Salary advance deleted');
     }
 }

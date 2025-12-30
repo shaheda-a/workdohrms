@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api\Documents;
 
 use App\Http\Controllers\Controller;
 use App\Models\MediaDirectory;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class MediaDirectoryController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = MediaDirectory::with('creator');
@@ -21,10 +24,7 @@ class MediaDirectoryController extends Controller
 
         $directories = $query->withCount(['children', 'files'])->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $directories,
-        ]);
+        return $this->success($directories);
     }
 
     public function store(Request $request)
@@ -35,7 +35,7 @@ class MediaDirectoryController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $directory = MediaDirectory::create([
@@ -48,21 +48,14 @@ class MediaDirectoryController extends Controller
         $directory->path = $directory->full_path;
         $directory->save();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Directory created successfully',
-            'data' => $directory,
-        ], 201);
+        return $this->created($directory, 'Directory created successfully');
     }
 
     public function show(MediaDirectory $mediaDirectory)
     {
         $mediaDirectory->load(['parent', 'children', 'files']);
 
-        return response()->json([
-            'success' => true,
-            'data' => $mediaDirectory,
-        ]);
+        return $this->success($mediaDirectory);
     }
 
     public function update(Request $request, MediaDirectory $mediaDirectory)
@@ -72,18 +65,14 @@ class MediaDirectoryController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $mediaDirectory->update($request->only('name'));
         $mediaDirectory->path = $mediaDirectory->full_path;
         $mediaDirectory->save();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Directory renamed successfully',
-            'data' => $mediaDirectory,
-        ]);
+        return $this->success($mediaDirectory, 'Directory renamed successfully');
     }
 
     public function destroy(MediaDirectory $mediaDirectory)
@@ -91,10 +80,7 @@ class MediaDirectoryController extends Controller
         // This will cascade delete all children and files
         $mediaDirectory->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Directory deleted successfully',
-        ]);
+        return $this->noContent('Directory deleted successfully');
     }
 
     public function move(Request $request, MediaDirectory $mediaDirectory)
@@ -104,17 +90,14 @@ class MediaDirectoryController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         // Prevent moving to own child
         if ($request->parent_id) {
             $parent = MediaDirectory::find($request->parent_id);
             if ($parent && str_starts_with($parent->path, $mediaDirectory->path)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cannot move directory into its own subdirectory',
-                ], 400);
+                return $this->error('Cannot move directory into its own subdirectory', 400);
             }
         }
 
@@ -122,10 +105,6 @@ class MediaDirectoryController extends Controller
         $mediaDirectory->path = $mediaDirectory->full_path;
         $mediaDirectory->save();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Directory moved successfully',
-            'data' => $mediaDirectory,
-        ]);
+        return $this->success($mediaDirectory, 'Directory moved successfully');
     }
 }

@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Payroll;
 
 use App\Http\Controllers\Controller;
 use App\Models\StaffBenefit;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class StaffBenefitController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = StaffBenefit::with(['staffMember', 'benefitType', 'author']);
@@ -26,7 +29,7 @@ class StaffBenefitController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $benefits]);
+        return $this->success($benefits);
     }
 
     public function store(Request $request)
@@ -45,19 +48,7 @@ class StaffBenefitController extends Controller
         $validated['author_id'] = $request->user()->id;
         $benefit = StaffBenefit::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Staff benefit created',
-            'data' => $benefit->load(['staffMember', 'benefitType']),
-        ], 201);
-    }
-
-    public function show(StaffBenefit $staffBenefit)
-    {
-        return response()->json([
-            'success' => true,
-            'data' => $staffBenefit->load(['staffMember', 'benefitType', 'author']),
-        ]);
+        return $this->created($benefit->load(['staffMember', 'benefitType']), 'Staff benefit created');
     }
 
     public function update(Request $request, StaffBenefit $staffBenefit)
@@ -74,20 +65,13 @@ class StaffBenefitController extends Controller
 
         $staffBenefit->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Staff benefit updated',
-            'data' => $staffBenefit->fresh(['staffMember', 'benefitType']),
-        ]);
+        return $this->success($staffBenefit->fresh(['staffMember', 'benefitType']), 'Staff benefit updated');
     }
 
     public function destroy(StaffBenefit $staffBenefit)
     {
         $staffBenefit->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Staff benefit deleted',
-        ]);
+        return $this->noContent('Staff benefit deleted');
     }
 }

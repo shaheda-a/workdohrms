@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Models\AllowedIpAddress;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class AllowedIpAddressController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = AllowedIpAddress::with('author');

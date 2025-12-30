@@ -4,16 +4,19 @@ namespace App\Http\Controllers\Api\Company;
 
 use App\Http\Controllers\Controller;
 use App\Models\MeetingType;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class MeetingTypeController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $types = MeetingType::withCount('meetings')->get();
 
-        return response()->json(['success' => true, 'data' => $types]);
+        return $this->success($types);
     }
 
     public function store(Request $request)
@@ -25,30 +28,30 @@ class MeetingTypeController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $type = MeetingType::create($request->all());
 
-        return response()->json(['success' => true, 'message' => 'Created', 'data' => $type], 201);
+        return $this->created($type, 'Created');
     }
 
     public function show(MeetingType $meetingType)
     {
-        return response()->json(['success' => true, 'data' => $meetingType]);
+        return $this->success($meetingType);
     }
 
     public function update(Request $request, MeetingType $meetingType)
     {
         $meetingType->update($request->all());
 
-        return response()->json(['success' => true, 'message' => 'Updated', 'data' => $meetingType]);
+        return $this->success($meetingType, 'Updated');
     }
 
     public function destroy(MeetingType $meetingType)
     {
         $meetingType->delete();
 
-        return response()->json(['success' => true, 'message' => 'Deleted']);
+        return $this->noContent('Deleted');
     }
 }

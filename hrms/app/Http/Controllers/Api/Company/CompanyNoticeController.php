@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Api\Company;
 use App\Http\Controllers\Controller;
 use App\Models\CompanyNotice;
 use App\Models\StaffMember;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class CompanyNoticeController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = CompanyNotice::with('author');
@@ -27,7 +30,7 @@ class CompanyNoticeController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $notices]);
+        return $this->success($notices);
     }
 
     public function store(Request $request)
@@ -51,19 +54,12 @@ class CompanyNoticeController extends Controller
             $notice->recipients()->attach($validated['recipient_ids']);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Company notice created',
-            'data' => $notice->load('recipients'),
-        ], 201);
+        return $this->created($notice->load('recipients'), 'Company notice created');
     }
 
     public function show(CompanyNotice $companyNotice)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $companyNotice->load(['author', 'recipients']),
-        ]);
+        return $this->success($companyNotice->load(['author', 'recipients']));
     }
 
     public function update(Request $request, CompanyNotice $companyNotice)
@@ -86,11 +82,7 @@ class CompanyNoticeController extends Controller
             $companyNotice->recipients()->sync($validated['recipient_ids']);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Company notice updated',
-            'data' => $companyNotice->fresh(['author', 'recipients']),
-        ]);
+        return $this->success($companyNotice->fresh(['author', 'recipients']), 'Company notice updated');
     }
 
     /**
@@ -101,10 +93,7 @@ class CompanyNoticeController extends Controller
         $staffMember = StaffMember::where('user_id', $request->user()->id)->first();
 
         if (! $staffMember) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Staff member not found',
-            ], 404);
+            return $this->error('Staff member not found', 404);
         }
 
         $companyNotice->recipients()->updateExistingPivot($staffMember->id, [
@@ -112,19 +101,13 @@ class CompanyNoticeController extends Controller
             'read_at' => now(),
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Notice marked as read',
-        ]);
+        return $this->noContent('Notice marked as read');
     }
 
     public function destroy(CompanyNotice $companyNotice)
     {
         $companyNotice->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Company notice deleted',
-        ]);
+        return $this->noContent('Company notice deleted');
     }
 }

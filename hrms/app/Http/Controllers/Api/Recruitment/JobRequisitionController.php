@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api\Recruitment;
 
 use App\Http\Controllers\Controller;
 use App\Models\JobRequisition;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class JobRequisitionController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = JobRequisition::with(['division', 'jobTitle', 'requester', 'approver']);
@@ -32,10 +35,7 @@ class JobRequisitionController extends Controller
         $requisitions = $query->orderBy('created_at', 'desc')
             ->paginate($request->per_page ?? 15);
 
-        return response()->json([
-            'success' => true,
-            'data' => $requisitions,
-        ]);
+        return $this->success($requisitions);
     }
 
     public function store(Request $request)
@@ -55,7 +55,7 @@ class JobRequisitionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $data = $request->all();
@@ -64,30 +64,15 @@ class JobRequisitionController extends Controller
 
         $requisition = JobRequisition::create($data);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Job requisition created successfully',
-            'data' => $requisition->load(['division', 'jobTitle']),
-        ], 201);
-    }
+        return $this->created($requisition->load(['division', 'jobTitle']), 'Job requisition created successfully');
 
-    public function show(JobRequisition $jobRequisition)
-    {
-        $jobRequisition->load(['division', 'jobTitle', 'requester', 'approver', 'jobPostings']);
-
-        return response()->json([
-            'success' => true,
-            'data' => $jobRequisition,
-        ]);
+        return $this->success($jobRequisition);
     }
 
     public function update(Request $request, JobRequisition $jobRequisition)
     {
         if ($jobRequisition->status !== 'draft' && $jobRequisition->status !== 'pending') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot update approved/rejected requisition',
-            ], 400);
+            return $this->error('Cannot update approved/rejected requisition', 400);
         }
 
         $validator = Validator::make($request->all(), [
@@ -105,42 +90,29 @@ class JobRequisitionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $jobRequisition->update($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Job requisition updated successfully',
-            'data' => $jobRequisition,
-        ]);
+        return $this->success($jobRequisition, 'Job requisition updated successfully');
     }
 
     public function destroy(JobRequisition $jobRequisition)
     {
         if ($jobRequisition->status === 'approved') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot delete approved requisition',
-            ], 400);
+            return $this->error('Cannot delete approved requisition', 400);
         }
 
         $jobRequisition->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Job requisition deleted successfully',
-        ]);
+        return $this->noContent('Job requisition deleted successfully');
     }
 
     public function approve(Request $request, JobRequisition $jobRequisition)
     {
         if ($jobRequisition->status !== 'pending') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Only pending requisitions can be approved',
-            ], 400);
+            return $this->error('Only pending requisitions can be approved', 400);
         }
 
         $jobRequisition->update([
@@ -149,20 +121,13 @@ class JobRequisitionController extends Controller
             'approved_at' => now(),
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Job requisition approved successfully',
-            'data' => $jobRequisition,
-        ]);
+        return $this->success($jobRequisition, 'Job requisition approved successfully');
     }
 
     public function reject(Request $request, JobRequisition $jobRequisition)
     {
         if ($jobRequisition->status !== 'pending') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Only pending requisitions can be rejected',
-            ], 400);
+            return $this->error('Only pending requisitions can be rejected', 400);
         }
 
         $validator = Validator::make($request->all(), [
@@ -170,7 +135,7 @@ class JobRequisitionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $jobRequisition->update([
@@ -180,11 +145,7 @@ class JobRequisitionController extends Controller
             'rejection_reason' => $request->rejection_reason,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Job requisition rejected',
-            'data' => $jobRequisition,
-        ]);
+        return $this->success($jobRequisition, 'Job requisition rejected');
     }
 
     public function pending()
@@ -195,9 +156,6 @@ class JobRequisitionController extends Controller
             ->orderBy('created_at', 'asc')
             ->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $pending,
-        ]);
+        return $this->success($pending);
     }
 }

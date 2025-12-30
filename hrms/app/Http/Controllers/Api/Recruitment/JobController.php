@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Api\Recruitment;
 use App\Http\Controllers\Controller;
 use App\Models\CustomQuestion;
 use App\Models\Job;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class JobController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = Job::with(['category', 'officeLocation', 'division'])
@@ -32,10 +35,7 @@ class JobController extends Controller
             ? $query->get()
             : $query->paginate($request->per_page ?? 15);
 
-        return response()->json([
-            'success' => true,
-            'data' => $jobs,
-        ]);
+        return $this->success($jobs);
     }
 
     public function store(Request $request)
@@ -57,26 +57,14 @@ class JobController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $job = Job::create($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Job created successfully',
-            'data' => $job->load(['category', 'officeLocation', 'division']),
-        ], 201);
-    }
+        return $this->created($job->load(['category', 'officeLocation', 'division']), 'Job created successfully');
 
-    public function show(Job $job)
-    {
-        $job->load(['category', 'officeLocation', 'division', 'applications.candidate', 'customQuestions']);
-
-        return response()->json([
-            'success' => true,
-            'data' => $job,
-        ]);
+        return $this->success($job);
     }
 
     public function update(Request $request, Job $job)
@@ -87,56 +75,38 @@ class JobController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $job->update($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Job updated successfully',
-            'data' => $job->load(['category', 'officeLocation', 'division']),
-        ]);
+        return $this->success($job->load(['category', 'officeLocation', 'division']), 'Job updated successfully');
     }
 
     public function destroy(Job $job)
     {
         $job->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Job deleted successfully',
-        ]);
+        return $this->noContent('Job deleted successfully');
     }
 
     public function publish(Job $job)
     {
         $job->update(['status' => 'open']);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Job published successfully',
-            'data' => $job,
-        ]);
+        return $this->success($job, 'Job published successfully');
     }
 
     public function close(Job $job)
     {
         $job->update(['status' => 'closed']);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Job closed successfully',
-            'data' => $job,
-        ]);
+        return $this->success($job, 'Job closed successfully');
     }
 
     public function questions(Job $job)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $job->customQuestions()->orderBy('order')->get(),
-        ]);
+        return $this->success($job->customQuestions()->orderBy('order')->get());
     }
 
     public function addQuestion(Request $request, Job $job)
@@ -147,7 +117,7 @@ class JobController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $maxOrder = $job->customQuestions()->max('order') ?? 0;
@@ -159,10 +129,6 @@ class JobController extends Controller
             'order' => $maxOrder + 1,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Question added successfully',
-            'data' => $question,
-        ], 201);
+        return $this->created($question, 'Question added successfully');
     }
 }

@@ -7,10 +7,13 @@ use App\Models\SalarySlip;
 use App\Models\StaffMember;
 use App\Models\TimeOffRequest;
 use App\Models\WorkLog;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class DataTableController extends Controller
 {
+    use ApiResponse;
+
     /**
      * Staff Members DataTable (server-side).
      */
@@ -58,16 +61,7 @@ class DataTableController extends Controller
         $perPage = min($request->input('per_page', 15), 100);
         $data = $query->paginate($perPage);
 
-        return response()->json([
-            'success' => true,
-            'data' => $data->items(),
-            'meta' => [
-                'total' => $totalCount,
-                'per_page' => $perPage,
-                'current_page' => $data->currentPage(),
-                'last_page' => $data->lastPage(),
-            ],
-        ]);
+        return $this->success($data->items());
     }
 
     /**
@@ -108,16 +102,7 @@ class DataTableController extends Controller
         $perPage = min($request->input('per_page', 15), 100);
         $data = $query->paginate($perPage);
 
-        return response()->json([
-            'success' => true,
-            'data' => $data->items(),
-            'meta' => [
-                'total' => $totalCount,
-                'per_page' => $perPage,
-                'current_page' => $data->currentPage(),
-                'last_page' => $data->lastPage(),
-            ],
-        ]);
+        return $this->success($data->items());
     }
 
     /**
@@ -158,16 +143,7 @@ class DataTableController extends Controller
         $perPage = min($request->input('per_page', 15), 100);
         $data = $query->paginate($perPage);
 
-        return response()->json([
-            'success' => true,
-            'data' => $data->items(),
-            'meta' => [
-                'total' => $totalCount,
-                'per_page' => $perPage,
-                'current_page' => $data->currentPage(),
-                'last_page' => $data->lastPage(),
-            ],
-        ]);
+        return $this->success($data->items());
     }
 
     /**
@@ -208,15 +184,6 @@ class DataTableController extends Controller
         $perPage = min($request->input('per_page', 15), 100);
         $data = $query->paginate($perPage);
 
-        return response()->json([
-            'success' => true,
-            'data' => $data->items(),
-            'meta' => [
-                'total' => $totalCount,
-                'per_page' => $perPage,
-                'current_page' => $data->currentPage(),
-                'last_page' => $data->lastPage(),
-            ],
-        ]);
+        return $this->success($data->items());
     }
 }
