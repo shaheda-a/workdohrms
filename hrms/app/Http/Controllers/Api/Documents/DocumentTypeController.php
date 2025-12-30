@@ -26,6 +26,7 @@ class DocumentTypeController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'owner_type_id' => 'required|integer',
             'title' => 'required|string|max:255|unique:document_types,title',
             'notes' => 'nullable|string',
             'is_active' => 'boolean',
