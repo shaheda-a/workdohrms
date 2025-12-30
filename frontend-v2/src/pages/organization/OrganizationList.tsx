@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { organizationService } from '../../services/api';
-import { Card, CardContent, CardHeader } from '../../components/ui/card';
+import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Textarea } from '../../components/ui/textarea';
 import {
     Table,
     TableBody,
@@ -12,6 +13,15 @@ import {
     TableHeader,
     TableRow,
 } from '../../components/ui/table';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '../../components/ui/dialog';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -29,13 +39,11 @@ import {
     ChevronRight,
     Building2,
 } from 'lucide-react';
+import { toast } from '../../hooks/use-toast';
 
 interface Organization {
     id: number;
     name: string;
-    email: string;
-    phone: string;
-    website: string;
     address: string;
 }
 
@@ -52,6 +60,15 @@ export default function OrganizationList() {
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
+
+    // Dialog state
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [editingOrganization, setEditingOrganization] = useState<Organization | null>(null);
+    const [formData, setFormData] = useState({
+        name: '',
+        address: '',
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         fetchOrganizations();
@@ -81,18 +98,81 @@ export default function OrganizationList() {
         } catch (error) {
             console.error('Failed to fetch organizations:', error);
             setOrganizations([]);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Failed to fetch organizations',
+            });
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleEdit = (org: Organization) => {
+        setEditingOrganization(org);
+        setFormData({
+            name: org.name,
+            address: org.address || '',
+        });
+        setIsDialogOpen(true);
     };
 
     const handleDelete = async (id: number) => {
         if (!confirm('Are you sure you want to delete this organization?')) return;
         try {
             await organizationService.delete(id);
+            toast({
+                title: 'Success',
+                description: 'Organization deleted successfully',
+            });
             fetchOrganizations();
         } catch (error) {
             console.error('Failed to delete organization:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Failed to delete organization',
+            });
+        }
+    };
+
+    const resetForm = () => {
+        setFormData({
+            name: '',
+            address: '',
+        });
+        setEditingOrganization(null);
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        try {
+            if (editingOrganization) {
+                await organizationService.update(editingOrganization.id, formData);
+                toast({
+                    title: 'Success',
+                    description: 'Organization updated successfully',
+                });
+            } else {
+                await organizationService.create(formData);
+                toast({
+                    title: 'Success',
+                    description: 'Organization created successfully',
+                });
+            }
+            setIsDialogOpen(false);
+            resetForm();
+            fetchOrganizations();
+        } catch (error) {
+            console.error('Failed to save organization:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Failed to save organization',
+            });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -103,17 +183,64 @@ export default function OrganizationList() {
                     <h1 className="text-2xl font-bold text-solarized-base02">Organizations</h1>
                     <p className="text-solarized-base01">Manage your client organizations</p>
                 </div>
-                <Link to="/organizations/create">
-                    <Button className="bg-solarized-blue hover:bg-solarized-blue/90">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Organization
-                    </Button>
-                </Link>
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button
+                            className="bg-solarized-blue hover:bg-solarized-blue/90"
+                            onClick={() => {
+                                resetForm();
+                            }}
+                        >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Organization
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>{editingOrganization ? 'Edit Organization' : 'Add New Organization'}</DialogTitle>
+                            <DialogDescription>
+                                {editingOrganization ? 'Update the organization details.' : 'Add a new organization.'}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={handleSubmit}>
+                            <div className="grid gap-4 py-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name">Organization Name *</Label>
+                                    <Input
+                                        id="name"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        placeholder="Acme Corp"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="address">Address</Label>
+                                    <Textarea
+                                        id="address"
+                                        value={formData.address}
+                                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                                        placeholder="123 Main St, City, Country"
+                                        rows={3}
+                                    />
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                                    Cancel
+                                </Button>
+                                <Button type="submit" className="bg-solarized-blue hover:bg-solarized-blue/90" disabled={isSubmitting}>
+                                    {isSubmitting ? 'Saving...' : (editingOrganization ? 'Update' : 'Create')}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
             </div>
 
             <Card className="border-0 shadow-md">
-                <CardHeader className="pb-4">
-                    <div className="flex flex-col sm:flex-row gap-4">
+                <CardContent className="pt-6">
+                    <div className="flex flex-col sm:flex-row gap-4 mb-4">
                         <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-solarized-base01" />
                             <Input
@@ -124,8 +251,7 @@ export default function OrganizationList() {
                             />
                         </div>
                     </div>
-                </CardHeader>
-                <CardContent>
+
                     {isLoading ? (
                         <div className="space-y-4">
                             {[...Array(5)].map((_, i) => (
@@ -143,12 +269,16 @@ export default function OrganizationList() {
                             <Building2 className="h-12 w-12 text-solarized-base01 mx-auto mb-4" />
                             <h3 className="text-lg font-medium text-solarized-base02">No organizations found</h3>
                             <p className="text-solarized-base01 mt-1">Get started by adding your first organization.</p>
-                            <Link to="/organizations/create">
-                                <Button className="mt-4 bg-solarized-blue hover:bg-solarized-blue/90">
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Add Organization
-                                </Button>
-                            </Link>
+                            <Button
+                                className="mt-4 bg-solarized-blue hover:bg-solarized-blue/90"
+                                onClick={() => {
+                                    resetForm();
+                                    setIsDialogOpen(true);
+                                }}
+                            >
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add Organization
+                            </Button>
                         </div>
                     ) : (
                         <>
@@ -157,9 +287,7 @@ export default function OrganizationList() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Name</TableHead>
-                                            <TableHead>Email</TableHead>
-                                            <TableHead>Phone</TableHead>
-                                            <TableHead>Website</TableHead>
+                                            <TableHead>Address</TableHead>
                                             <TableHead className="w-[50px]"></TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -169,20 +297,7 @@ export default function OrganizationList() {
                                                 <TableCell className="font-medium text-solarized-base02">
                                                     {org.name}
                                                 </TableCell>
-                                                <TableCell>{org.email || '-'}</TableCell>
-                                                <TableCell>{org.phone || '-'}</TableCell>
-                                                <TableCell>
-                                                    {org.website ? (
-                                                        <a
-                                                            href={org.website}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="text-solarized-blue hover:underline"
-                                                        >
-                                                            {org.website}
-                                                        </a>
-                                                    ) : '-'}
-                                                </TableCell>
+                                                <TableCell>{org.address || '-'}</TableCell>
                                                 <TableCell>
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
@@ -191,11 +306,9 @@ export default function OrganizationList() {
                                                             </Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end">
-                                                            <DropdownMenuItem asChild>
-                                                                <Link to={`/organizations/${org.id}/edit`}>
-                                                                    <Edit className="mr-2 h-4 w-4" />
-                                                                    Edit
-                                                                </Link>
+                                                            <DropdownMenuItem onClick={() => handleEdit(org)}>
+                                                                <Edit className="mr-2 h-4 w-4" />
+                                                                Edit
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem
                                                                 onClick={() => handleDelete(org.id)}

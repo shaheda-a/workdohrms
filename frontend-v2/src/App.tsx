@@ -14,6 +14,7 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 import Dashboard from './pages/dashboard/Dashboard';
 
 // Staff Management
+import StaffList from './pages/staff/StaffList';
 import StaffCreate from './pages/staff/StaffCreate';
 import StaffProfile from './pages/staff/StaffProfile';
 import StaffEdit from './pages/staff/StaffEdit';
@@ -21,7 +22,6 @@ import StaffEdit from './pages/staff/StaffEdit';
 
 // Organization
 import OrganizationList from './pages/organization/OrganizationList';
-import OrganizationForm from './pages/organization/OrganizationForm';
 
 // Attendance
 import ClockInOut from './pages/attendance/ClockInOut';
@@ -115,8 +115,6 @@ function App() {
 
             {/* Organization */}
             <Route path="/organizations" element={<OrganizationList />} />
-            <Route path="/organizations/create" element={<OrganizationForm />} />
-            <Route path="/organizations/:id/edit" element={<OrganizationForm />} />
 
             {/* Attendance */}
             <Route path="/attendance" element={<ClockInOut />} />
