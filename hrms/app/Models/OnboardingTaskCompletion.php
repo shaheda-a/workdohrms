@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\HasOrgAndCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class OnboardingTaskCompletion extends Model
 {
-    use HasFactory;
+    use HasFactory, HasOrgAndCompany;
 
     protected $fillable = [
         'employee_onboarding_id',

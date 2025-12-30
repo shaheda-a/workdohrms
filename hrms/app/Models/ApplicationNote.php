@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\HasOrgAndCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class ApplicationNote extends Model
 {
-    use HasFactory;
+    use HasFactory, HasOrgAndCompany;
 
     protected $fillable = [
         'job_application_id',

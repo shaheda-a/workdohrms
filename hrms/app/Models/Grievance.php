@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\HasOrgAndCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Grievance extends Model
 {
-    use HasFactory;
+    use HasFactory, HasOrgAndCompany;
 
     protected $fillable = [
         'filed_by_staff_id',

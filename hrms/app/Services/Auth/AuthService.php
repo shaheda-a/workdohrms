@@ -118,7 +118,7 @@ class AuthService
      */
     protected function formatUserData(User $user): array
     {
-        $user->load('roles.permissions', 'staffMember');
+        $user->load('roles.permissions', 'staffMember', 'organization', 'company');
         $role = $user->roles->first();
         $permissions = $user->getAllPermissions()->pluck('name')->toArray();
 
@@ -130,6 +130,10 @@ class AuthService
             'role_display' => $role ? ucwords(str_replace('_', ' ', $role->name)) : 'Staff Member',
             'permissions' => $permissions,
             'staff_member_id' => $user->staffMember?->id,
+            'org_id' => $user->org_id,
+            'company_id' => $user->company_id,
+            'organization_name' => $user->organization?->name,
+            'company_name' => $user->company?->company_name,
         ];
     }
 }

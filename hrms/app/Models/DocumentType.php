@@ -2,14 +2,15 @@
 
 namespace App\Models;
 
+use App\Enums\DocumentOwnerType;
+use App\Traits\HasOrgAndCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Enums\DocumentOwnerType;
 
 class DocumentType extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasOrgAndCompany, SoftDeletes;
 
     protected $fillable = [
         'title',
@@ -28,13 +29,14 @@ class DocumentType extends Model
     public function getOwnerTypeAttribute()
     {
         // Reverse mapping or logic to get Enum from ID if needed
-        // For simple storage, we just keep the ID. 
+        // For simple storage, we just keep the ID.
         // If you want the Enum object:
-        foreach(DocumentOwnerType::cases() as $case) {
+        foreach (DocumentOwnerType::cases() as $case) {
             if ($case->id() === $this->owner_type_id) {
                 return $case;
             }
         }
+
         return null;
     }
 
