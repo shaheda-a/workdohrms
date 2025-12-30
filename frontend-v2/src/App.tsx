@@ -22,6 +22,7 @@ import StaffEdit from './pages/staff/StaffEdit';
 
 // Organization
 import OrganizationList from './pages/organization/OrganizationList';
+import CompanyList from './pages/company/CompanyList';
 
 // Attendance
 import ClockInOut from './pages/attendance/ClockInOut';
@@ -115,6 +116,7 @@ function App() {
 
             {/* Organization */}
             <Route path="/organizations" element={<OrganizationList />} />
+            <Route path="/companies" element={<CompanyList />} />
 
             {/* Attendance */}
             <Route path="/attendance" element={<ClockInOut />} />

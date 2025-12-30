@@ -58,6 +58,11 @@ const navigation: NavItem[] = [
     icon: Building2,
   },
   {
+    name: 'Companies',
+    href: '/companies',
+    icon: Building2, // Reusing Building2 for now, or find another icon like Briefcase if imported
+  },
+  {
     name: 'Attendance',
     href: '/attendance',
     icon: Clock,

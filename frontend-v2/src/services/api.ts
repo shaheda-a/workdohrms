@@ -33,7 +33,7 @@ api.interceptors.response.use(
 export default api;
 
 export const authService = {
-  login: (email: string, password: string) => 
+  login: (email: string, password: string) =>
     api.post('/auth/sign-in', { email, password }),
   register: (data: { name: string; email: string; password: string; password_confirmation: string }) =>
     api.post('/auth/sign-up', data),
@@ -52,14 +52,14 @@ export const dashboardService = {
 };
 
 export const staffService = {
-  getAll: (params?: { page?: number; per_page?: number; search?: string }) => 
+  getAll: (params?: { page?: number; per_page?: number; search?: string }) =>
     api.get('/staff-members', { params }),
   getById: (id: number) => api.get(`/staff-members/${id}`),
   create: (data: Record<string, unknown>) => api.post('/staff-members', data),
   update: (id: number, data: Record<string, unknown>) => api.put(`/staff-members/${id}`, data),
   delete: (id: number) => api.delete(`/staff-members/${id}`),
   getFiles: (id: number) => api.get(`/staff-members/${id}/files`),
-  uploadFile: (id: number, data: FormData) => 
+  uploadFile: (id: number, data: FormData) =>
     api.post(`/staff-members/${id}/files`, data, {
       headers: { 'Content-Type': 'multipart/form-data' }
     }),
@@ -264,4 +264,12 @@ export const organizationService = {
   create: (data: Record<string, unknown>) => api.post('/organizations', data),
   update: (id: number, data: Record<string, unknown>) => api.put(`/organizations/${id}`, data),
   delete: (id: number) => api.delete(`/organizations/${id}`),
+};
+
+export const companyService = {
+  getAll: (params?: { page?: number; search?: string }) => api.get('/companies', { params }),
+  getById: (id: number) => api.get(`/companies/${id}`),
+  create: (data: Record<string, unknown>) => api.post('/companies', data),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/companies/${id}`, data),
+  delete: (id: number) => api.delete(`/companies/${id}`),
 };
