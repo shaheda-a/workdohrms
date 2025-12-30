@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Api\Training;
 use App\Http\Controllers\Controller;
 use App\Models\TrainingParticipant;
 use App\Models\TrainingSession;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class TrainingSessionController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = TrainingSession::with(['program.trainingType', 'trainer'])
@@ -32,10 +35,7 @@ class TrainingSessionController extends Controller
             ? $query->get()
             : $query->paginate($request->per_page ?? 15);
 
-        return response()->json([
-            'success' => true,
-            'data' => $sessions,
-        ]);
+        return $this->success($sessions);
     }
 
     public function store(Request $request)
@@ -51,26 +51,19 @@ class TrainingSessionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $session = TrainingSession::create($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Training session created successfully',
-            'data' => $session->load('program'),
-        ], 201);
+        return $this->created($session->load('program'), 'Training session created successfully');
     }
 
     public function show(TrainingSession $trainingSession)
     {
         $trainingSession->load(['program.trainingType', 'trainer', 'participants.staffMember']);
 
-        return response()->json([
-            'success' => true,
-            'data' => $trainingSession,
-        ]);
+        return $this->success($trainingSession);
     }
 
     public function update(Request $request, TrainingSession $trainingSession)
@@ -82,26 +75,19 @@ class TrainingSessionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $trainingSession->update($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Training session updated successfully',
-            'data' => $trainingSession->load('program'),
-        ]);
+        return $this->success($trainingSession->load('program'), 'Training session updated successfully');
     }
 
     public function destroy(TrainingSession $trainingSession)
     {
         $trainingSession->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Training session deleted successfully',
-        ]);
+        return $this->noContent('Training session deleted successfully');
     }
 
     public function enroll(Request $request, TrainingSession $trainingSession)
@@ -111,7 +97,7 @@ class TrainingSessionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         // Check if already enrolled
@@ -120,19 +106,13 @@ class TrainingSessionController extends Controller
             ->first();
 
         if ($existing) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Employee is already enrolled in this session',
-            ], 400);
+            return $this->error('Employee is already enrolled in this session', 400);
         }
 
         // Check capacity
         $currentCount = $trainingSession->participants()->count();
         if ($currentCount >= $trainingSession->max_participants) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Session is at full capacity',
-            ], 400);
+            return $this->error('Session is at full capacity', 400);
         }
 
         $participant = TrainingParticipant::create([
@@ -141,22 +121,14 @@ class TrainingSessionController extends Controller
             'status' => 'enrolled',
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Employee enrolled successfully',
-            'data' => $participant->load('staffMember'),
-        ]);
+        return $this->success($participant->load('staffMember'), 'Employee enrolled successfully');
     }
 
     public function complete(Request $request, TrainingSession $trainingSession)
     {
         $trainingSession->update(['status' => 'completed']);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Training session marked as completed',
-            'data' => $trainingSession,
-        ]);
+        return $this->success($trainingSession, 'Training session marked as completed');
     }
 
     public function employeeTraining($staffMemberId)
@@ -165,9 +137,6 @@ class TrainingSessionController extends Controller
             ->with(['session.program.trainingType'])
             ->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $trainings,
-        ]);
+        return $this->success($trainings);
     }
 }

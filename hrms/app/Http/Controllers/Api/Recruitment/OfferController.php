@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Candidate;
 use App\Models\Offer;
 use App\Models\OfferTemplate;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class OfferController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = Offer::with(['candidate', 'jobPosting', 'template', 'creator']);
@@ -30,10 +33,7 @@ class OfferController extends Controller
         $offers = $query->orderBy('created_at', 'desc')
             ->paginate($request->per_page ?? 15);
 
-        return response()->json([
-            'success' => true,
-            'data' => $offers,
-        ]);
+        return $this->success($offers);
     }
 
     public function store(Request $request)
@@ -51,7 +51,7 @@ class OfferController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $candidate = Candidate::find($request->candidate_id);
@@ -84,30 +84,20 @@ class OfferController extends Controller
             'created_by' => auth()->id(),
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Offer created successfully',
-            'data' => $offer->load('candidate'),
-        ], 201);
+        return $this->created($offer->load('candidate'), 'Offer created successfully');
     }
 
     public function show(Offer $offer)
     {
         $offer->load(['candidate', 'jobPosting', 'template', 'creator']);
 
-        return response()->json([
-            'success' => true,
-            'data' => $offer,
-        ]);
+        return $this->success($offer);
     }
 
     public function update(Request $request, Offer $offer)
     {
         if (! in_array($offer->status, ['draft'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Can only update draft offers',
-            ], 400);
+            return $this->error('Can only update draft offers', 400);
         }
 
         $validator = Validator::make($request->all(), [
@@ -120,42 +110,29 @@ class OfferController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $offer->update($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Offer updated successfully',
-            'data' => $offer,
-        ]);
+        return $this->success($offer, 'Offer updated successfully');
     }
 
     public function destroy(Offer $offer)
     {
         if ($offer->status === 'accepted') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot delete accepted offers',
-            ], 400);
+            return $this->error('Cannot delete accepted offers', 400);
         }
 
         $offer->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Offer deleted successfully',
-        ]);
+        return $this->noContent('Offer deleted successfully');
     }
 
     public function send(Offer $offer)
     {
         if ($offer->status !== 'draft') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Offer already sent',
-            ], 400);
+            return $this->error('Offer already sent', 400);
         }
 
         $offer->update([
@@ -168,27 +145,17 @@ class OfferController extends Controller
 
         // TODO: Send email notification to candidate
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Offer sent successfully',
-            'data' => $offer,
-        ]);
+        return $this->success($offer, 'Offer sent successfully');
     }
 
     public function accept(Request $request, Offer $offer)
     {
         if ($offer->status !== 'sent') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Can only accept sent offers',
-            ], 400);
+            return $this->error('Can only accept sent offers', 400);
         }
 
         if ($offer->expiry_date < now()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Offer has expired',
-            ], 400);
+            return $this->error('Offer has expired', 400);
         }
 
         $offer->update([
@@ -200,20 +167,13 @@ class OfferController extends Controller
         // Update candidate status
         $offer->candidate->update(['status' => 'hired']);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Offer accepted',
-            'data' => $offer,
-        ]);
+        return $this->success($offer, 'Offer accepted');
     }
 
     public function reject(Request $request, Offer $offer)
     {
         if ($offer->status !== 'sent') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Can only reject sent offers',
-            ], 400);
+            return $this->error('Can only reject sent offers', 400);
         }
 
         $offer->update([
@@ -225,29 +185,18 @@ class OfferController extends Controller
         // Update candidate status
         $offer->candidate->update(['status' => 'rejected']);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Offer rejected',
-            'data' => $offer,
-        ]);
+        return $this->success($offer, 'Offer rejected');
     }
 
     public function withdraw(Offer $offer)
     {
         if (! in_array($offer->status, ['draft', 'sent'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot withdraw this offer',
-            ], 400);
+            return $this->error('Cannot withdraw this offer', 400);
         }
 
         $offer->update(['status' => 'withdrawn']);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Offer withdrawn successfully',
-            'data' => $offer,
-        ]);
+        return $this->success($offer, 'Offer withdrawn successfully');
     }
 
     public function pending()
@@ -257,10 +206,7 @@ class OfferController extends Controller
             ->orderBy('expiry_date', 'asc')
             ->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $pending,
-        ]);
+        return $this->success($pending);
     }
 
     public function expired()
@@ -270,9 +216,6 @@ class OfferController extends Controller
             ->orderBy('expiry_date', 'desc')
             ->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $expired,
-        ]);
+        return $this->success($expired);
     }
 }

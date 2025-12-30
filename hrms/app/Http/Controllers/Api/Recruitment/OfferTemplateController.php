@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api\Recruitment;
 
 use App\Http\Controllers\Controller;
 use App\Models\OfferTemplate;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class OfferTemplateController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = OfferTemplate::query();
@@ -25,10 +28,7 @@ class OfferTemplateController extends Controller
             ->orderBy('name')
             ->paginate($request->per_page ?? 15);
 
-        return response()->json([
-            'success' => true,
-            'data' => $templates,
-        ]);
+        return $this->success($templates);
     }
 
     public function store(Request $request)
@@ -41,7 +41,7 @@ class OfferTemplateController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         // If setting as default, unset other defaults
@@ -57,21 +57,14 @@ class OfferTemplateController extends Controller
             'is_active' => $request->is_active ?? true,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Offer template created successfully',
-            'data' => $template,
-        ], 201);
+        return $this->created($template, 'Offer template created successfully');
     }
 
     public function show(OfferTemplate $offerTemplate)
     {
         $offerTemplate->available_variables = OfferTemplate::getAvailableVariables();
 
-        return response()->json([
-            'success' => true,
-            'data' => $offerTemplate,
-        ]);
+        return $this->success($offerTemplate);
     }
 
     public function update(Request $request, OfferTemplate $offerTemplate)
@@ -84,7 +77,7 @@ class OfferTemplateController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         // If setting as default, unset other defaults
@@ -96,35 +89,22 @@ class OfferTemplateController extends Controller
 
         $offerTemplate->update($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Offer template updated successfully',
-            'data' => $offerTemplate,
-        ]);
+        return $this->success($offerTemplate, 'Offer template updated successfully');
     }
 
     public function destroy(OfferTemplate $offerTemplate)
     {
         if ($offerTemplate->offers()->exists()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot delete template with existing offers',
-            ], 400);
+            return $this->error('Cannot delete template with existing offers', 400);
         }
 
         $offerTemplate->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Offer template deleted successfully',
-        ]);
+        return $this->noContent('Offer template deleted successfully');
     }
 
     public function variables()
     {
-        return response()->json([
-            'success' => true,
-            'data' => OfferTemplate::getAvailableVariables(),
-        ]);
+        return $this->success(OfferTemplate::getAvailableVariables());
     }
 }

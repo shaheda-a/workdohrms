@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Payroll;
 
 use App\Http\Controllers\Controller;
 use App\Models\AdvanceType;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class AdvanceTypeController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = AdvanceType::query();
@@ -20,7 +23,7 @@ class AdvanceTypeController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $types]);
+        return $this->success($types);
     }
 
     public function store(Request $request)
@@ -33,19 +36,12 @@ class AdvanceTypeController extends Controller
 
         $type = AdvanceType::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Advance type created',
-            'data' => $type,
-        ], 201);
+        return $this->created($type, 'Advance type created');
     }
 
     public function show(AdvanceType $advanceType)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $advanceType,
-        ]);
+        return $this->success($advanceType);
     }
 
     public function update(Request $request, AdvanceType $advanceType)
@@ -58,27 +54,17 @@ class AdvanceTypeController extends Controller
 
         $advanceType->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Advance type updated',
-            'data' => $advanceType->fresh(),
-        ]);
+        return $this->success($advanceType->fresh(), 'Advance type updated');
     }
 
     public function destroy(AdvanceType $advanceType)
     {
         if ($advanceType->salaryAdvances()->exists()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot delete type with existing advances',
-            ], 422);
+            return $this->error('Cannot delete type with existing advances', 422);
         }
 
         $advanceType->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Advance type deleted',
-        ]);
+        return $this->noContent('Advance type deleted');
     }
 }

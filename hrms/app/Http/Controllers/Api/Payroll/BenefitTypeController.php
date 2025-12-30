@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Payroll;
 
 use App\Http\Controllers\Controller;
 use App\Models\BenefitType;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class BenefitTypeController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = BenefitType::query();
@@ -23,7 +26,7 @@ class BenefitTypeController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $types]);
+        return $this->success($types);
     }
 
     public function store(Request $request)
@@ -37,19 +40,12 @@ class BenefitTypeController extends Controller
 
         $type = BenefitType::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Benefit type created',
-            'data' => $type,
-        ], 201);
+        return $this->created($type, 'Benefit type created');
     }
 
     public function show(BenefitType $benefitType)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $benefitType,
-        ]);
+        return $this->success($benefitType);
     }
 
     public function update(Request $request, BenefitType $benefitType)
@@ -63,27 +59,17 @@ class BenefitTypeController extends Controller
 
         $benefitType->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Benefit type updated',
-            'data' => $benefitType->fresh(),
-        ]);
+        return $this->success($benefitType->fresh(), 'Benefit type updated');
     }
 
     public function destroy(BenefitType $benefitType)
     {
         if ($benefitType->staffBenefits()->exists()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot delete type with existing staff benefits',
-            ], 422);
+            return $this->error('Cannot delete type with existing staff benefits', 422);
         }
 
         $benefitType->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Benefit type deleted',
-        ]);
+        return $this->noContent('Benefit type deleted');
     }
 }

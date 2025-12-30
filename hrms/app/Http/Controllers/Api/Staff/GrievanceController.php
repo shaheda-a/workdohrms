@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Staff;
 
 use App\Http\Controllers\Controller;
 use App\Models\Grievance;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class GrievanceController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = Grievance::with(['filedByStaff', 'againstStaff', 'againstDivision', 'author']);
@@ -23,7 +26,7 @@ class GrievanceController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $grievances]);
+        return $this->success($grievances);
     }
 
     public function store(Request $request)
@@ -41,19 +44,12 @@ class GrievanceController extends Controller
         $validated['status'] = 'filed';
         $grievance = Grievance::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Grievance filed successfully',
-            'data' => $grievance->load('filedByStaff'),
-        ], 201);
+        return $this->created($grievance->load('filedByStaff'), 'Grievance filed successfully');
     }
 
     public function show(Grievance $grievance)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $grievance->load(['filedByStaff', 'againstStaff', 'againstDivision', 'author']),
-        ]);
+        return $this->success($grievance->load(['filedByStaff', 'againstStaff', 'againstDivision', 'author']));
     }
 
     public function update(Request $request, Grievance $grievance)
@@ -69,11 +65,7 @@ class GrievanceController extends Controller
 
         $grievance->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Grievance updated',
-            'data' => $grievance->fresh(['filedByStaff', 'againstStaff', 'againstDivision']),
-        ]);
+        return $this->success($grievance->fresh(['filedByStaff', 'againstStaff', 'againstDivision']), 'Grievance updated');
     }
 
     /**
@@ -95,20 +87,13 @@ class GrievanceController extends Controller
 
         $grievance->update($updateData);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Grievance status updated to '.$validated['status'],
-            'data' => $grievance->fresh(),
-        ]);
+        return $this->success($grievance->fresh(), 'Grievance status updated to '.$validated['status']);
     }
 
     public function destroy(Grievance $grievance)
     {
         $grievance->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Grievance deleted',
-        ]);
+        return $this->noContent('Grievance deleted');
     }
 }

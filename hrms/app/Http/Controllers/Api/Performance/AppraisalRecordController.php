@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Performance;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppraisalRecord;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class AppraisalRecordController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = AppraisalRecord::with(['cycle', 'staffMember', 'reviewer']);
@@ -26,15 +29,12 @@ class AppraisalRecordController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $records]);
+        return $this->success($records);
     }
 
     public function show(AppraisalRecord $appraisalRecord)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $appraisalRecord->load(['cycle', 'staffMember', 'reviewer']),
-        ]);
+        return $this->success($appraisalRecord->load(['cycle', 'staffMember', 'reviewer']));
     }
 
     /**
@@ -54,11 +54,7 @@ class AppraisalRecordController extends Controller
             'self_submitted_at' => now(),
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Self-assessment submitted',
-            'data' => $appraisalRecord->fresh(),
-        ]);
+        return $this->success($appraisalRecord->fresh(), 'Self-assessment submitted');
     }
 
     /**
@@ -83,11 +79,7 @@ class AppraisalRecordController extends Controller
             'manager_submitted_at' => now(),
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Manager review submitted',
-            'data' => $appraisalRecord->fresh(),
-        ]);
+        return $this->success($appraisalRecord->fresh(), 'Manager review submitted');
     }
 
     /**
@@ -98,7 +90,7 @@ class AppraisalRecordController extends Controller
         $staffMember = \App\Models\StaffMember::where('user_id', $request->user()->id)->first();
 
         if (! $staffMember) {
-            return response()->json(['success' => true, 'data' => []]);
+            return $this->success([]);
         }
 
         $records = AppraisalRecord::with('cycle')
@@ -106,6 +98,6 @@ class AppraisalRecordController extends Controller
             ->latest()
             ->get();
 
-        return response()->json(['success' => true, 'data' => $records]);
+        return $this->success($records);
     }
 }

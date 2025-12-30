@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Payroll;
 
 use App\Http\Controllers\Controller;
 use App\Models\IncentiveRecord;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class IncentiveRecordController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = IncentiveRecord::with(['staffMember', 'author']);
@@ -23,7 +26,7 @@ class IncentiveRecordController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $records]);
+        return $this->success($records);
     }
 
     public function store(Request $request)
@@ -40,19 +43,12 @@ class IncentiveRecordController extends Controller
         $validated['author_id'] = $request->user()->id;
         $record = IncentiveRecord::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Incentive record created',
-            'data' => $record->load('staffMember'),
-        ], 201);
+        return $this->created($record->load('staffMember'), 'Incentive record created');
     }
 
     public function show(IncentiveRecord $incentiveRecord)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $incentiveRecord->load(['staffMember', 'author']),
-        ]);
+        return $this->success($incentiveRecord->load(['staffMember', 'author']));
     }
 
     public function update(Request $request, IncentiveRecord $incentiveRecord)
@@ -67,20 +63,13 @@ class IncentiveRecordController extends Controller
 
         $incentiveRecord->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Incentive record updated',
-            'data' => $incentiveRecord->fresh('staffMember'),
-        ]);
+        return $this->success($incentiveRecord->fresh('staffMember'), 'Incentive record updated');
     }
 
     public function destroy(IncentiveRecord $incentiveRecord)
     {
         $incentiveRecord->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Incentive record deleted',
-        ]);
+        return $this->noContent('Incentive record deleted');
     }
 }

@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Documents;
 
 use App\Http\Controllers\Controller;
 use App\Models\DocumentType;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class DocumentTypeController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = DocumentType::query();
@@ -20,7 +23,7 @@ class DocumentTypeController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $types]);
+        return $this->success($types);
     }
 
     public function store(Request $request)
@@ -33,19 +36,12 @@ class DocumentTypeController extends Controller
 
         $type = DocumentType::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Document type created',
-            'data' => $type,
-        ], 201);
+        return $this->created($type, 'Document type created');
     }
 
     public function show(DocumentType $documentType)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $documentType,
-        ]);
+        return $this->success($documentType);
     }
 
     public function update(Request $request, DocumentType $documentType)
@@ -58,27 +54,17 @@ class DocumentTypeController extends Controller
 
         $documentType->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Document type updated',
-            'data' => $documentType->fresh(),
-        ]);
+        return $this->success($documentType->fresh(), 'Document type updated');
     }
 
     public function destroy(DocumentType $documentType)
     {
         if ($documentType->documents()->exists()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot delete type with existing documents',
-            ], 422);
+            return $this->error('Cannot delete type with existing documents', 422);
         }
 
         $documentType->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Document type deleted',
-        ]);
+        return $this->noContent('Document type deleted');
     }
 }

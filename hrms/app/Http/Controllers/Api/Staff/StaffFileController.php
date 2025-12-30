@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Api\Staff;
 use App\Http\Controllers\Controller;
 use App\Models\StaffFile;
 use App\Models\StaffMember;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class StaffFileController extends Controller
 {
+    use ApiResponse;
+
     /**
      * Display files for a staff member.
      */
@@ -17,10 +20,7 @@ class StaffFileController extends Controller
     {
         $files = $staffMember->files()->with('fileCategory')->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $files,
-        ]);
+        return $this->success($files);
     }
 
     /**
@@ -43,11 +43,7 @@ class StaffFileController extends Controller
             'original_name' => $file->getClientOriginalName(),
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'File uploaded successfully',
-            'data' => $staffFile->load('fileCategory'),
-        ], 201);
+        return $this->created($staffFile->load('fileCategory'), 'File uploaded successfully');
     }
 
     /**
@@ -56,7 +52,7 @@ class StaffFileController extends Controller
     public function show(StaffMember $staffMember, StaffFile $file)
     {
         if ($file->staff_member_id !== $staffMember->id) {
-            return response()->json(['success' => false, 'message' => 'File not found'], 404);
+            return $this->error('File not found', 404);
         }
 
         return Storage::disk('public')->download($file->file_path, $file->original_name);
@@ -68,15 +64,12 @@ class StaffFileController extends Controller
     public function destroy(StaffMember $staffMember, StaffFile $file)
     {
         if ($file->staff_member_id !== $staffMember->id) {
-            return response()->json(['success' => false, 'message' => 'File not found'], 404);
+            return $this->error('File not found', 404);
         }
 
         Storage::disk('public')->delete($file->file_path);
         $file->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'File deleted successfully',
-        ]);
+        return $this->noContent('File deleted successfully');
     }
 }

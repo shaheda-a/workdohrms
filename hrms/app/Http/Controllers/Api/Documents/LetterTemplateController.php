@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Documents;
 
 use App\Http\Controllers\Controller;
 use App\Models\LetterTemplate;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class LetterTemplateController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = LetterTemplate::with('author');
@@ -23,7 +26,7 @@ class LetterTemplateController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $templates]);
+        return $this->success($templates);
     }
 
     public function store(Request $request)
@@ -49,19 +52,12 @@ class LetterTemplateController extends Controller
 
         $template = LetterTemplate::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Letter template created',
-            'data' => $template,
-        ], 201);
+        return $this->created($template, 'Letter template created');
     }
 
     public function show(LetterTemplate $letterTemplate)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $letterTemplate->load('author'),
-        ]);
+        return $this->success($letterTemplate->load('author'));
     }
 
     /**
@@ -69,10 +65,7 @@ class LetterTemplateController extends Controller
      */
     public function placeholders()
     {
-        return response()->json([
-            'success' => true,
-            'data' => LetterTemplate::getDefaultPlaceholders(),
-        ]);
+        return $this->success(LetterTemplate::getDefaultPlaceholders());
     }
 
     public function update(Request $request, LetterTemplate $letterTemplate)
@@ -94,27 +87,17 @@ class LetterTemplateController extends Controller
 
         $letterTemplate->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Letter template updated',
-            'data' => $letterTemplate->fresh(),
-        ]);
+        return $this->success($letterTemplate->fresh(), 'Letter template updated');
     }
 
     public function destroy(LetterTemplate $letterTemplate)
     {
         if ($letterTemplate->generatedLetters()->exists()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot delete template with existing generated letters',
-            ], 422);
+            return $this->error('Cannot delete template with existing generated letters', 422);
         }
 
         $letterTemplate->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Letter template deleted',
-        ]);
+        return $this->noContent('Letter template deleted');
     }
 }

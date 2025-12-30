@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api\Recruitment;
 
 use App\Http\Controllers\Controller;
 use App\Models\InterviewSchedule;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class InterviewScheduleController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = InterviewSchedule::with(['application.candidate', 'application.job', 'interviewer']);
@@ -33,10 +36,7 @@ class InterviewScheduleController extends Controller
             ? $query->get()
             : $query->paginate($request->per_page ?? 15);
 
-        return response()->json([
-            'success' => true,
-            'data' => $interviews,
-        ]);
+        return $this->success($interviews);
     }
 
     public function store(Request $request)
@@ -54,7 +54,7 @@ class InterviewScheduleController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         // Auto-calculate round number
@@ -70,21 +70,9 @@ class InterviewScheduleController extends Controller
         // Update candidate status
         $interview->application->candidate->update(['status' => 'interview']);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Interview scheduled successfully',
-            'data' => $interview->load(['application.candidate', 'interviewer']),
-        ], 201);
-    }
+        return $this->created($interview->load(['application.candidate', 'interviewer']), 'Interview scheduled successfully');
 
-    public function show(InterviewSchedule $interviewSchedule)
-    {
-        $interviewSchedule->load(['application.candidate', 'application.job', 'interviewer']);
-
-        return response()->json([
-            'success' => true,
-            'data' => $interviewSchedule,
-        ]);
+        return $this->success($interviewSchedule);
     }
 
     public function update(Request $request, InterviewSchedule $interviewSchedule)
@@ -96,26 +84,19 @@ class InterviewScheduleController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $interviewSchedule->update($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Interview updated successfully',
-            'data' => $interviewSchedule,
-        ]);
+        return $this->success($interviewSchedule, 'Interview updated successfully');
     }
 
     public function destroy(InterviewSchedule $interviewSchedule)
     {
         $interviewSchedule->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Interview deleted successfully',
-        ]);
+        return $this->noContent('Interview deleted successfully');
     }
 
     public function feedback(Request $request, InterviewSchedule $interviewSchedule)
@@ -127,7 +108,7 @@ class InterviewScheduleController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $interviewSchedule->update([
@@ -137,11 +118,7 @@ class InterviewScheduleController extends Controller
             'status' => 'completed',
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Feedback submitted successfully',
-            'data' => $interviewSchedule,
-        ]);
+        return $this->success($interviewSchedule, 'Feedback submitted successfully');
     }
 
     public function reschedule(Request $request, InterviewSchedule $interviewSchedule)
@@ -153,7 +130,7 @@ class InterviewScheduleController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $interviewSchedule->update([
@@ -163,11 +140,7 @@ class InterviewScheduleController extends Controller
             'status' => 'rescheduled',
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Interview rescheduled successfully',
-            'data' => $interviewSchedule,
-        ]);
+        return $this->success($interviewSchedule, 'Interview rescheduled successfully');
     }
 
     public function calendar(Request $request)
@@ -182,10 +155,7 @@ class InterviewScheduleController extends Controller
 
         $interviews = $query->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $interviews,
-        ]);
+        return $this->success($interviews);
     }
 
     public function today()
@@ -195,9 +165,6 @@ class InterviewScheduleController extends Controller
             ->orderBy('scheduled_time')
             ->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $interviews,
-        ]);
+        return $this->success($interviews);
     }
 }

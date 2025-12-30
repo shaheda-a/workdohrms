@@ -7,10 +7,13 @@ use App\Models\SalarySlip;
 use App\Models\StaffMember;
 use App\Models\TimeOffRequest;
 use App\Models\WorkLog;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class DataExportController extends Controller
 {
+    use ApiResponse;
+
     /**
      * Export staff members to CSV.
      */

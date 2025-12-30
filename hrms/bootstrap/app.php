@@ -27,6 +27,14 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return route('login');
         });
+
+        $middleware->alias([
+            'inject.org.company' => \App\Http\Middleware\InjectOrgAndCompany::class,
+        ]);
+
+        $middleware->appendToGroup('api', [
+            \App\Http\Middleware\InjectOrgAndCompany::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (AppAuthenticationException $e, Request $request) {

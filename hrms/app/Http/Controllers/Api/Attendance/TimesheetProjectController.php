@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api\Attendance;
 
 use App\Http\Controllers\Controller;
 use App\Models\TimesheetProject;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class TimesheetProjectController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = TimesheetProject::withCount('timesheets');
@@ -19,7 +22,7 @@ class TimesheetProjectController extends Controller
 
         $projects = $request->paginate === 'false' ? $query->get() : $query->paginate($request->per_page ?? 15);
 
-        return response()->json(['success' => true, 'data' => $projects]);
+        return $this->success($projects);
     }
 
     public function store(Request $request)
@@ -33,30 +36,30 @@ class TimesheetProjectController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $project = TimesheetProject::create($request->all());
 
-        return response()->json(['success' => true, 'message' => 'Project created', 'data' => $project], 201);
+        return $this->created($project, 'Project created');
     }
 
     public function show(TimesheetProject $timesheetProject)
     {
-        return response()->json(['success' => true, 'data' => $timesheetProject]);
+        return $this->success($timesheetProject);
     }
 
     public function update(Request $request, TimesheetProject $timesheetProject)
     {
         $timesheetProject->update($request->all());
 
-        return response()->json(['success' => true, 'message' => 'Updated', 'data' => $timesheetProject]);
+        return $this->success($timesheetProject, 'Updated');
     }
 
     public function destroy(TimesheetProject $timesheetProject)
     {
         $timesheetProject->delete();
 
-        return response()->json(['success' => true, 'message' => 'Deleted']);
+        return $this->noContent('Deleted');
     }
 }

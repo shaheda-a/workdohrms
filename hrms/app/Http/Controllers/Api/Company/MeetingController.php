@@ -7,11 +7,14 @@ use App\Models\Meeting;
 use App\Models\MeetingActionItem;
 use App\Models\MeetingAttendee;
 use App\Models\MeetingMinutes;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class MeetingController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = Meeting::with(['meetingType', 'meetingRoom', 'attendees.staffMember']);
@@ -25,7 +28,7 @@ class MeetingController extends Controller
 
         $meetings = $query->orderBy('date')->orderBy('start_time')->paginate($request->per_page ?? 15);
 
-        return response()->json(['success' => true, 'data' => $meetings]);
+        return $this->success($meetings);
     }
 
     public function store(Request $request)
@@ -44,7 +47,7 @@ class MeetingController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $meeting = Meeting::create([
@@ -71,32 +74,21 @@ class MeetingController extends Controller
             }
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Meeting created',
-            'data' => $meeting->load(['meetingType', 'meetingRoom', 'attendees.staffMember']),
-        ], 201);
-    }
-
-    public function show(Meeting $meeting)
-    {
-        $meeting->load(['meetingType', 'meetingRoom', 'attendees.staffMember', 'minutes', 'actionItems']);
-
-        return response()->json(['success' => true, 'data' => $meeting]);
+        return $this->created($meeting->load(['meetingType', 'meetingRoom', 'attendees.staffMember']), 'Meeting created');
     }
 
     public function update(Request $request, Meeting $meeting)
     {
         $meeting->update($request->all());
 
-        return response()->json(['success' => true, 'message' => 'Updated', 'data' => $meeting]);
+        return $this->success($meeting, 'Updated');
     }
 
     public function destroy(Meeting $meeting)
     {
         $meeting->delete();
 
-        return response()->json(['success' => true, 'message' => 'Deleted']);
+        return $this->noContent('Deleted');
     }
 
     public function addAttendees(Request $request, Meeting $meeting)
@@ -107,7 +99,7 @@ class MeetingController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         foreach ($request->staff_member_ids as $staffMemberId) {
@@ -117,25 +109,21 @@ class MeetingController extends Controller
             ]);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Attendees added',
-            'data' => $meeting->load('attendees.staffMember'),
-        ]);
+        return $this->success($meeting->load('attendees.staffMember'), 'Attendees added');
     }
 
     public function start(Meeting $meeting)
     {
         $meeting->update(['status' => 'in_progress']);
 
-        return response()->json(['success' => true, 'message' => 'Meeting started', 'data' => $meeting]);
+        return $this->success($meeting, 'Meeting started');
     }
 
     public function complete(Meeting $meeting)
     {
         $meeting->update(['status' => 'completed']);
 
-        return response()->json(['success' => true, 'message' => 'Meeting completed', 'data' => $meeting]);
+        return $this->success($meeting, 'Meeting completed');
     }
 
     public function addMinutes(Request $request, Meeting $meeting)
@@ -145,7 +133,7 @@ class MeetingController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $minutes = MeetingMinutes::create([
@@ -154,7 +142,7 @@ class MeetingController extends Controller
             'created_by' => auth()->id(),
         ]);
 
-        return response()->json(['success' => true, 'message' => 'Minutes added', 'data' => $minutes]);
+        return $this->success($minutes, 'Minutes added');
     }
 
     public function addActionItem(Request $request, Meeting $meeting)
@@ -166,7 +154,7 @@ class MeetingController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $item = MeetingActionItem::create([
@@ -176,14 +164,14 @@ class MeetingController extends Controller
             'due_date' => $request->due_date,
         ]);
 
-        return response()->json(['success' => true, 'message' => 'Action item added', 'data' => $item]);
+        return $this->success($item, 'Action item added');
     }
 
     public function completeActionItem(MeetingActionItem $meetingActionItem)
     {
         $meetingActionItem->update(['status' => 'completed']);
 
-        return response()->json(['success' => true, 'message' => 'Action item completed', 'data' => $meetingActionItem]);
+        return $this->success($meetingActionItem, 'Action item completed');
     }
 
     public function calendar(Request $request)
@@ -194,14 +182,14 @@ class MeetingController extends Controller
             $query->whereMonth('date', $request->month)->whereYear('date', $request->year);
         }
 
-        return response()->json(['success' => true, 'data' => $query->get()]);
+        return $this->success($query->get());
     }
 
     public function myMeetings()
     {
         $staffMember = auth()->user()->staffMember;
         if (! $staffMember) {
-            return response()->json(['success' => true, 'data' => []]);
+            return $this->success([]);
         }
 
         $meetingIds = MeetingAttendee::where('staff_member_id', $staffMember->id)->pluck('meeting_id');
@@ -210,6 +198,6 @@ class MeetingController extends Controller
             ->orderBy('date')
             ->get();
 
-        return response()->json(['success' => true, 'data' => $meetings]);
+        return $this->success($meetings);
     }
 }

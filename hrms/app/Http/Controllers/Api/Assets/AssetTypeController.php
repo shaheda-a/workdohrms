@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api\Assets;
 
 use App\Http\Controllers\Controller;
 use App\Models\AssetType;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class AssetTypeController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = AssetType::withCount('assets');
@@ -21,10 +24,7 @@ class AssetTypeController extends Controller
             ? $query->get()
             : $query->paginate($request->per_page ?? 15);
 
-        return response()->json([
-            'success' => true,
-            'data' => $assetTypes,
-        ]);
+        return $this->success($assetTypes);
     }
 
     public function store(Request $request)
@@ -36,26 +36,19 @@ class AssetTypeController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $assetType = AssetType::create($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Asset type created successfully',
-            'data' => $assetType,
-        ], 201);
+        return $this->created($assetType, 'Asset type created successfully');
     }
 
     public function show(AssetType $assetType)
     {
         $assetType->load('assets');
 
-        return response()->json([
-            'success' => true,
-            'data' => $assetType,
-        ]);
+        return $this->success($assetType);
     }
 
     public function update(Request $request, AssetType $assetType)
@@ -67,25 +60,18 @@ class AssetTypeController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $assetType->update($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Asset type updated successfully',
-            'data' => $assetType,
-        ]);
+        return $this->success($assetType, 'Asset type updated successfully');
     }
 
     public function destroy(AssetType $assetType)
     {
         $assetType->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Asset type deleted successfully',
-        ]);
+        return $this->noContent('Asset type deleted successfully');
     }
 }

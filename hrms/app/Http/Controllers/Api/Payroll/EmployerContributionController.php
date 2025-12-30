@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Payroll;
 
 use App\Http\Controllers\Controller;
 use App\Models\EmployerContribution;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class EmployerContributionController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = EmployerContribution::with(['staffMember', 'author']);
@@ -23,7 +26,7 @@ class EmployerContributionController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $contributions]);
+        return $this->success($contributions);
     }
 
     public function store(Request $request)
@@ -41,19 +44,12 @@ class EmployerContributionController extends Controller
         $validated['author_id'] = $request->user()->id;
         $contribution = EmployerContribution::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Employer contribution created',
-            'data' => $contribution->load('staffMember'),
-        ], 201);
+        return $this->created($contribution->load('staffMember'), 'Employer contribution created');
     }
 
     public function show(EmployerContribution $employerContribution)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $employerContribution->load(['staffMember', 'author']),
-        ]);
+        return $this->success($employerContribution->load(['staffMember', 'author']));
     }
 
     public function update(Request $request, EmployerContribution $employerContribution)
@@ -69,20 +65,13 @@ class EmployerContributionController extends Controller
 
         $employerContribution->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Employer contribution updated',
-            'data' => $employerContribution->fresh('staffMember'),
-        ]);
+        return $this->success($employerContribution->fresh('staffMember'), 'Employer contribution updated');
     }
 
     public function destroy(EmployerContribution $employerContribution)
     {
         $employerContribution->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Employer contribution deleted',
-        ]);
+        return $this->noContent('Employer contribution deleted');
     }
 }

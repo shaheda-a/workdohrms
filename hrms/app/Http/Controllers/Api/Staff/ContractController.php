@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Api\Staff;
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
 use App\Models\ContractRenewal;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class ContractController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = Contract::with(['staffMember', 'contractType']);
@@ -24,7 +27,7 @@ class ContractController extends Controller
 
         $contracts = $query->paginate($request->per_page ?? 15);
 
-        return response()->json(['success' => true, 'data' => $contracts]);
+        return $this->success($contracts);
     }
 
     public function store(Request $request)
@@ -39,7 +42,7 @@ class ContractController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $data = $request->all();
@@ -48,32 +51,23 @@ class ContractController extends Controller
 
         $contract = Contract::create($data);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Contract created',
-            'data' => $contract->load(['staffMember', 'contractType']),
-        ], 201);
-    }
+        return $this->created($contract->load(['staffMember', 'contractType']), 'Contract created');
 
-    public function show(Contract $contract)
-    {
-        $contract->load(['staffMember', 'contractType', 'renewals']);
-
-        return response()->json(['success' => true, 'data' => $contract]);
+        return $this->success($contract);
     }
 
     public function update(Request $request, Contract $contract)
     {
         $contract->update($request->all());
 
-        return response()->json(['success' => true, 'message' => 'Updated', 'data' => $contract]);
+        return $this->success($contract, 'Updated');
     }
 
     public function destroy(Contract $contract)
     {
         $contract->delete();
 
-        return response()->json(['success' => true, 'message' => 'Deleted']);
+        return $this->noContent('Deleted');
     }
 
     public function renew(Request $request, Contract $contract)
@@ -85,7 +79,7 @@ class ContractController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         ContractRenewal::create([
@@ -104,18 +98,14 @@ class ContractController extends Controller
             'status' => 'active',
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Contract renewed',
-            'data' => $contract->load('renewals'),
-        ]);
+        return $this->success($contract->load('renewals'), 'Contract renewed');
     }
 
     public function terminate(Request $request, Contract $contract)
     {
         $contract->update(['status' => 'terminated']);
 
-        return response()->json(['success' => true, 'message' => 'Contract terminated', 'data' => $contract]);
+        return $this->success($contract, 'Contract terminated');
     }
 
     public function expiring(Request $request)
@@ -123,7 +113,7 @@ class ContractController extends Controller
         $days = $request->days ?? 30;
         $contracts = Contract::expiringSoon($days)->with(['staffMember', 'contractType'])->get();
 
-        return response()->json(['success' => true, 'data' => $contracts]);
+        return $this->success($contracts);
     }
 
     public function byEmployee($staffMemberId)
@@ -133,6 +123,6 @@ class ContractController extends Controller
             ->orderBy('start_date', 'desc')
             ->get();
 
-        return response()->json(['success' => true, 'data' => $contracts]);
+        return $this->success($contracts);
     }
 }

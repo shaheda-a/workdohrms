@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Performance;
 
 use App\Http\Controllers\Controller;
 use App\Models\PerformanceObjective;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class PerformanceObjectiveController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = PerformanceObjective::with(['staffMember', 'author']);

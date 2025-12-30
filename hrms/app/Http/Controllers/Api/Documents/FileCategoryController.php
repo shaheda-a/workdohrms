@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Documents;
 
 use App\Http\Controllers\Controller;
 use App\Models\FileCategory;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class FileCategoryController extends Controller
 {
+    use ApiResponse;
+
     /**
      * Display a listing of file categories.
      */
@@ -34,10 +37,7 @@ class FileCategoryController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $categories,
-        ]);
+        return $this->success($categories);
     }
 
     /**
@@ -54,11 +54,7 @@ class FileCategoryController extends Controller
 
         $category = FileCategory::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'File category created successfully',
-            'data' => $category,
-        ], 201);
+        return $this->created($category, 'File category created successfully');
     }
 
     /**
@@ -66,10 +62,7 @@ class FileCategoryController extends Controller
      */
     public function show(FileCategory $fileCategory)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $fileCategory,
-        ]);
+        return $this->success($fileCategory);
     }
 
     /**
@@ -86,11 +79,7 @@ class FileCategoryController extends Controller
 
         $fileCategory->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'File category updated successfully',
-            'data' => $fileCategory->fresh(),
-        ]);
+        return $this->success($fileCategory->fresh(), 'File category updated successfully');
     }
 
     /**
@@ -100,9 +89,6 @@ class FileCategoryController extends Controller
     {
         $fileCategory->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'File category deleted successfully',
-        ]);
+        return $this->noContent('File category deleted successfully');
     }
 }

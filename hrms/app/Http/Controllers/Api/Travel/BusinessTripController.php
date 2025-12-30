@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Travel;
 
 use App\Http\Controllers\Controller;
 use App\Models\BusinessTrip;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class BusinessTripController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = BusinessTrip::with(['staffMember', 'approvedByUser', 'author']);
@@ -23,7 +26,7 @@ class BusinessTripController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $trips]);
+        return $this->success($trips);
     }
 
     public function store(Request $request)
@@ -41,19 +44,12 @@ class BusinessTripController extends Controller
         $validated['approval_status'] = 'pending';
         $trip = BusinessTrip::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Business trip request submitted',
-            'data' => $trip->load('staffMember'),
-        ], 201);
+        return $this->created($trip->load('staffMember'), 'Business trip request submitted');
     }
 
     public function show(BusinessTrip $businessTrip)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $businessTrip->load(['staffMember', 'approvedByUser', 'author']),
-        ]);
+        return $this->success($businessTrip->load(['staffMember', 'approvedByUser', 'author']));
     }
 
     public function update(Request $request, BusinessTrip $businessTrip)
@@ -68,11 +64,7 @@ class BusinessTripController extends Controller
 
         $businessTrip->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Business trip updated',
-            'data' => $businessTrip->fresh('staffMember'),
-        ]);
+        return $this->success($businessTrip->fresh('staffMember'), 'Business trip updated');
     }
 
     /**
@@ -91,20 +83,13 @@ class BusinessTripController extends Controller
             'approval_remarks' => $validated['approval_remarks'] ?? null,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Business trip '.$validated['action'],
-            'data' => $businessTrip->fresh(['staffMember', 'approvedByUser']),
-        ]);
+        return $this->success($businessTrip->fresh(['staffMember', 'approvedByUser']), 'Business trip ');
     }
 
     public function destroy(BusinessTrip $businessTrip)
     {
         $businessTrip->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Business trip deleted',
-        ]);
+        return $this->noContent('Business trip deleted');
     }
 }

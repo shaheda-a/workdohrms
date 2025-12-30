@@ -9,12 +9,15 @@ use App\Models\SalarySlip;
 use App\Models\StaffMember;
 use App\Models\TimeOffRequest;
 use App\Models\WorkLog;
+use App\Traits\ApiResponse;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
+    use ApiResponse;
+
     /**
      * Monthly attendance report.
      */

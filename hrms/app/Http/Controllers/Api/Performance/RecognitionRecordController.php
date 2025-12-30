@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Performance;
 
 use App\Http\Controllers\Controller;
 use App\Models\RecognitionRecord;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class RecognitionRecordController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = RecognitionRecord::with(['staffMember', 'category', 'author']);
@@ -23,7 +26,7 @@ class RecognitionRecordController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $records]);
+        return $this->success($records);
     }
 
     public function store(Request $request)
@@ -39,19 +42,7 @@ class RecognitionRecordController extends Controller
         $validated['author_id'] = $request->user()->id;
         $record = RecognitionRecord::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Recognition record created',
-            'data' => $record->load(['staffMember', 'category']),
-        ], 201);
-    }
-
-    public function show(RecognitionRecord $recognitionRecord)
-    {
-        return response()->json([
-            'success' => true,
-            'data' => $recognitionRecord->load(['staffMember', 'category', 'author']),
-        ]);
+        return $this->created($record->load(['staffMember', 'category']), 'Recognition record created');
     }
 
     public function update(Request $request, RecognitionRecord $recognitionRecord)
@@ -65,20 +56,13 @@ class RecognitionRecordController extends Controller
 
         $recognitionRecord->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Recognition record updated',
-            'data' => $recognitionRecord->fresh(['staffMember', 'category']),
-        ]);
+        return $this->success($recognitionRecord->fresh(['staffMember', 'category']), 'Recognition record updated');
     }
 
     public function destroy(RecognitionRecord $recognitionRecord)
     {
         $recognitionRecord->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Recognition record deleted',
-        ]);
+        return $this->noContent('Recognition record deleted');
     }
 }

@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\Attendance;
 
 use App\Http\Controllers\Controller;
 use App\Models\ExtraHoursRecord;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class ExtraHoursRecordController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = ExtraHoursRecord::with(['staffMember', 'author']);
@@ -33,7 +36,7 @@ class ExtraHoursRecordController extends Controller
             return $item;
         });
 
-        return response()->json(['success' => true, 'data' => $records]);
+        return $this->success($records);
     }
 
     public function store(Request $request)
@@ -52,23 +55,9 @@ class ExtraHoursRecordController extends Controller
         $validated['author_id'] = $request->user()->id;
         $record = ExtraHoursRecord::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Extra hours record created',
-            'data' => array_merge($record->load('staffMember')->toArray(), [
-                'total_amount' => $record->total_amount,
-            ]),
-        ], 201);
-    }
-
-    public function show(ExtraHoursRecord $extraHoursRecord)
-    {
-        return response()->json([
-            'success' => true,
-            'data' => array_merge($extraHoursRecord->load(['staffMember', 'author'])->toArray(), [
-                'total_amount' => $extraHoursRecord->total_amount,
-            ]),
-        ]);
+        return $this->created(array_merge($record->load('staffMember')->toArray(), [
+            'total_amount' => $record->total_amount,
+        ]), 'Extra hours record created');
     }
 
     public function update(Request $request, ExtraHoursRecord $extraHoursRecord)
@@ -85,22 +74,15 @@ class ExtraHoursRecordController extends Controller
 
         $extraHoursRecord->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Extra hours record updated',
-            'data' => array_merge($extraHoursRecord->fresh('staffMember')->toArray(), [
-                'total_amount' => $extraHoursRecord->fresh()->total_amount,
-            ]),
-        ]);
+        return $this->success(array_merge($extraHoursRecord->fresh('staffMember')->toArray(), [
+            'total_amount' => $extraHoursRecord->fresh()->total_amount,
+        ]), 'Extra hours record updated');
     }
 
     public function destroy(ExtraHoursRecord $extraHoursRecord)
     {
         $extraHoursRecord->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Extra hours record deleted',
-        ]);
+        return $this->noContent('Extra hours record deleted');
     }
 }

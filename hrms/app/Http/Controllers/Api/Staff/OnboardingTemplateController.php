@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Api\Staff;
 use App\Http\Controllers\Controller;
 use App\Models\OnboardingTask;
 use App\Models\OnboardingTemplate;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class OnboardingTemplateController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = OnboardingTemplate::withCount('tasks');
@@ -22,7 +25,7 @@ class OnboardingTemplateController extends Controller
             ? $query->get()
             : $query->paginate($request->per_page ?? 15);
 
-        return response()->json(['success' => true, 'data' => $templates]);
+        return $this->success($templates);
     }
 
     public function store(Request $request)
@@ -34,23 +37,19 @@ class OnboardingTemplateController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $template = OnboardingTemplate::create($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Onboarding template created successfully',
-            'data' => $template,
-        ], 201);
+        return $this->created($template, 'Onboarding template created successfully');
     }
 
     public function show(OnboardingTemplate $onboardingTemplate)
     {
         $onboardingTemplate->load('tasks');
 
-        return response()->json(['success' => true, 'data' => $onboardingTemplate]);
+        return $this->success($onboardingTemplate);
     }
 
     public function update(Request $request, OnboardingTemplate $onboardingTemplate)
@@ -60,23 +59,19 @@ class OnboardingTemplateController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $onboardingTemplate->update($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Template updated successfully',
-            'data' => $onboardingTemplate,
-        ]);
+        return $this->success($onboardingTemplate, 'Template updated successfully');
     }
 
     public function destroy(OnboardingTemplate $onboardingTemplate)
     {
         $onboardingTemplate->delete();
 
-        return response()->json(['success' => true, 'message' => 'Template deleted']);
+        return $this->noContent('Template deleted');
     }
 
     public function addTask(Request $request, OnboardingTemplate $onboardingTemplate)
@@ -89,7 +84,7 @@ class OnboardingTemplateController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationError($validator->errors());
         }
 
         $maxOrder = $onboardingTemplate->tasks()->max('order') ?? 0;
@@ -103,10 +98,6 @@ class OnboardingTemplateController extends Controller
             'order' => $maxOrder + 1,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Task added successfully',
-            'data' => $task,
-        ], 201);
+        return $this->created($task, 'Task added successfully');
     }
 }

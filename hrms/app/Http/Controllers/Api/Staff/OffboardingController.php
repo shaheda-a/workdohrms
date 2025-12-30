@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Api\Staff;
 use App\Http\Controllers\Controller;
 use App\Models\Offboarding;
 use App\Models\StaffMember;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class OffboardingController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = Offboarding::with(['staffMember', 'exitCategory', 'author']);
@@ -24,7 +27,7 @@ class OffboardingController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $offboardings]);
+        return $this->success($offboardings);
     }
 
     public function store(Request $request)
@@ -44,19 +47,7 @@ class OffboardingController extends Controller
         StaffMember::find($validated['staff_member_id'])
             ->update(['employment_status' => 'terminated']);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Offboarding recorded and staff member status updated',
-            'data' => $offboarding->load(['staffMember', 'exitCategory']),
-        ], 201);
-    }
-
-    public function show(Offboarding $offboarding)
-    {
-        return response()->json([
-            'success' => true,
-            'data' => $offboarding->load(['staffMember', 'exitCategory', 'author']),
-        ]);
+        return $this->created($offboarding->load(['staffMember', 'exitCategory']), 'Offboarding recorded and staff member status updated');
     }
 
     public function update(Request $request, Offboarding $offboarding)
@@ -70,20 +61,13 @@ class OffboardingController extends Controller
 
         $offboarding->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Offboarding updated',
-            'data' => $offboarding->fresh(['staffMember', 'exitCategory']),
-        ]);
+        return $this->success($offboarding->fresh(['staffMember', 'exitCategory']), 'Offboarding updated');
     }
 
     public function destroy(Offboarding $offboarding)
     {
         $offboarding->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Offboarding record deleted',
-        ]);
+        return $this->noContent('Offboarding record deleted');
     }
 }

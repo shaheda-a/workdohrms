@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Api\Staff;
 use App\Http\Controllers\Controller;
 use App\Models\RoleUpgrade;
 use App\Models\StaffMember;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class RoleUpgradeController extends Controller
 {
+    use ApiResponse;
+
     public function index(Request $request)
     {
         $query = RoleUpgrade::with(['staffMember', 'newJobTitle', 'author']);
@@ -21,7 +24,7 @@ class RoleUpgradeController extends Controller
             ? $query->latest()->paginate($request->input('per_page', 15))
             : $query->latest()->get();
 
-        return response()->json(['success' => true, 'data' => $upgrades]);
+        return $this->success($upgrades);
     }
 
     public function store(Request $request)
@@ -41,19 +44,7 @@ class RoleUpgradeController extends Controller
         StaffMember::find($validated['staff_member_id'])
             ->update(['job_title_id' => $validated['new_job_title_id']]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Role upgrade recorded and staff member updated',
-            'data' => $upgrade->load(['staffMember', 'newJobTitle']),
-        ], 201);
-    }
-
-    public function show(RoleUpgrade $roleUpgrade)
-    {
-        return response()->json([
-            'success' => true,
-            'data' => $roleUpgrade->load(['staffMember', 'newJobTitle', 'author']),
-        ]);
+        return $this->created($upgrade->load(['staffMember', 'newJobTitle']), 'Role upgrade recorded and staff member updated');
     }
 
     public function update(Request $request, RoleUpgrade $roleUpgrade)
@@ -66,20 +57,13 @@ class RoleUpgradeController extends Controller
 
         $roleUpgrade->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Role upgrade updated',
-            'data' => $roleUpgrade->fresh(['staffMember', 'newJobTitle']),
-        ]);
+        return $this->success($roleUpgrade->fresh(['staffMember', 'newJobTitle']), 'Role upgrade updated');
     }
 
     public function destroy(RoleUpgrade $roleUpgrade)
     {
         $roleUpgrade->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Role upgrade record deleted',
-        ]);
+        return $this->noContent('Role upgrade record deleted');
     }
 }
