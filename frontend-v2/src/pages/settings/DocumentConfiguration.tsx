@@ -1,5 +1,199 @@
 import { useState, useEffect } from 'react';
-import { documentConfigService, documentLocationService } from '../../services/api';
+import { documentLocationService } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { HardDrive, Cloud, Database, Settings as SettingsIcon, CheckCircle2 } from 'lucide-react';
+import { toast } from '../../hooks/use-toast';
+import { Badge } from '../../components/ui/badge';
+
+interface DocumentLocation {
+    id: number;
+    location_type: number;
+    org_id?: number;
+    company_id?: number;
+}
+
+type StorageType = 'local' | 'wasabi' | 'aws';
+
+export default function DocumentConfiguration() {
+    const { user } = useAuth();
+    const [locations, setLocations] = useState<DocumentLocation[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        fetchLocations();
+    }, []);
+
+    const fetchLocations = async () => {
+        try {
+            const response = await documentLocationService.getAll({});
+            const payload = response.data.data;
+            if (Array.isArray(payload)) {
+                setLocations(payload);
+            } else if (payload && Array.isArray(payload.data)) {
+                setLocations(payload.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch locations:', error);
+        }
+    };
+
+    const isStorageConfigured = (locationType: number) => {
+        return locations.some(
+            loc => loc.location_type === locationType &&
+                loc.org_id === user?.org_id &&
+                loc.company_id === user?.company_id
+        );
+    };
+
+    const handleConfigureStorage = async (type: StorageType, locationType: number) => {
+        if (!user?.org_id || !user?.company_id) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'User must be associated with an organization and company',
+            });
+            return;
+        }
+
+        if (isStorageConfigured(locationType)) {
+            toast({
+                title: 'Already Configured',
+                description: `${type.charAt(0).toUpperCase() + type.slice(1)} storage is already configured for your organization`,
+            });
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            await documentLocationService.create({
+                location_type: locationType,
+                org_id: user.org_id,
+                company_id: user.company_id,
+            });
+
+            toast({
+                title: 'Success',
+                description: `${type.charAt(0).toUpperCase() + type.slice(1)} storage configured successfully`,
+            });
+
+            fetchLocations();
+        } catch (error) {
+            console.error('Failed to configure storage:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Failed to configure storage location',
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const storageCards = [
+        {
+            type: 'local' as StorageType,
+            title: 'Local Storage',
+            description: 'Store documents on local server',
+            icon: HardDrive,
+            color: 'bg-solarized-blue',
+            locationType: 1,
+        },
+        {
+            type: 'wasabi' as StorageType,
+            title: 'Wasabi Cloud',
+            description: 'Store documents on Wasabi cloud storage',
+            icon: Cloud,
+            color: 'bg-solarized-green',
+            locationType: 2,
+        },
+        {
+            type: 'aws' as StorageType,
+            title: 'AWS S3',
+            description: 'Store documents on Amazon S3',
+            icon: Database,
+            color: 'bg-solarized-yellow',
+            locationType: 3,
+        },
+    ];
+
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center gap-3">
+                <SettingsIcon className="h-8 w-8 text-solarized-blue" />
+                <div>
+                    <h1 className="text-2xl font-bold text-solarized-base02">Document Configuration</h1>
+                    <p className="text-solarized-base01">Configure document storage settings</p>
+                </div>
+            </div>
+
+            {user?.org_id && user?.company_id ? (
+                <>
+                    <div className="bg-solarized-base2 p-4 rounded-lg">
+                        <p className="text-sm text-solarized-base01">
+                            <strong>Organization:</strong> {user.organization_name || `ID: ${user.org_id}`}
+                            {' • '}
+                            <strong>Company:</strong> {user.company_name || `ID: ${user.company_id}`}
+                        </p>
+                    </div>
+
+                    <div className="grid gap-6 md:grid-cols-3">
+                        {storageCards.map((card) => {
+                            const Icon = card.icon;
+                            const isConfigured = isStorageConfigured(card.locationType);
+
+                            return (
+                                <Card
+                                    key={card.type}
+                                    className="border-0 shadow-md hover:shadow-lg transition-shadow"
+                                >
+                                    <CardHeader>
+                                        <div className={`w-12 h-12 rounded-lg ${card.color} flex items-center justify-center mb-4`}>
+                                            <Icon className="h-6 w-6 text-white" />
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <CardTitle>{card.title}</CardTitle>
+                                            {isConfigured && (
+                                                <Badge className="bg-solarized-green/10 text-solarized-green">
+                                                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                                                    Active
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        <CardDescription>{card.description}</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Button
+                                            size="sm"
+                                            className={isConfigured ? 'bg-solarized-base01' : 'bg-solarized-blue hover:bg-solarized-blue/90'}
+                                            onClick={() => handleConfigureStorage(card.type, card.locationType)}
+                                            disabled={isLoading || isConfigured}
+                                        >
+                                            {isConfigured ? 'Configured' : 'Configure'}
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
+                    </div>
+                </>
+            ) : (
+                <Card className="border-0 shadow-md">
+                    <CardContent className="pt-6">
+                        <div className="text-center py-12">
+                            <SettingsIcon className="h-12 w-12 text-solarized-base01 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-solarized-base02">Organization Required</h3>
+                            <p className="text-solarized-base01 mt-1">
+                                You must be associated with an organization and company to configure document storage.
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+        </div>
+    );
+}
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
