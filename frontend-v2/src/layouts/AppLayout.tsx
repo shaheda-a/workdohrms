@@ -295,7 +295,12 @@ export default function AppLayout() {
 
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-            {navigation.map((item) => (
+            {navigation.filter(item => {
+              if (item.name === 'Organizations' || item.name === 'Companies') {
+                return user?.role === 'administrator' || user?.role === 'Administrator'; // Checking both just in case, though usually lowercase in backend
+              }
+              return true;
+            }).map((item) => (
               <NavItemComponent key={item.href} item={item} isCollapsed={sidebarCollapsed} />
             ))}
           </nav>
