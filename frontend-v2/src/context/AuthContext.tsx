@@ -5,6 +5,7 @@ interface User {
   id: number;
   name: string;
   email: string;
+  role: string; // Added to match backend response
   roles: string[];
   permissions: string[];
   staff_member_id?: number;
@@ -32,24 +33,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const initAuth = async () => {
       const storedToken = localStorage.getItem('auth_token');
       const storedUser = localStorage.getItem('user');
-      
+
       if (storedToken && storedUser) {
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
       }
       setIsLoading(false);
     };
-    
+
     initAuth();
   }, []);
 
   const login = async (email: string, password: string) => {
     const response = await authService.login(email, password);
     const { token: newToken, user: userData } = response.data.data;
-    
+
     localStorage.setItem('auth_token', newToken);
     localStorage.setItem('user', JSON.stringify(userData));
-    
+
     setToken(newToken);
     setUser(userData);
   };

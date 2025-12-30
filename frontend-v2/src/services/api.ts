@@ -273,3 +273,11 @@ export const companyService = {
   update: (id: number, data: Record<string, unknown>) => api.put(`/companies/${id}`, data),
   delete: (id: number) => api.delete(`/companies/${id}`),
 };
+
+export const assetTypeService = {
+  getAll: (params?: { page?: number; search?: string }) => api.get('/asset-types', { params }),
+  getById: (id: number) => api.get(`/asset-types/${id}`),
+  create: (data: Record<string, unknown>) => api.post('/asset-types', data),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/asset-types/${id}`, data),
+  delete: (id: number) => api.delete(`/asset-types/${id}`),
+};

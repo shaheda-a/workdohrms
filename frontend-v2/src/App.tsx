@@ -24,6 +24,9 @@ import StaffEdit from './pages/staff/StaffEdit';
 import OrganizationList from './pages/organization/OrganizationList';
 import CompanyList from './pages/company/CompanyList';
 
+// Assets
+import AssetTypeList from './pages/assets/AssetTypeList';
+
 // Attendance
 import ClockInOut from './pages/attendance/ClockInOut';
 import WorkLogs from './pages/attendance/WorkLogs';
@@ -117,6 +120,9 @@ function App() {
             {/* Organization */}
             <Route path="/organizations" element={<OrganizationList />} />
             <Route path="/companies" element={<CompanyList />} />
+
+            {/* Assets */}
+            <Route path="/assets/types" element={<AssetTypeList />} />
 
             {/* Attendance */}
             <Route path="/attendance" element={<ClockInOut />} />
