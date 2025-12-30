@@ -281,3 +281,33 @@ export const assetTypeService = {
   update: (id: number, data: Record<string, unknown>) => api.put(`/asset-types/${id}`, data),
   delete: (id: number) => api.delete(`/asset-types/${id}`),
 };
+
+export const documentTypeService = {
+  getAll: (params?: { page?: number; search?: string }) => api.get('/document-types', { params }),
+  getById: (id: number) => api.get(`/document-types/${id}`),
+  create: (data: Record<string, unknown>) => api.post('/document-types', data),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/document-types/${id}`, data),
+  delete: (id: number) => api.delete(`/document-types/${id}`),
+};
+
+export const documentLocationService = {
+  getAll: (params?: { page?: number; search?: string }) => api.get('/document-locations', { params }),
+  getById: (id: number) => api.get(`/document-locations/${id}`),
+  create: (data: Record<string, unknown>) => api.post('/document-locations', data),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/document-locations/${id}`, data),
+  delete: (id: number) => api.delete(`/document-locations/${id}`),
+};
+
+export const documentConfigService = {
+  // Local
+  storeLocal: (data: Record<string, unknown>) => api.post('/document-configs/local', data),
+  updateLocal: (id: number, data: Record<string, unknown>) => api.put(`/document-configs/local/${id}`, data),
+
+  // Wasabi
+  storeWasabi: (data: Record<string, unknown>) => api.post('/document-configs/wasabi', data),
+  updateWasabi: (id: number, data: Record<string, unknown>) => api.put(`/document-configs/wasabi/${id}`, data),
+
+  // AWS
+  storeAws: (data: Record<string, unknown>) => api.post('/document-configs/aws', data),
+  updateAws: (id: number, data: Record<string, unknown>) => api.put(`/document-configs/aws/${id}`, data),
+};

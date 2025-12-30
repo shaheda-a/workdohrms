@@ -27,6 +27,10 @@ import CompanyList from './pages/company/CompanyList';
 // Assets
 import AssetTypeList from './pages/assets/AssetTypeList';
 
+// Documents
+import DocumentTypeList from './pages/documents/DocumentTypeList';
+import DocumentLocationList from './pages/documents/DocumentLocationList';
+
 // Attendance
 import ClockInOut from './pages/attendance/ClockInOut';
 import WorkLogs from './pages/attendance/WorkLogs';
@@ -79,6 +83,7 @@ import Divisions from './pages/settings/Divisions';
 import JobTitles from './pages/settings/JobTitles';
 import Holidays from './pages/settings/Holidays';
 import FileCategories from './pages/settings/FileCategories';
+import DocumentConfiguration from './pages/settings/DocumentConfiguration';
 
 // Admin
 import Users from './pages/admin/Users';
@@ -123,6 +128,10 @@ function App() {
 
             {/* Assets */}
             <Route path="/assets/types" element={<AssetTypeList />} />
+
+            {/* Documents */}
+            <Route path="/documents/types" element={<DocumentTypeList />} />
+            <Route path="/documents/locations" element={<DocumentLocationList />} />
 
             {/* Attendance */}
             <Route path="/attendance" element={<ClockInOut />} />
@@ -184,6 +193,7 @@ function App() {
             <Route path="/settings/job-titles" element={<JobTitles />} />
             <Route path="/settings/holidays" element={<Holidays />} />
             <Route path="/settings/file-categories" element={<FileCategories />} />
+            <Route path="/settings/document-config" element={<DocumentConfiguration />} />
 
             {/* Admin */}
             <Route path="/admin" element={<Users />} />

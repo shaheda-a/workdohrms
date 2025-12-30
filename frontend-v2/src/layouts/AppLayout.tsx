@@ -53,6 +53,16 @@ const navigation: NavItem[] = [
     ]
   },
   {
+    name: 'Documents',
+    href: '/documents',
+    icon: FileText,
+    children: [
+      { name: 'Document Types', href: '/documents/types' },
+      { name: 'Document Locations', href: '/documents/locations' },
+      { name: 'All Documents', href: '/documents' },
+    ]
+  },
+  {
     name: 'Organizations',
     href: '/organizations',
     icon: Building2,
@@ -171,6 +181,7 @@ const navigation: NavItem[] = [
       { name: 'Holidays', href: '/settings/holidays' },
       { name: 'File Categories', href: '/settings/file-categories' },
       { name: 'Notices', href: '/settings/notices' },
+      { name: 'Document Configuration', href: '/settings/document-config' },
     ]
   },
   {
