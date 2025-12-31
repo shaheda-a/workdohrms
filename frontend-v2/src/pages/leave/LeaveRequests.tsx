@@ -19,16 +19,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../../components/ui/dialog';
 import { Skeleton } from '../../components/ui/skeleton';
-import { Plus, Calendar, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import {
+  Plus,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+} from 'lucide-react';
 
+/* =========================
+   TYPES (MATCH API)
+========================= */
 interface LeaveRequest {
   id: number;
-  staff_member?: { full_name: string };
-  time_off_category?: { name: string };
+  staff_member?: {
+    full_name: string;
+  };
+  category?: {
+    id: number;
+    title: string;
+  };
   start_date: string;
   end_date: string;
-  total_days: number;
+  total_days: string | number;
   reason: string;
   approval_status: string;
   created_at: string;
@@ -41,12 +62,18 @@ interface PaginationMeta {
   total: number;
 }
 
+/* =========================
+   COMPONENT
+========================= */
 export default function LeaveRequests() {
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('all');
+
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [viewingRequest, setViewingRequest] = useState<LeaveRequest | null>(null);
 
   useEffect(() => {
     fetchRequests();
@@ -57,7 +84,7 @@ export default function LeaveRequests() {
     try {
       const params: Record<string, unknown> = { page };
       if (statusFilter !== 'all') params.status = statusFilter;
-      
+
       const response = await leaveService.getRequests(params);
       setRequests(response.data.data || []);
       setMeta(response.data.meta);
@@ -66,6 +93,11 @@ export default function LeaveRequests() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleView = (request: LeaveRequest) => {
+    setViewingRequest(request);
+    setIsViewDialogOpen(true);
   };
 
   const getStatusBadge = (status: string) => {
@@ -78,8 +110,12 @@ export default function LeaveRequests() {
     return variants[status] || variants.pending;
   };
 
+  const formatDate = (date: string) =>
+    new Date(date).toLocaleDateString();
+
   return (
     <div className="space-y-6">
+      {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-solarized-base02">Leave Requests</h1>
@@ -93,16 +129,17 @@ export default function LeaveRequests() {
         </Link>
       </div>
 
+      {/* TABLE */}
       <Card className="border-0 shadow-md">
         <CardHeader className="pb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex justify-between">
             <CardTitle className="text-lg">My Requests</CardTitle>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="all">All</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="approved">Approved</SelectItem>
                 <SelectItem value="declined">Declined</SelectItem>
@@ -110,103 +147,145 @@ export default function LeaveRequests() {
             </Select>
           </div>
         </CardHeader>
+
         <CardContent>
           {isLoading ? (
-            <div className="space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
+            <Skeleton className="h-12 w-full" />
           ) : requests.length === 0 ? (
             <div className="text-center py-12">
               <Calendar className="h-12 w-12 text-solarized-base01 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-solarized-base02">No leave requests</h3>
-              <p className="text-solarized-base01 mt-1">You haven't submitted any leave requests yet.</p>
-              <Link to="/leave/apply">
-                <Button className="mt-4 bg-solarized-blue hover:bg-solarized-blue/90">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Apply Leave
-                </Button>
-              </Link>
+              <h3 className="text-lg font-medium text-solarized-base02">
+                No leave requests
+              </h3>
             </div>
           ) : (
-            <>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Start Date</TableHead>
-                      <TableHead>End Date</TableHead>
-                      <TableHead>Days</TableHead>
-                      <TableHead>Reason</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {requests.map((request) => (
-                      <TableRow key={request.id}>
-                        <TableCell className="font-medium">
-                          {request.time_off_category?.name || 'Unknown'}
-                        </TableCell>
-                        <TableCell>{request.start_date}</TableCell>
-                        <TableCell>{request.end_date}</TableCell>
-                        <TableCell>{request.total_days}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">
-                          {request.reason || '-'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getStatusBadge(request.approval_status)}>
-                            {request.approval_status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="icon">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Start Date</TableHead>
+                  <TableHead>End Date</TableHead>
+                  <TableHead>Days</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {requests.map((request) => (
+                  <TableRow key={request.id}>
+                    <TableCell className="font-medium">
+                      {request.category?.title || 'Unknown'}
+                    </TableCell>
+                    <TableCell>{formatDate(request.start_date)}</TableCell>
+                    <TableCell>{formatDate(request.end_date)}</TableCell>
+                    <TableCell>{request.total_days}</TableCell>
+                    <TableCell>
+                      <Badge className={getStatusBadge(request.approval_status)}>
+                        {request.approval_status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleView(request)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
 
-              {meta && meta.last_page > 1 && (
-                <div className="flex items-center justify-between mt-6">
-                  <p className="text-sm text-solarized-base01">
-                    Showing {(meta.current_page - 1) * meta.per_page + 1} to{' '}
-                    {Math.min(meta.current_page * meta.per_page, meta.total)} of {meta.total} results
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage(page - 1)}
-                      disabled={page === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                      Previous
-                    </Button>
-                    <span className="text-sm text-solarized-base01">
-                      Page {meta.current_page} of {meta.last_page}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage(page + 1)}
-                      disabled={page === meta.last_page}
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
+          {meta && meta.last_page > 1 && (
+            <div className="flex justify-between mt-6">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page === 1}
+                onClick={() => setPage(page - 1)}
+              >
+                <ChevronLeft className="h-4 w-4" /> Previous
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page === meta.last_page}
+                onClick={() => setPage(page + 1)}
+              >
+                Next <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
+
+      {/* =========================
+         VIEW MODAL (ASSETS STYLE)
+      ========================= */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Leave Request Details</DialogTitle>
+          </DialogHeader>
+
+          {viewingRequest && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-solarized-base01">Employee</p>
+                  <p className="font-medium">
+                    {viewingRequest.staff_member?.full_name || '-'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-solarized-base01">Leave Type</p>
+                  <p className="font-medium">
+                    {viewingRequest.category?.title || '-'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-solarized-base01">Start Date</p>
+                  <p>{formatDate(viewingRequest.start_date)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-solarized-base01">End Date</p>
+                  <p>{formatDate(viewingRequest.end_date)}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-solarized-base01">Total Days</p>
+                  <p>{viewingRequest.total_days}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-solarized-base01">Status</p>
+                  <Badge className={getStatusBadge(viewingRequest.approval_status)}>
+                    {viewingRequest.approval_status}
+                  </Badge>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm text-solarized-base01">Reason</p>
+                <p>{viewingRequest.reason || '-'}</p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
