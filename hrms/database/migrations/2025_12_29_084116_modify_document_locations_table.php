@@ -10,15 +10,23 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::table('document_locations', function (Blueprint $table) {
-            // Drop old columns
-            $table->dropColumn(['name', 'slug', 'is_active']);
-
-            // Add new columns
-            $table->tinyInteger('location_type')->after('id');
-            $table->foreignId('org_id')->nullable()->after('location_type')->constrained('organizations')->onDelete('cascade');
-            $table->foreignId('company_id')->nullable()->after('org_id')->constrained('companies')->onDelete('cascade');
-        });
+        if (config('database.default') === 'sqlite') {
+            Schema::dropIfExists('document_locations');
+            Schema::create('document_locations', function (Blueprint $table) {
+                $table->id();
+                $table->tinyInteger('location_type');
+                $table->foreignId('org_id')->nullable()->constrained('organizations')->onDelete('cascade');
+                $table->foreignId('company_id')->nullable()->constrained('companies')->onDelete('cascade');
+                $table->timestamps();
+            });
+        } else {
+            Schema::table('document_locations', function (Blueprint $table) {
+                $table->dropColumn(['name', 'slug', 'is_active']);
+                $table->tinyInteger('location_type')->after('id');
+                $table->foreignId('org_id')->nullable()->after('location_type')->constrained('organizations')->onDelete('cascade');
+                $table->foreignId('company_id')->nullable()->after('org_id')->constrained('companies')->onDelete('cascade');
+            });
+        }
     }
 
     /**

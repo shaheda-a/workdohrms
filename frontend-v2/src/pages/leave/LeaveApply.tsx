@@ -2,7 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { leaveService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -18,27 +24,28 @@ import { Alert, AlertDescription } from '../../components/ui/alert';
 import { ArrowLeft, Loader2, AlertCircle, Calendar } from 'lucide-react';
 import { toast } from '../../hooks/use-toast';
 
-interface FieldErrors {
-  time_off_category_id?: string;
-  start_date?: string;
-  end_date?: string;
-  reason?: string;
-}
-
+/* =========================
+   TYPES (MATCH API)
+========================= */
 interface LeaveCategory {
   id: number;
-  name: string;
+  title: string;
   annual_quota: number;
   is_paid: boolean;
 }
 
+/* =========================
+   COMPONENT
+========================= */
 export default function LeaveApply() {
   const navigate = useNavigate();
   const { user } = useAuth();
+
   const [categories, setCategories] = useState<LeaveCategory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
   const [formData, setFormData] = useState({
     time_off_category_id: '',
     start_date: '',
@@ -46,63 +53,65 @@ export default function LeaveApply() {
     reason: '',
   });
 
+  /* =========================
+     FETCH CATEGORIES
+  ========================= */
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const response = await leaveService.getCategories();
-        console.log('Leave categories response:', response.data);
-        
-        // Handle both paginated and non-paginated responses
-        const data = response.data.data;
-        let categoriesArray = [];
-        
-        if (Array.isArray(data)) {
-          categoriesArray = data;
-        } else if (data && Array.isArray(data.data)) {
-          categoriesArray = data.data;
-        } else if (data && typeof data === 'object') {
-          // If it's an object but not an array, try to extract an array
-          categoriesArray = Object.values(data).filter(item => 
-            item && typeof item === 'object' && 'id' in item
-          );
-        }
-        
-        setCategories(categoriesArray);
+
+        // paginated response → data.data
+        const paginated = response.data.data;
+        const categoriesArray = Array.isArray(paginated?.data)
+          ? paginated.data
+          : [];
+
+        const mapped: LeaveCategory[] = categoriesArray.map((cat: any) => ({
+          id: cat.id,
+          title: cat.title,
+          annual_quota: cat.annual_quota ?? 0,
+          is_paid: Boolean(cat.is_paid),
+        }));
+
+        setCategories(mapped);
       } catch (error) {
         console.error('Failed to fetch categories:', error);
-        setCategories([]); // Ensure it's always an array even on error
+        setCategories([]);
       }
     };
+
     fetchCategories();
   }, []);
 
+  /* =========================
+     HELPERS
+  ========================= */
   const calculateDays = () => {
     if (!formData.start_date || !formData.end_date) return 0;
     const start = new Date(formData.start_date);
     const end = new Date(formData.end_date);
-    const diff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const diff =
+      Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     return diff > 0 ? diff : 0;
   };
 
-  const validateForm = (): boolean => {
-    const errors: FieldErrors = {};
-    
-    if (!formData.time_off_category_id) {
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+
+    if (!formData.time_off_category_id)
       errors.time_off_category_id = 'Leave type is required';
-    }
-    
-    if (!formData.start_date) {
+
+    if (!formData.start_date)
       errors.start_date = 'Start date is required';
-    }
-    
-    if (!formData.end_date) {
+
+    if (!formData.end_date)
       errors.end_date = 'End date is required';
-    } else if (formData.start_date && new Date(formData.end_date) < new Date(formData.start_date)) {
+    else if (new Date(formData.end_date) < new Date(formData.start_date))
       errors.end_date = 'End date must be after start date';
-    }
-    
+
     setFieldErrors(errors);
-    
+
     if (Object.keys(errors).length > 0) {
       toast({
         variant: 'destructive',
@@ -111,87 +120,82 @@ export default function LeaveApply() {
       });
       return false;
     }
-    
+
     return true;
   };
 
+  /* =========================
+     SUBMIT
+  ========================= */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setFieldErrors({});
-    
-    if (!validateForm()) {
+
+    if (!validateForm()) return;
+
+    if (!user?.staff_member_id) {
+      setError('Your account is not linked to a staff profile.');
       return;
     }
-    
+
     setIsLoading(true);
 
     try {
-      if (!user?.staff_member_id) {
-        setError('Unable to submit leave request. Your account is not linked to a staff profile.');
-        toast({
-          variant: 'destructive',
-          title: 'Submission Failed',
-          description: 'Your account is not linked to a staff profile. Please contact HR.',
-        });
-        setIsLoading(false);
-        return;
-      }
-      
       await leaveService.createRequest({
         ...formData,
         staff_member_id: user.staff_member_id,
         total_days: calculateDays(),
       });
+
       toast({
         title: 'Success',
         description: 'Leave request submitted successfully',
       });
+
       navigate('/leave/requests');
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
-      const errorMessage = error.response?.data?.message || 'Failed to submit leave request';
-      
-      if (error.response?.data?.errors) {
-        const apiErrors: FieldErrors = {};
-        const errors = error.response.data.errors;
-        if (errors.time_off_category_id) apiErrors.time_off_category_id = errors.time_off_category_id[0];
-        if (errors.start_date) apiErrors.start_date = errors.start_date[0];
-        if (errors.end_date) apiErrors.end_date = errors.end_date[0];
-        if (errors.reason) apiErrors.reason = errors.reason[0];
-        setFieldErrors(apiErrors);
-      }
-      
-      setError(errorMessage);
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || 'Failed to submit leave request';
+      setError(message);
+
       toast({
         variant: 'destructive',
         title: 'Submission Failed',
-        description: errorMessage,
+        description: message,
       });
     } finally {
       setIsLoading(false);
     }
   };
 
+  /* =========================
+     UI
+  ========================= */
   return (
     <div className="space-y-6">
+      {/* HEADER */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-solarized-base02">Apply for Leave</h1>
-          <p className="text-solarized-base01">Submit a new leave request</p>
+          <h1 className="text-2xl font-bold">Apply for Leave</h1>
+          <p className="text-muted-foreground">Submit a new leave request</p>
         </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
+        {/* FORM */}
         <div className="lg:col-span-2">
-          <Card className="border-0 shadow-md">
+          <Card>
             <CardHeader>
               <CardTitle>Leave Details</CardTitle>
-              <CardDescription>Fill in the details for your leave request</CardDescription>
+              <CardDescription>
+                Fill in the details for your leave request
+              </CardDescription>
             </CardHeader>
+
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 {error && (
@@ -201,87 +205,78 @@ export default function LeaveApply() {
                   </Alert>
                 )}
 
+                {/* CATEGORY */}
                 <div className="space-y-2">
-                  <Label htmlFor="time_off_category_id" className={fieldErrors.time_off_category_id ? 'text-red-500' : ''}>Leave Type *</Label>
+                  <Label>Leave Type *</Label>
                   <Select
                     value={formData.time_off_category_id}
-                    onValueChange={(value) => {
-                      setFormData({ ...formData, time_off_category_id: value });
-                      if (fieldErrors.time_off_category_id) setFieldErrors(prev => ({ ...prev, time_off_category_id: undefined }));
-                    }}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, time_off_category_id: value })
+                    }
                   >
-                    <SelectTrigger className={fieldErrors.time_off_category_id ? 'border-red-500' : ''}>
+                    <SelectTrigger>
                       <SelectValue placeholder="Select leave type" />
                     </SelectTrigger>
                     <SelectContent>
-                      {(categories || []).map((cat) => (
+                      {categories.map((cat) => (
                         <SelectItem key={cat.id} value={cat.id.toString()}>
-                          {cat.name} ({cat.is_paid ? 'Paid' : 'Unpaid'})
+                          {cat.title} ({cat.is_paid ? 'Paid' : 'Unpaid'})
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {fieldErrors.time_off_category_id && (
-                    <p className="text-sm text-red-500">{fieldErrors.time_off_category_id}</p>
-                  )}
                 </div>
 
+                {/* DATES */}
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="start_date" className={fieldErrors.start_date ? 'text-red-500' : ''}>Start Date *</Label>
+                  <div>
+                    <Label>Start Date *</Label>
                     <Input
-                      id="start_date"
                       type="date"
                       value={formData.start_date}
-                      onChange={(e) => {
-                        setFormData({ ...formData, start_date: e.target.value });
-                        if (fieldErrors.start_date) setFieldErrors(prev => ({ ...prev, start_date: undefined }));
-                      }}
-                      aria-invalid={!!fieldErrors.start_date}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          start_date: e.target.value,
+                        })
+                      }
                     />
-                    {fieldErrors.start_date && (
-                      <p className="text-sm text-red-500">{fieldErrors.start_date}</p>
-                    )}
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="end_date" className={fieldErrors.end_date ? 'text-red-500' : ''}>End Date *</Label>
+
+                  <div>
+                    <Label>End Date *</Label>
                     <Input
-                      id="end_date"
                       type="date"
                       value={formData.end_date}
-                      onChange={(e) => {
-                        setFormData({ ...formData, end_date: e.target.value });
-                        if (fieldErrors.end_date) setFieldErrors(prev => ({ ...prev, end_date: undefined }));
-                      }}
                       min={formData.start_date}
-                      aria-invalid={!!fieldErrors.end_date}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          end_date: e.target.value,
+                        })
+                      }
                     />
-                    {fieldErrors.end_date && (
-                      <p className="text-sm text-red-500">{fieldErrors.end_date}</p>
-                    )}
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="reason">Reason</Label>
+                {/* REASON */}
+                <div>
+                  <Label>Reason</Label>
                   <Textarea
-                    id="reason"
-                    value={formData.reason}
-                    onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                    placeholder="Provide a reason for your leave request..."
                     rows={4}
+                    value={formData.reason}
+                    onChange={(e) =>
+                      setFormData({ ...formData, reason: e.target.value })
+                    }
                   />
                 </div>
 
+                {/* ACTIONS */}
                 <div className="flex justify-end gap-4 pt-4">
                   <Button type="button" variant="outline" onClick={() => navigate(-1)}>
                     Cancel
                   </Button>
-                  <Button
-                    type="submit"
-                    className="bg-solarized-blue hover:bg-solarized-blue/90"
-                    disabled={isLoading}
-                  >
+                  <Button type="submit" disabled={isLoading}>
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -297,38 +292,37 @@ export default function LeaveApply() {
           </Card>
         </div>
 
+        {/* SIDEBAR */}
         <div className="space-y-6">
-          <Card className="border-0 shadow-md">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Request Summary</CardTitle>
+              <CardTitle>Request Summary</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-solarized-base01">Total Days</span>
-                <span className="text-2xl font-bold text-solarized-blue">{calculateDays()}</span>
+            <CardContent>
+              <div className="flex justify-between">
+                <span>Total Days</span>
+                <span className="text-xl font-bold">{calculateDays()}</span>
               </div>
               {formData.start_date && formData.end_date && (
-                <div className="text-sm text-solarized-base01">
+                <p className="text-sm text-muted-foreground mt-2">
                   <Calendar className="inline h-4 w-4 mr-1" />
                   {formData.start_date} to {formData.end_date}
-                </div>
+                </p>
               )}
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-md">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Leave Balance</CardTitle>
+              <CardTitle>Leave Balance</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {categories.slice(0, 4).map((cat) => (
-                  <div key={cat.id} className="flex items-center justify-between">
-                    <span className="text-sm text-solarized-base01">{cat.name}</span>
-                    <span className="font-medium">{cat.annual_quota} days</span>
-                  </div>
-                ))}
-              </div>
+            <CardContent className="space-y-2">
+              {categories.map((cat) => (
+                <div key={cat.id} className="flex justify-between text-sm">
+                  <span>{cat.title}</span>
+                  <span>{cat.annual_quota} days</span>
+                </div>
+              ))}
             </CardContent>
           </Card>
         </div>

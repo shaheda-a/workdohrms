@@ -108,39 +108,83 @@ class DocumentService
 
     /**
      * Determine storage location based on org_id or company_id
-     * Priority: org_id > company_id > default
+     * Priority:
+     * 1. Exact match (both org_id AND company_id)
+     * 2. company_id only
+     * 3. org_id only
+     * 4. Global/Default (both null)
+     * 5. Fallback to local
      */
     protected function determineStorageLocation(array $data): ?DocumentLocation
     {
-        $query = DocumentLocation::with(['localConfig', 'wasabiConfig', 'awsConfig']);
+        $orgId = $data['org_id'] ?? null;
+        $companyId = $data['company_id'] ?? null;
 
-        // Priority 1: Match by org_id
-        if (isset($data['org_id']) && $data['org_id']) {
-            $location = $query->where('org_id', $data['org_id'])->first();
+        // Priority 1: EXACT MATCH - Both org_id AND company_id
+        if ($orgId && $companyId) {
+            $location = DocumentLocation::with(['localConfig', 'wasabiConfig', 'awsConfig'])
+                ->where('org_id', $orgId)
+                ->where('company_id', $companyId)
+                ->first();
+
             if ($location) {
+                \Log::info("Storage location: Exact match (org={$orgId}, company={$companyId})", [
+                    'location_id' => $location->id,
+                    'location_type' => $location->location_type
+                ]);
                 return $location;
             }
         }
 
-        // Priority 2: Match by company_id
-        if (isset($data['company_id']) && $data['company_id']) {
-            $location = $query->where('company_id', $data['company_id'])->first();
+        // Priority 2: Match by company_id only
+        if ($companyId) {
+            $location = DocumentLocation::with(['localConfig', 'wasabiConfig', 'awsConfig'])
+                ->where('company_id', $companyId)
+                ->whereNull('org_id')
+                ->first();
+
             if ($location) {
+                \Log::info("Storage location: company_id={$companyId}", [
+                    'location_id' => $location->id,
+                    'location_type' => $location->location_type
+                ]);
                 return $location;
             }
         }
 
-        // Priority 3: Global/Default location (org_id and company_id are null)
-        $location = $query->whereNull('org_id')
+        // Priority 3: Match by org_id only
+        if ($orgId) {
+            $location = DocumentLocation::with(['localConfig', 'wasabiConfig', 'awsConfig'])
+                ->where('org_id', $orgId)
+                ->whereNull('company_id')
+                ->first();
+
+            if ($location) {
+                \Log::info("Storage location: org_id={$orgId}", [
+                    'location_id' => $location->id,
+                    'location_type' => $location->location_type
+                ]);
+                return $location;
+            }
+        }
+
+        // Priority 4: Global/Default location (both null)
+        $location = DocumentLocation::with(['localConfig', 'wasabiConfig', 'awsConfig'])
+            ->whereNull('org_id')
             ->whereNull('company_id')
             ->first();
 
         if ($location) {
+            \Log::info("Storage location: Global default", [
+                'location_id' => $location->id,
+                'location_type' => $location->location_type
+            ]);
             return $location;
         }
 
-        // Fallback: Use any local storage if available
-        return $query->where('location_type', 1)->first();
+        // Priority 5: Fallback to any local storage
+        \Log::warning("No specific storage found, falling back to local");
+        return DocumentLocation::where('location_type', 1)->first();
     }
 
     /**
@@ -148,7 +192,7 @@ class DocumentService
      */
     public function getStorageTypeName(int $locationType): string
     {
-        return match($locationType) {
+        return match ($locationType) {
             1 => 'local',
             2 => 'wasabi',
             3 => 'aws',
@@ -216,40 +260,137 @@ class DocumentService
     }
 
     /**
-     * Get Document Logic
+     * Get Document Logic with Tenant Filtering
      */
-    public function getDocument(int $id): ?Document
+    public function getDocument(int $id, array $filters = []): ?Document
     {
-        return Document::with(['location', 'type', 'uploader', 'organization', 'company'])->find($id);
+        $query = Document::with(['location', 'type', 'uploader', 'organization', 'company'])
+            ->where('id', $id);
+
+        // Filter by org_id
+        if (isset($filters['org_id'])) {
+            $query->where('org_id', $filters['org_id']);
+        }
+
+        // Filter by company_id
+        if (isset($filters['company_id'])) {
+            $query->where('company_id', $filters['company_id']);
+        }
+
+        return $query->first();
     }
 
     /**
-     * Get All Documents Logic
+     * Get All Documents Logic with Filters and Pagination
      */
-    public function getAllDocuments(): \Illuminate\Database\Eloquent\Collection
+    public function getAllDocuments(array $filters = [], int $perPage = 15)
     {
-        return Document::with(['location', 'type'])->latest()->get();
+        $query = Document::with(['location', 'type', 'uploader', 'organization', 'company']);
+
+        // Filter by org_id (REQUIRED)
+        if (isset($filters['org_id'])) {
+            $query->where('org_id', $filters['org_id']);
+        }
+
+        // Filter by company_id (REQUIRED)
+        if (isset($filters['company_id'])) {
+            $query->where('company_id', $filters['company_id']);
+        }
+
+        // Filter by owner_type
+        if (isset($filters['owner_type'])) {
+            $query->where('owner_type', $filters['owner_type']);
+        }
+
+        // Filter by owner_id
+        if (isset($filters['owner_id'])) {
+            $query->where('owner_id', $filters['owner_id']);
+        }
+
+        // Filter by document_type_id
+        if (isset($filters['document_type_id'])) {
+            $query->where('document_type_id', $filters['document_type_id']);
+        }
+
+        // Filter by location_type
+        if (isset($filters['location_type'])) {
+            $query->whereHas('location', function ($q) use ($filters) {
+                $q->where('location_type', $filters['location_type']);
+            });
+        }
+
+        // Search in document_name
+        if (isset($filters['search']) && !empty($filters['search'])) {
+            $query->where('document_name', 'like', '%' . $filters['search'] . '%');
+        }
+
+        // Filter by date range
+        if (isset($filters['date_from'])) {
+            $query->whereDate('created_at', '>=', $filters['date_from']);
+        }
+
+        if (isset($filters['date_to'])) {
+            $query->whereDate('created_at', '<=', $filters['date_to']);
+        }
+
+        // Sorting
+        $sortBy = $filters['sort_by'] ?? 'created_at';
+        $sortOrder = $filters['sort_order'] ?? 'desc';
+        $query->orderBy($sortBy, $sortOrder);
+
+        // Return paginated or all
+        if ($perPage > 0) {
+            return $query->paginate($perPage);
+        }
+
+        return $query->get();
     }
 
     /**
-     * Update Document Metadata (File replacement is complex, usually a new upload)
+     * Update Document Metadata with Tenant Filtering
      */
-    public function updateDocumentMetadata(int $id, array $data): Document
+    public function updateDocumentMetadata(int $id, array $data, array $filters = []): Document
     {
-        $document = Document::findOrFail($id);
+        $query = Document::where('id', $id);
+
+        // Filter by org_id
+        if (isset($filters['org_id'])) {
+            $query->where('org_id', $filters['org_id']);
+        }
+
+        // Filter by company_id
+        if (isset($filters['company_id'])) {
+            $query->where('company_id', $filters['company_id']);
+        }
+
+        $document = $query->firstOrFail();
+
         $document->update([
             'document_name' => $data['document_name'] ?? $document->document_name,
             'document_type_id' => $data['document_type_id'] ?? $document->document_type_id,
         ]);
+
         return $document;
     }
 
     /**
-     * Delete Document
+     * Delete Document with Tenant Filtering
      */
-    public function deleteDocument(int $id): bool
+    public function deleteDocument(int $id, array $filters = []): bool
     {
-        $document = Document::findOrFail($id);
+        $query = Document::where('id', $id);
+
+        // Filter by org_id
+        if (isset($filters['org_id'])) {
+            $query->where('org_id', $filters['org_id']);
+        }
+
+        // Filter by company_id
+        if (isset($filters['company_id'])) {
+            $query->where('company_id', $filters['company_id']);
+        }
+
+        $document = $query->firstOrFail();
         $location = $document->location;
 
         // Configure disk to delete file
@@ -271,7 +412,9 @@ class DocumentService
         $diskName = $this->configureDisk($location);
 
         if ($location->location_type === 1) { // Local
-            return Storage::disk('public')->url($document->doc_url);
+            // Generate proper URL with APP_URL
+            $appUrl = config('app.url', 'http://127.0.0.1:8000');
+            return rtrim($appUrl, '/') . '/storage/' . $document->doc_url;
         }
 
         // S3/Wasabi Presigned URL (60 minutes)

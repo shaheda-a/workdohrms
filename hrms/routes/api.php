@@ -1,63 +1,60 @@
 <?php
-use App\Http\Controllers\DocumentController;
-use App\Http\Controllers\OrganizationController;
-use App\Http\Controllers\CompanyController;
-use App\Http\Controllers\DocumentTypeController;
-use App\Http\Controllers\Api\Documents\DocumentLocationController;
-use App\Http\Controllers\DocumentConfigController;
 
-
-// Auth Controllers
+use App\Http\Controllers\Api\Admin\PermissionController;
+use App\Http\Controllers\Api\Admin\ResourceController;
+use App\Http\Controllers\Api\Admin\RoleController;
+use App\Http\Controllers\Api\Admin\UserRoleController;
 use App\Http\Controllers\Api\Assets\AssetController;
-// Attendance Controllers
 use App\Http\Controllers\Api\Assets\AssetTypeController;
 use App\Http\Controllers\Api\Attendance\AttendanceRegularizationController;
 use App\Http\Controllers\Api\Attendance\ExtraHoursRecordController;
 use App\Http\Controllers\Api\Attendance\ShiftController;
 use App\Http\Controllers\Api\Attendance\TimesheetController;
+// Auth Controllers
 use App\Http\Controllers\Api\Attendance\TimesheetProjectController;
-// Leave Controllers
+// Attendance Controllers
 use App\Http\Controllers\Api\Attendance\WorkLogController;
 use App\Http\Controllers\Api\Auth\AccessController;
-// Payroll Controllers
 use App\Http\Controllers\Api\Company\CompanyEventController;
 use App\Http\Controllers\Api\Company\CompanyHolidayController;
 use App\Http\Controllers\Api\Company\CompanyNoticeController;
 use App\Http\Controllers\Api\Company\MeetingController;
+// Leave Controllers
 use App\Http\Controllers\Api\Company\MeetingRoomController;
 use App\Http\Controllers\Api\Company\MeetingTypeController;
+// Payroll Controllers
 use App\Http\Controllers\Api\Documents\DocumentCategoryController;
-use App\Http\Controllers\Api\Documents\DocumentTypeController as LegacyDocumentTypeController;
+use App\Http\Controllers\Api\Documents\DocumentLocationController;
 use App\Http\Controllers\Api\Documents\FileCategoryController;
 use App\Http\Controllers\Api\Documents\GeneratedLetterController;
 use App\Http\Controllers\Api\Documents\HrDocumentController;
 use App\Http\Controllers\Api\Documents\LetterTemplateController;
 use App\Http\Controllers\Api\Documents\MediaDirectoryController;
 use App\Http\Controllers\Api\Documents\MediaFileController;
-// Recruitment Controllers
 use App\Http\Controllers\Api\Leave\TimeOffCategoryController;
 use App\Http\Controllers\Api\Leave\TimeOffRequestController;
 use App\Http\Controllers\Api\Organization\DivisionController;
 use App\Http\Controllers\Api\Organization\OfficeLocationController;
 use App\Http\Controllers\Api\Organization\OrganizationDocumentController;
+// Recruitment Controllers
 use App\Http\Controllers\Api\Organization\OrganizationPolicyController;
 use App\Http\Controllers\Api\Payroll\AdvanceTypeController;
 use App\Http\Controllers\Api\Payroll\BenefitTypeController;
 use App\Http\Controllers\Api\Payroll\BonusPaymentController;
 use App\Http\Controllers\Api\Payroll\CompensationCategoryController;
 use App\Http\Controllers\Api\Payroll\EmployerContributionController;
-// Performance Controllers
 use App\Http\Controllers\Api\Payroll\IncentiveRecordController;
 use App\Http\Controllers\Api\Payroll\MinimumTaxLimitController;
 use App\Http\Controllers\Api\Payroll\RecurringDeductionController;
 use App\Http\Controllers\Api\Payroll\SalaryAdvanceController;
 use App\Http\Controllers\Api\Payroll\SalarySlipController;
-// Staff Controllers
+// Performance Controllers
 use App\Http\Controllers\Api\Payroll\StaffBenefitController;
 use App\Http\Controllers\Api\Payroll\TaxExemptionController;
 use App\Http\Controllers\Api\Payroll\TaxSlabController;
 use App\Http\Controllers\Api\Payroll\WithholdingTypeController;
 use App\Http\Controllers\Api\Performance\AppraisalCycleController;
+// Staff Controllers
 use App\Http\Controllers\Api\Performance\AppraisalRecordController;
 use App\Http\Controllers\Api\Performance\PerformanceObjectiveController;
 use App\Http\Controllers\Api\Performance\RecognitionCategoryController;
@@ -66,45 +63,50 @@ use App\Http\Controllers\Api\Recruitment\CandidateAssessmentController;
 use App\Http\Controllers\Api\Recruitment\CandidateController;
 use App\Http\Controllers\Api\Recruitment\InterviewScheduleController;
 use App\Http\Controllers\Api\Recruitment\JobApplicationController;
-// Organization Controllers
 use App\Http\Controllers\Api\Recruitment\JobCategoryController;
 use App\Http\Controllers\Api\Recruitment\JobController;
 use App\Http\Controllers\Api\Recruitment\JobRequisitionController;
 use App\Http\Controllers\Api\Recruitment\JobStageController;
-// Assets Controllers
 use App\Http\Controllers\Api\Recruitment\JobTitleController;
+// Organization Controllers
 use App\Http\Controllers\Api\Recruitment\OfferController;
-// Company Controllers
 use App\Http\Controllers\Api\Recruitment\OfferTemplateController;
 use App\Http\Controllers\Api\Reports\DashboardController;
 use App\Http\Controllers\Api\Reports\DataExportController;
+// Assets Controllers
 use App\Http\Controllers\Api\Reports\DataImportController;
 use App\Http\Controllers\Api\Reports\DataTableController;
+// Company Controllers
 use App\Http\Controllers\Api\Reports\ReportController;
-// Training Controllers
 use App\Http\Controllers\Api\Settings\AllowedIpAddressController;
 use App\Http\Controllers\Api\Settings\SystemConfigurationController;
 use App\Http\Controllers\Api\Staff\ContractController;
-// Documents Controllers
 use App\Http\Controllers\Api\Staff\ContractTypeController;
 use App\Http\Controllers\Api\Staff\DisciplineNoteController;
+// Training Controllers
 use App\Http\Controllers\Api\Staff\EmployeeOnboardingController;
 use App\Http\Controllers\Api\Staff\ExitCategoryController;
 use App\Http\Controllers\Api\Staff\GrievanceController;
+// Documents Controllers
 use App\Http\Controllers\Api\Staff\LocationTransferController;
 use App\Http\Controllers\Api\Staff\OffboardingController;
 use App\Http\Controllers\Api\Staff\OnboardingTemplateController;
-// Reports Controllers
 use App\Http\Controllers\Api\Staff\RoleUpgradeController;
 use App\Http\Controllers\Api\Staff\StaffFileController;
 use App\Http\Controllers\Api\Staff\StaffMemberController;
 use App\Http\Controllers\Api\Staff\VoluntaryExitController;
 use App\Http\Controllers\Api\Training\TrainingProgramController;
-// Settings Controllers
+// Reports Controllers
 use App\Http\Controllers\Api\Training\TrainingSessionController;
 use App\Http\Controllers\Api\Training\TrainingTypeController;
-// Travel Controllers
 use App\Http\Controllers\Api\Travel\BusinessTripController;
+use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\DocumentConfigController;
+// Settings Controllers
+use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\DocumentTypeController;
+// Travel Controllers
+use App\Http\Controllers\OrganizationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -528,12 +530,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // UNIFIED UPLOAD (Recommended - Auto-detects storage based on org/company)
     Route::post('/documents/upload', [DocumentController::class, 'upload']);
-
-    // Legacy: Specific Storage Upload Routes (for backward compatibility)
-    Route::post('/documents/upload-local', [DocumentController::class, 'uploadLocal']);
-    Route::post('/documents/upload-wasabi', [DocumentController::class, 'uploadWasabi']);
-    Route::post('/documents/upload-aws', [DocumentController::class, 'uploadAws']);
-
     // Standard CRUD
     Route::get('/documents', [DocumentController::class, 'index']);      // List
     Route::get('/documents/{id}', [DocumentController::class, 'show']);  // Show (includes URL)
@@ -561,12 +557,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Document Locations
     Route::get('/document-locations', [DocumentLocationController::class, 'index']);
     Route::post('/document-locations', [DocumentLocationController::class, 'store']);
-    Route::get('/document-locations/type/{type}', [DocumentLocationController::class, 'getByType']);
-    Route::get('/document-locations/org/{orgId}', [DocumentLocationController::class, 'getLocationTypeByOrg']);
-    Route::get('/document-locations/company/{companyId}', [DocumentLocationController::class, 'getLocationTypeByCompany']);
-    Route::get('/document-locations/{id}', [DocumentLocationController::class, 'show']);
-    Route::put('/document-locations/{id}', [DocumentLocationController::class, 'update']);
-    Route::delete('/document-locations/{id}', [DocumentLocationController::class, 'destroy']);
 
     // Document Types
     Route::get('/document-types', [DocumentTypeController::class, 'index']);
@@ -587,5 +577,39 @@ Route::middleware('auth:sanctum')->group(function () {
     // AWS
     Route::post('/document-configs/aws', [DocumentConfigController::class, 'storeAws']);
     Route::put('/document-configs/aws/{id}', [DocumentConfigController::class, 'updateAws']);
+
+    // ============================================
+    // ROLE MANAGEMENT (RBAC)
+    // ============================================
+    Route::prefix('roles')->group(function () {
+        Route::get('/', [RoleController::class, 'index']);
+        Route::post('/', [RoleController::class, 'store']);
+        Route::get('/{id}', [RoleController::class, 'show']);
+        Route::put('/{id}', [RoleController::class, 'update']);
+        Route::delete('/{id}', [RoleController::class, 'destroy']);
+        Route::post('/{id}/permissions', [RoleController::class, 'syncPermissions']);
+        Route::get('/{id}/permissions', [RoleController::class, 'getPermissions']);
+    });
+
+    Route::prefix('permissions')->group(function () {
+        Route::get('/', [PermissionController::class, 'index']);
+        Route::get('/grouped', [PermissionController::class, 'groupedByResource']);
+        Route::get('/{id}', [PermissionController::class, 'show']);
+    });
+
+    Route::prefix('resources')->group(function () {
+        Route::get('/', [ResourceController::class, 'index']);
+        Route::get('/{id}', [ResourceController::class, 'show']);
+        Route::get('/slug/{slug}', [ResourceController::class, 'getBySlug']);
+    });
+
+    Route::prefix('users')->group(function () {
+        Route::get('/', [UserRoleController::class, 'index']);
+        Route::get('/{id}', [UserRoleController::class, 'show']);
+        Route::get('/{id}/roles', [UserRoleController::class, 'getUserRoles']);
+        Route::post('/{id}/roles', [UserRoleController::class, 'assignRoles']);
+        Route::post('/{id}/roles/add', [UserRoleController::class, 'addRole']);
+        Route::post('/{id}/roles/remove', [UserRoleController::class, 'removeRole']);
+    });
 
 });

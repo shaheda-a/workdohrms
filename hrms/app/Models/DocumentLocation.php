@@ -15,6 +15,15 @@ class DocumentLocation extends Model
         'company_id',
     ];
 
+    /**
+     * Hide sensitive config relationships from JSON response
+     */
+    protected $hidden = [
+        'localConfig',
+        'wasabiConfig',
+        'awsConfig',
+    ];
+
     public function localConfig()
     {
         return $this->hasOne(DocumentLocalConfig::class, 'location_id');

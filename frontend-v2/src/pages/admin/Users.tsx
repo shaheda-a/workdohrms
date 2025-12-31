@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { adminService } from '../../services/api';
+import { adminService, roleService } from '../../services/api';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
 import { Avatar, AvatarFallback } from '../../components/ui/avatar';
+import { Checkbox } from '../../components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -13,14 +14,30 @@ import {
   TableHeader,
   TableRow,
 } from '../../components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import { Skeleton } from '../../components/ui/skeleton';
-import { Plus, Search, Users as UsersIcon, Shield, ChevronLeft, ChevronRight, MoreHorizontal, Eye, Edit, Trash2, Key } from 'lucide-react';
+import { Plus, Search, Users as UsersIcon, Shield, ChevronLeft, ChevronRight, MoreHorizontal, Eye, Edit, Trash2, Key, UserCog } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../../components/ui/dropdown-menu';
+
+interface Role {
+  id: number;
+  name: string;
+  is_system: boolean;
+  hierarchy_level: number;
+  description: string | null;
+}
 
 interface User {
   id: number;
@@ -44,9 +61,15 @@ export default function Users() {
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [allRoles, setAllRoles] = useState<Role[]>([]);
+  const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set());
+  const [isSavingRoles, setIsSavingRoles] = useState(false);
 
   useEffect(() => {
     fetchUsers();
+    fetchRoles();
   }, [page]);
 
   const fetchUsers = async () => {
@@ -56,18 +79,67 @@ export default function Users() {
       if (search) params.search = search;
       
       const response = await adminService.getUsers(params);
-      setUsers(response.data.data || []);
-      setMeta(response.data.meta);
+      const responseData = response.data.data;
+      const userData = responseData?.data || responseData;
+      setUsers(Array.isArray(userData) ? userData : []);
+      setMeta(responseData?.meta || response.data.meta || null);
     } catch (error) {
       console.error('Failed to fetch users:', error);
+      setUsers([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchRoles = async () => {
+    try {
+      const response = await roleService.getAll();
+      setAllRoles(response.data.data || []);
+    } catch (error) {
+      console.error('Failed to fetch roles:', error);
     }
   };
 
   const handleSearch = () => {
     setPage(1);
     fetchUsers();
+  };
+
+  const handleOpenRoleDialog = (user: User) => {
+    setSelectedUser(user);
+    setSelectedRoles(new Set(user.roles?.map((r) => r.name) || []));
+    setIsRoleDialogOpen(true);
+  };
+
+  const handleRoleToggle = (roleName: string) => {
+    setSelectedRoles((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(roleName)) {
+        newSet.delete(roleName);
+      } else {
+        newSet.add(roleName);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSaveRoles = async () => {
+    if (!selectedUser) return;
+
+    setIsSavingRoles(true);
+    try {
+      await adminService.assignUserRoles(selectedUser.id, {
+        roles: Array.from(selectedRoles),
+      });
+      setIsRoleDialogOpen(false);
+      setSelectedUser(null);
+      fetchUsers();
+    } catch (error) {
+      console.error('Failed to assign roles:', error);
+      alert('Failed to assign roles. Please try again.');
+    } finally {
+      setIsSavingRoles(false);
+    }
   };
 
   const getInitials = (name: string) => {
@@ -258,6 +330,10 @@ export default function Users() {
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenRoleDialog(user)}>
+                                <UserCog className="mr-2 h-4 w-4" />
+                                Assign Roles
+                              </DropdownMenuItem>
                               <DropdownMenuItem>
                                 <Key className="mr-2 h-4 w-4" />
                                 Reset Password
@@ -307,6 +383,70 @@ export default function Users() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={isRoleDialogOpen} onOpenChange={setIsRoleDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign Roles</DialogTitle>
+            <DialogDescription>
+              {selectedUser && (
+                <>
+                  Select roles for <strong>{selectedUser.name}</strong>. Users can have multiple roles.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-3 max-h-[300px] overflow-y-auto">
+            {allRoles.map((role) => (
+              <div
+                key={role.id}
+                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  selectedRoles.has(role.name)
+                    ? 'bg-solarized-blue/5 border-solarized-blue/20'
+                    : 'hover:bg-solarized-base3/50'
+                }`}
+                onClick={() => handleRoleToggle(role.name)}
+              >
+                <Checkbox
+                  checked={selectedRoles.has(role.name)}
+                  onCheckedChange={() => handleRoleToggle(role.name)}
+                  className="mt-0.5"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-solarized-base02">
+                      {role.name.replace(/_/g, ' ')}
+                    </span>
+                    {role.is_system && (
+                      <Badge variant="outline" className="text-xs bg-solarized-red/10 text-solarized-red border-solarized-red/20">
+                        System
+                      </Badge>
+                    )}
+                    <Badge variant="outline" className="text-xs">
+                      Level {role.hierarchy_level}
+                    </Badge>
+                  </div>
+                  {role.description && (
+                    <p className="text-xs text-solarized-base01 mt-1">{role.description}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRoleDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveRoles}
+              disabled={isSavingRoles || selectedRoles.size === 0}
+              className="bg-solarized-blue hover:bg-solarized-blue/90"
+            >
+              {isSavingRoles ? 'Saving...' : 'Save Roles'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

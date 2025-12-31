@@ -88,6 +88,7 @@ import DocumentConfiguration from './pages/settings/DocumentConfiguration';
 // Admin
 import Users from './pages/admin/Users';
 import Roles from './pages/admin/Roles';
+import RolePermissions from './pages/admin/RolePermissions';
 import Permissions from './pages/admin/Permissions';
 
 function App() {
@@ -199,6 +200,7 @@ function App() {
             <Route path="/admin" element={<Users />} />
             <Route path="/admin/users" element={<Users />} />
             <Route path="/admin/roles" element={<Roles />} />
+            <Route path="/admin/roles/:id/permissions" element={<RolePermissions />} />
             <Route path="/admin/permissions" element={<Permissions />} />
           </Route>
 

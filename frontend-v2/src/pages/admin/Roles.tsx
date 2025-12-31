@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { adminService } from '../../services/api';
+import { useNavigate } from 'react-router-dom';
+import { roleService } from '../../services/api';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
+import { Textarea } from '../../components/ui/textarea';
 import {
   Table,
   TableBody,
@@ -23,7 +25,7 @@ import {
   DialogTrigger,
 } from '../../components/ui/dialog';
 import { Skeleton } from '../../components/ui/skeleton';
-import { Plus, Shield, Edit, Trash2, MoreHorizontal, Users, Key } from 'lucide-react';
+import { Plus, Shield, Edit, Trash2, MoreHorizontal, Users, Key, Lock, Settings } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,18 +37,26 @@ interface Role {
   id: number;
   name: string;
   guard_name: string;
+  is_system: boolean;
+  hierarchy_level: number;
+  description: string | null;
+  icon: string | null;
   permissions_count: number;
   users_count: number;
   created_at: string;
 }
 
 export default function Roles() {
+  const navigate = useNavigate();
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [formData, setFormData] = useState({
     name: '',
+    description: '',
+    icon: '',
+    hierarchy_level: 99,
   });
 
   useEffect(() => {
@@ -56,7 +66,7 @@ export default function Roles() {
   const fetchRoles = async () => {
     setIsLoading(true);
     try {
-      const response = await adminService.getRoles();
+      const response = await roleService.getAll();
       setRoles(response.data.data || []);
     } catch (error) {
       console.error('Failed to fetch roles:', error);
@@ -69,9 +79,9 @@ export default function Roles() {
     e.preventDefault();
     try {
       if (editingRole) {
-        await adminService.updateRole(editingRole.id, formData);
+        await roleService.update(editingRole.id, formData);
       } else {
-        await adminService.createRole(formData);
+        await roleService.create(formData);
       }
       setIsDialogOpen(false);
       setEditingRole(null);
@@ -84,23 +94,38 @@ export default function Roles() {
 
   const handleEdit = (role: Role) => {
     setEditingRole(role);
-    setFormData({ name: role.name });
+    setFormData({
+      name: role.name,
+      description: role.description || '',
+      icon: role.icon || '',
+      hierarchy_level: role.hierarchy_level,
+    });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: number, isSystem: boolean) => {
+    if (isSystem) {
+      alert('System roles cannot be deleted.');
+      return;
+    }
     if (!confirm('Are you sure you want to delete this role?')) return;
     try {
-      await adminService.deleteRole(id);
+      await roleService.delete(id);
       fetchRoles();
     } catch (error) {
       console.error('Failed to delete role:', error);
     }
   };
 
-  const resetForm = () => {
-    setFormData({ name: '' });
+  const handleEditPermissions = (roleId: number) => {
+    navigate(`/admin/roles/${roleId}/permissions`);
   };
+
+  const resetForm = () => {
+    setFormData({ name: '', description: '', icon: '', hierarchy_level: 99 });
+  };
+
+  const systemRolesCount = roles.filter(r => r.is_system).length;
 
   const getRoleBadgeColor = (role: string) => {
     const colors: Record<string, string> = {
@@ -149,10 +174,47 @@ export default function Roles() {
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="e.g., team_lead"
                     required
+                    disabled={editingRole?.is_system}
                   />
                   <p className="text-xs text-solarized-base01">
                     Use lowercase with underscores (e.g., team_lead)
                   </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Describe the role's purpose and responsibilities"
+                    rows={3}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="icon">Icon</Label>
+                    <Input
+                      id="icon"
+                      value={formData.icon}
+                      onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                      placeholder="e.g., Shield, Users"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="hierarchy_level">Hierarchy Level</Label>
+                    <Input
+                      id="hierarchy_level"
+                      type="number"
+                      min={1}
+                      max={99}
+                      value={formData.hierarchy_level}
+                      onChange={(e) => setFormData({ ...formData, hierarchy_level: parseInt(e.target.value) || 99 })}
+                      disabled={editingRole?.is_system}
+                    />
+                    <p className="text-xs text-solarized-base01">
+                      Lower = higher priority (1-99)
+                    </p>
+                  </div>
                 </div>
               </div>
               <DialogFooter>
@@ -216,11 +278,11 @@ export default function Roles() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-full bg-solarized-red/10 flex items-center justify-center">
-                <Shield className="h-5 w-5 text-solarized-red" />
+                <Lock className="h-5 w-5 text-solarized-red" />
               </div>
               <div>
                 <p className="text-sm text-solarized-base01">System Roles</p>
-                <p className="text-xl font-bold text-solarized-base02">4</p>
+                <p className="text-xl font-bold text-solarized-base02">{systemRolesCount}</p>
               </div>
             </div>
           </CardContent>
@@ -246,19 +308,30 @@ export default function Roles() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Role Name</TableHead>
+                  <TableHead>Level</TableHead>
                   <TableHead>Permissions</TableHead>
                   <TableHead>Users</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead className="w-[100px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {roles.map((role) => (
                   <TableRow key={role.id}>
                     <TableCell>
-                      <Badge className={getRoleBadgeColor(role.name)}>
-                        {role.name.replace('_', ' ')}
-                      </Badge>
+                      <div className="flex flex-col">
+                        <Badge className={getRoleBadgeColor(role.name)}>
+                          {role.name.replace('_', ' ')}
+                        </Badge>
+                        {role.description && (
+                          <span className="text-xs text-solarized-base01 mt-1 max-w-xs truncate">
+                            {role.description}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-mono text-sm">{role.hierarchy_level}</span>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
@@ -272,25 +345,54 @@ export default function Roles() {
                         {role.users_count || 0}
                       </div>
                     </TableCell>
-                    <TableCell>{new Date(role.created_at).toLocaleDateString()}</TableCell>
                     <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEdit(role)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-solarized-red" onClick={() => handleDelete(role.id)}>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      {role.is_system ? (
+                        <Badge variant="outline" className="bg-solarized-red/10 text-solarized-red border-solarized-red/20">
+                          <Lock className="h-3 w-3 mr-1" />
+                          System
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-solarized-green/10 text-solarized-green border-solarized-green/20">
+                          Custom
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditPermissions(role.id)}
+                          title="Edit Permissions"
+                        >
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(role)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEditPermissions(role.id)}>
+                              <Key className="mr-2 h-4 w-4" />
+                              Edit Permissions
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-solarized-red"
+                              onClick={() => handleDelete(role.id, role.is_system)}
+                              disabled={role.is_system}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
