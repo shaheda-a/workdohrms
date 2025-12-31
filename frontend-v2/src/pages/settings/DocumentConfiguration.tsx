@@ -69,8 +69,8 @@ export default function DocumentConfiguration() {
             const locationsWithConfigs = await Promise.all(
                 rawLocations.map(async (loc) => {
                     try {
-                        const configResponse = await documentConfigService.getConfig(loc.id);
-                        return { ...loc, config: configResponse.data.data };
+                        // const configResponse = await documentConfigService.getConfig(loc.id);
+                        return { ...loc, config: null };
                     } catch (err) {
                         return loc;
                     }
@@ -321,14 +321,14 @@ export default function DocumentConfiguration() {
                                             ))}
                                         </div>
                                     )} */}
-                                    <Button
+                                    {/* <Button
                                         size="sm"
                                         className="bg-solarized-blue hover:bg-solarized-blue/90 w-full"
                                         onClick={() => handleConfigureStorage(card.locationType, card.type)}
                                         disabled={loadingType === card.type}
                                     >
                                         {loadingType === card.type ? 'Configuring...' : 'Configure'}
-                                    </Button>
+                                    </Button> */}
                                     <Label htmlFor="secret_key">Secret Key</Label>
                                     <Input
                                         id="secret_key"

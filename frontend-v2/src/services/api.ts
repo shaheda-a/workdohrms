@@ -320,10 +320,10 @@ export const documentLocationService = {
 
 export const documentConfigService = {
   createLocal: (data: Record<string, unknown>) => api.post('/document-configs/local', data),
-  updateLocal: (id: number, data: Record<string, unknown>) => api.put(`/document-configs/local/${id}`, data),
+  // updateLocal: (id: number, data: Record<string, unknown>) => api.put(`/document-configs/local/${id}`, data),
   createWasabi: (data: Record<string, unknown>) => api.post('/document-configs/wasabi', data),
-  updateWasabi: (id: number, data: Record<string, unknown>) => api.put(`/document-configs/wasabi/${id}`, data),
+  // updateWasabi: (id: number, data: Record<string, unknown>) => api.put(`/document-configs/wasabi/${id}`, data),
   createAws: (data: Record<string, unknown>) => api.post('/document-configs/aws', data),
-  updateAws: (id: number, data: Record<string, unknown>) => api.put(`/document-configs/aws/${id}`, data),
-  getConfig: (locationId: number) => api.get(`/document-configs/${locationId}`),
+  // updateAws: (id: number, data: Record<string, unknown>) => api.put(`/document-configs/aws/${id}`, data),
+  // getConfig: (locationId: number) => api.get(`/document-configs/${locationId}`),
 };
