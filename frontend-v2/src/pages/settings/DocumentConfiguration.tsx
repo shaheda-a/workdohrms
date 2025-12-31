@@ -40,7 +40,7 @@ const STORAGE_CARDS = [
 export default function DocumentConfiguration() {
     const { user } = useAuth();
     const [locations, setLocations] = useState<DocumentLocation[]>([]);
-    const [loadingType, setLoadingType] = useState<StorageType | null>(null);
+    const [loadingTypes, setLoadingTypes] = useState<Set<StorageType>>(new Set());
 
     // Modal & Form State
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -87,13 +87,13 @@ export default function DocumentConfiguration() {
     };
 
     const handleConfigureStorage = async (locationType: number, type: StorageType) => {
-        if (loadingType) return;
+        if (loadingTypes.has(type)) return;
         if (!user?.org_id || !user?.company_id) {
             toast({ variant: 'destructive', title: 'Error', description: 'User organization or company not found.' });
             return;
         }
 
-        setLoadingType(type);
+        setLoadingTypes(prev => new Set(prev).add(type));
         try {
             await documentLocationService.create({
                 location_type: locationType,
@@ -107,7 +107,11 @@ export default function DocumentConfiguration() {
             console.error('Failed to configure:', error);
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to configure storage' });
         } finally {
-            setLoadingType(null);
+            setLoadingTypes(prev => {
+                const next = new Set(prev);
+                next.delete(type);
+                return next;
+            });
         }
     };
 
@@ -127,10 +131,10 @@ export default function DocumentConfiguration() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (loadingType) return;
+        if (!currentStorage || loadingTypes.has(currentStorage.type)) return;
         if (!user?.org_id || !user?.company_id || !currentStorage) return;
 
-        setLoadingType(currentStorage.type);
+        setLoadingTypes(prev => new Set(prev).add(currentStorage.type));
         try {
             let locationId: number;
 
@@ -155,7 +159,13 @@ export default function DocumentConfiguration() {
             console.error('Failed to save config:', error);
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to save detailed configuration' });
         } finally {
-            setLoadingType(null);
+            if (currentStorage) {
+                setLoadingTypes(prev => {
+                    const next = new Set(prev);
+                    next.delete(currentStorage.type);
+                    return next;
+                });
+            }
         }
     };
 
@@ -204,9 +214,9 @@ export default function DocumentConfiguration() {
                                     size="sm"
                                     className="bg-solarized-blue hover:bg-solarized-blue/90 w-full"
                                     onClick={() => handleConfigureStorage(card.id, card.type)}
-                                    disabled={loadingType !== null}
+                                    disabled={loadingTypes.has(card.type)}
                                 >
-                                    {loadingType === card.type ? 'Configuring...' : 'Configure'}
+                                    {loadingTypes.has(card.type) ? 'Configuring...' : 'Configure'}
                                 </Button>
                             </CardContent>
                         </Card>
@@ -214,7 +224,7 @@ export default function DocumentConfiguration() {
                 })}
             </div>
 
-            {/* Bottom Section - Detailed Configuration Buttons */}
+            {/* Bottom Section - Detailed Configuration */}
             <div className="pt-4">
                 <Card className="border-0 shadow-md">
                     <CardHeader>
@@ -222,18 +232,26 @@ export default function DocumentConfiguration() {
                         <CardDescription>Setup advanced credentials for cloud and local storage</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="flex flex-wrap gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             {STORAGE_CARDS.map((storage) => (
-                                <Button
-                                    key={`detail-${storage.type}`}
-                                    variant="outline"
-                                    className="border-solarized-blue text-solarized-blue hover:bg-solarized-blue/5"
-                                    onClick={() => handleOpenAdd(storage)}
-                                    disabled={loadingType !== null}
-                                >
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Add {storage.title} Config
-                                </Button>
+                                <div key={`detail-${storage.type}`} className="flex flex-col gap-3 p-4 rounded-xl border border-solarized-base3 hover:border-solarized-blue/20 transition-colors bg-solarized-base3/30">
+                                    <div className="flex items-center gap-2">
+                                        <div className={`p-1.5 rounded-md bg-white shadow-sm`}>
+                                            <storage.icon className={`h-4 w-4 ${storage.iconColor}`} />
+                                        </div>
+                                        <span className="font-medium text-solarized-base02 text-sm">{storage.title}</span>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full border-solarized-blue text-solarized-blue hover:bg-solarized-blue hover:text-white transition-all shadow-sm group"
+                                        onClick={() => handleOpenAdd(storage)}
+                                        disabled={loadingTypes.has(storage.type)}
+                                    >
+                                        <Plus className="mr-2 h-4 w-4 group-hover:rotate-90 transition-transform" />
+                                        Setup {storage.title}
+                                    </Button>
+                                </div>
                             ))}
                         </div>
                     </CardContent>
@@ -332,7 +350,7 @@ export default function DocumentConfiguration() {
                             <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>
                                 Cancel
                             </Button>
-                            <Button type="submit" className="bg-solarized-blue hover:bg-solarized-blue/90" disabled={loadingType !== null}>
+                            <Button type="submit" className="bg-solarized-blue hover:bg-solarized-blue/90" disabled={currentStorage ? loadingTypes.has(currentStorage.type) : false}>
                                 Create Configuration
                             </Button>
                         </DialogFooter>
