@@ -102,7 +102,9 @@ const navigation: NavItem[] = [
     children: [
       { name: 'Salary Slips', href: '/payroll/slips' },
       { name: 'Generate Payroll', href: '/payroll/generate' },
+      { name: 'Benefit Types', href: '/payroll/benefits/types' },
       { name: 'Benefits', href: '/payroll/benefits' },
+      { name: 'Deduction Types', href: '/payroll/deductions/types' },
       { name: 'Deductions', href: '/payroll/deductions' },
       { name: 'Tax Slabs', href: '/payroll/tax' },
     ]
@@ -112,6 +114,7 @@ const navigation: NavItem[] = [
     href: '/recruitment',
     icon: Briefcase,
     children: [
+      { name: 'Job Categories', href: '/recruitment/job/categories' },
       { name: 'Jobs', href: '/recruitment/jobs' },
       { name: 'Candidates', href: '/recruitment/candidates' },
       { name: 'Applications', href: '/recruitment/applications' },

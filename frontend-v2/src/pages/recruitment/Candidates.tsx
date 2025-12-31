@@ -77,21 +77,36 @@ export default function Candidates() {
     fetchCandidates();
   }, [page]);
 
-  const fetchCandidates = async () => {
-    setIsLoading(true);
-    try {
-      const params: Record<string, unknown> = { page };
-      if (search) params.search = search;
-      
-      const response = await recruitmentService.getCandidates(params);
+const fetchCandidates = async () => {
+  setIsLoading(true);
+  try {
+    const params: Record<string, unknown> = { page };
+    if (search) params.search = search;
+    
+    const response = await recruitmentService.getCandidates(params);
+    
+    // Handle different response structures
+    if (Array.isArray(response.data)) {
+      // When paginate=false, response.data is the array directly
+      setCandidates(response.data);
+      setMeta(null);
+    } else if (response.data.data) {
+      // When paginating, response.data has data and meta properties
       setCandidates(response.data.data || []);
       setMeta(response.data.meta);
-    } catch (error) {
-      console.error('Failed to fetch candidates:', error);
-    } finally {
-      setIsLoading(false);
+    } else {
+      // Fallback
+      setCandidates([]);
+      setMeta(null);
     }
-  };
+  } catch (error) {
+    console.error('Failed to fetch candidates:', error);
+    setCandidates([]);
+    setMeta(null);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleSearch = () => {
     setPage(1);

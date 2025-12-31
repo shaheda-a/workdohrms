@@ -90,6 +90,9 @@ import Users from './pages/admin/Users';
 import Roles from './pages/admin/Roles';
 import RolePermissions from './pages/admin/RolePermissions';
 import Permissions from './pages/admin/Permissions';
+import BenefitTypes from './pages/payroll/BenefitTypes';
+import WithholdingTypes from './pages/payroll/WithHoldingType';
+import JobCategories from './pages/recruitment/JobCategory';
 
 function App() {
   return (
@@ -154,10 +157,13 @@ function App() {
             <Route path="/payroll/slips" element={<SalarySlips />} />
             <Route path="/payroll/generate" element={<GeneratePayroll />} />
             <Route path="/payroll/benefits" element={<Benefits />} />
+            <Route path="/payroll/benefits/types" element={<BenefitTypes />} />
             <Route path="/payroll/deductions" element={<Deductions />} />
+            <Route path="/payroll/deductions/types" element={<WithholdingTypes />} />
             <Route path="/payroll/tax" element={<TaxSlabs />} />
 
             {/* Recruitment */}
+            <Route path="/recruitment/job/categories" element={<JobCategories />} />
             <Route path="/recruitment" element={<Jobs />} />
             <Route path="/recruitment/jobs" element={<Jobs />} />
             <Route path="/recruitment/candidates" element={<Candidates />} />

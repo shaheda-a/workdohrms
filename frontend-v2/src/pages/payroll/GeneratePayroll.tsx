@@ -22,6 +22,8 @@ export default function GeneratePayroll() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [selectedStaff, setSelectedStaff] = useState<number[]>([]);
   const [salaryPeriod, setSalaryPeriod] = useState('');
+  const [month, setMonth] = useState<number>(0);
+  const [year, setYear] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
@@ -41,8 +43,21 @@ export default function GeneratePayroll() {
     fetchStaff();
 
     const today = new Date();
-    setSalaryPeriod(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`);
+    const currentMonth = today.getMonth() + 1;
+    const currentYear = today.getFullYear();
+    setMonth(currentMonth);
+    setYear(currentYear);
+    setSalaryPeriod(`${currentYear}-${String(currentMonth).padStart(2, '0')}`);
   }, []);
+
+  const handleSalaryPeriodChange = (period: string) => {
+    setSalaryPeriod(period);
+    if (period) {
+      const [yearStr, monthStr] = period.split('-');
+      setYear(parseInt(yearStr, 10));
+      setMonth(parseInt(monthStr, 10));
+    }
+  };
 
   const handleSelectAll = () => {
     if (selectedStaff.length === staff.length) {
@@ -66,20 +81,51 @@ export default function GeneratePayroll() {
       return;
     }
 
+    if (!month || !year) {
+      setError('Please select a valid salary period');
+      return;
+    }
+
     setError('');
     setSuccess('');
     setIsGenerating(true);
 
     try {
-      await payrollService.bulkGenerate({
-        staff_member_ids: selectedStaff,
-        salary_period: salaryPeriod,
-      });
+      const payload = {
+        employee_ids: selectedStaff,
+        month: month,
+        year: year,
+      };
+
+      console.log('Sending payload:', payload); // For debugging
+
+      const response = await payrollService.bulkGenerate(payload);
+      
       setSuccess(`Successfully generated payroll for ${selectedStaff.length} employees`);
+      
+      // Navigate to payroll slips after successful generation
       setTimeout(() => navigate('/payroll/slips'), 2000);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setError(error.response?.data?.message || 'Failed to generate payroll');
+      console.error('Generation error:', err);
+      
+      // Handle validation errors from backend
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as any;
+        if (axiosError.response?.data?.errors) {
+          // Format validation errors
+          const validationErrors = axiosError.response.data.errors;
+          const errorMessages = Object.entries(validationErrors)
+            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+            .join('; ');
+          setError(`Validation failed: ${errorMessages}`);
+        } else if (axiosError.response?.data?.message) {
+          setError(axiosError.response.data.message);
+        } else {
+          setError('Failed to generate payroll. Please try again.');
+        }
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -188,8 +234,14 @@ export default function GeneratePayroll() {
                   id="salary_period"
                   type="month"
                   value={salaryPeriod}
-                  onChange={(e) => setSalaryPeriod(e.target.value)}
+                  onChange={(e) => handleSalaryPeriodChange(e.target.value)}
+                  required
                 />
+                {salaryPeriod && (
+                  <p className="text-sm text-solarized-base01">
+                    Generating for: {month}/{year}
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -215,23 +267,30 @@ export default function GeneratePayroll() {
                   )}
                 </span>
               </div>
-              <Button
-                onClick={handleGenerate}
-                disabled={isGenerating || selectedStaff.length === 0}
-                className="w-full bg-solarized-green hover:bg-solarized-green/90"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <DollarSign className="mr-2 h-4 w-4" />
-                    Generate Payroll
-                  </>
+              <div className="pt-4">
+                <Button
+                  onClick={handleGenerate}
+                  disabled={isGenerating || selectedStaff.length === 0 || !salaryPeriod}
+                  className="w-full bg-solarized-green hover:bg-solarized-green/90"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <DollarSign className="mr-2 h-4 w-4" />
+                      Generate Payroll
+                    </>
+                  )}
+                </Button>
+                {!salaryPeriod && (
+                  <p className="text-sm text-red-500 mt-2 text-center">
+                    Please select a salary period
+                  </p>
                 )}
-              </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
