@@ -528,12 +528,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // UNIFIED UPLOAD (Recommended - Auto-detects storage based on org/company)
     Route::post('/documents/upload', [DocumentController::class, 'upload']);
-
-    // Legacy: Specific Storage Upload Routes (for backward compatibility)
-    Route::post('/documents/upload-local', [DocumentController::class, 'uploadLocal']);
-    Route::post('/documents/upload-wasabi', [DocumentController::class, 'uploadWasabi']);
-    Route::post('/documents/upload-aws', [DocumentController::class, 'uploadAws']);
-
     // Standard CRUD
     Route::get('/documents', [DocumentController::class, 'index']);      // List
     Route::get('/documents/{id}', [DocumentController::class, 'show']);  // Show (includes URL)
@@ -561,12 +555,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Document Locations
     Route::get('/document-locations', [DocumentLocationController::class, 'index']);
     Route::post('/document-locations', [DocumentLocationController::class, 'store']);
-    Route::get('/document-locations/type/{type}', [DocumentLocationController::class, 'getByType']);
-    Route::get('/document-locations/org/{orgId}', [DocumentLocationController::class, 'getLocationTypeByOrg']);
-    Route::get('/document-locations/company/{companyId}', [DocumentLocationController::class, 'getLocationTypeByCompany']);
-    Route::get('/document-locations/{id}', [DocumentLocationController::class, 'show']);
-    Route::put('/document-locations/{id}', [DocumentLocationController::class, 'update']);
-    Route::delete('/document-locations/{id}', [DocumentLocationController::class, 'destroy']);
 
     // Document Types
     Route::get('/document-types', [DocumentTypeController::class, 'index']);

@@ -12,8 +12,26 @@ import {
   TableHeader,
   TableRow,
 } from '../../components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import { Skeleton } from '../../components/ui/skeleton';
-import { Plus, FileText, Calendar, ChevronLeft, ChevronRight, MoreHorizontal, Eye, Edit, Download, Trash2 } from 'lucide-react';
+import {
+  Plus,
+  FileText,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
+  Eye,
+  Edit,
+  Download,
+  Trash2,
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,14 +39,25 @@ import {
   DropdownMenuTrigger,
 } from '../../components/ui/dropdown-menu';
 
+/* =========================
+   TYPES (MATCH API)
+========================= */
 interface Contract {
   id: number;
-  staff_member?: { full_name: string };
-  contract_type: string;
+  reference_number: string;
   start_date: string;
-  end_date: string;
-  salary: number;
+  end_date: string | null;
+  salary: string;
   status: string;
+
+  staff_member?: {
+    full_name: string;
+  };
+
+  contract_type?: {
+    id: number;
+    title: string;
+  };
 }
 
 interface PaginationMeta {
@@ -38,11 +67,20 @@ interface PaginationMeta {
   total: number;
 }
 
+/* =========================
+   COMPONENT
+========================= */
 export default function Contracts() {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
+  const [editSalary, setEditSalary] = useState('');
+  const [editStatus, setEditStatus] = useState('');
+
 
   useEffect(() => {
     fetchContracts();
@@ -52,15 +90,33 @@ export default function Contracts() {
     setIsLoading(true);
     try {
       const response = await contractService.getAll({ page });
-      setContracts(response.data.data || []);
-      setMeta(response.data.meta);
+
+      const payload = response.data.data;
+
+      // paginator response
+      if (payload && Array.isArray(payload.data)) {
+        setContracts(payload.data);
+        setMeta({
+          current_page: payload.current_page,
+          last_page: payload.last_page,
+          per_page: payload.per_page,
+          total: payload.total,
+        });
+      } else {
+        setContracts([]);
+        setMeta(null);
+      }
     } catch (error) {
       console.error('Failed to fetch contracts:', error);
+      setContracts([]);
     } finally {
       setIsLoading(false);
     }
   };
 
+  /* =========================
+     HELPERS
+  ========================= */
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
       active: 'bg-solarized-green/10 text-solarized-green',
@@ -70,29 +126,48 @@ export default function Contracts() {
     };
     return variants[status] || variants.pending;
   };
+  const handleView = (contract: Contract) => {
+    setSelectedContract(contract);
+    setIsViewOpen(true);
+  };
 
-  const getInitials = (name: string) => {
-    return name
+ const handleEdit = (c: Contract) => {
+    setSelectedContract(c);
+    setEditSalary(c.salary);
+    setEditStatus(c.status);
+    setIsEditOpen(true);
+  };
+
+
+  const getInitials = (name: string) =>
+    name
       .split(' ')
       .map((n) => n[0])
       .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
+      .slice(0, 2)
+      .toUpperCase();
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+  const formatCurrency = (amount: string) =>
+    new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'USD',
-    }).format(amount || 0);
-  };
+      currency: 'INR',
+    }).format(Number(amount || 0));
 
+  const formatDate = (date: string | null) =>
+    date ? new Date(date).toLocaleDateString() : 'Indefinite';
+
+  /* =========================
+     RENDER
+  ========================= */
   return (
     <div className="space-y-6">
+      {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-solarized-base02">Contracts</h1>
-          <p className="text-solarized-base01">Manage employee contracts and agreements</p>
+          <p className="text-solarized-base01">
+            Manage employee contracts and agreements
+          </p>
         </div>
         <Button className="bg-solarized-blue hover:bg-solarized-blue/90">
           <Plus className="mr-2 h-4 w-4" />
@@ -100,58 +175,54 @@ export default function Contracts() {
         </Button>
       </div>
 
+      {/* SUMMARY */}
       <div className="grid gap-6 sm:grid-cols-4">
         <Card className="border-0 shadow-md">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-solarized-blue/10 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-solarized-blue" />
-              </div>
+              <FileText className="h-5 w-5 text-solarized-blue" />
               <div>
-                <p className="text-sm text-solarized-base01">Total Contracts</p>
-                <p className="text-xl font-bold text-solarized-base02">{meta?.total || 0}</p>
+                <p className="text-sm">Total Contracts</p>
+                <p className="text-xl font-bold">{meta?.total || 0}</p>
               </div>
             </div>
           </CardContent>
         </Card>
+
         <Card className="border-0 shadow-md">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-solarized-green/10 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-solarized-green" />
-              </div>
+              <FileText className="h-5 w-5 text-solarized-green" />
               <div>
-                <p className="text-sm text-solarized-base01">Active</p>
-                <p className="text-xl font-bold text-solarized-base02">
+                <p className="text-sm">Active</p>
+                <p className="text-xl font-bold">
                   {contracts.filter((c) => c.status === 'active').length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
+
         <Card className="border-0 shadow-md">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-solarized-yellow/10 flex items-center justify-center">
-                <Calendar className="h-5 w-5 text-solarized-yellow" />
-              </div>
+              <Calendar className="h-5 w-5 text-solarized-yellow" />
               <div>
-                <p className="text-sm text-solarized-base01">Expiring Soon</p>
-                <p className="text-xl font-bold text-solarized-base02">0</p>
+                <p className="text-sm">Expiring Soon</p>
+                <p className="text-xl font-bold">0</p>
               </div>
             </div>
           </CardContent>
         </Card>
+
         <Card className="border-0 shadow-md">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-solarized-red/10 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-solarized-red" />
-              </div>
+              <FileText className="h-5 w-5 text-solarized-red" />
               <div>
-                <p className="text-sm text-solarized-base01">Expired</p>
-                <p className="text-xl font-bold text-solarized-base02">
-                  {contracts.filter((c) => c.status === 'expired').length}
+                <p className="text-sm">Terminated</p>
+                <p className="text-xl font-bold">
+                  {contracts.filter((c) => c.status === 'terminated').length}
                 </p>
               </div>
             </div>
@@ -159,113 +230,105 @@ export default function Contracts() {
         </Card>
       </div>
 
+      {/* TABLE */}
       <Card className="border-0 shadow-md">
         <CardContent className="pt-6">
           {isLoading ? (
-            <div className="space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
+            <Skeleton className="h-12 w-full" />
           ) : contracts.length === 0 ? (
             <div className="text-center py-12">
-              <FileText className="h-12 w-12 text-solarized-base01 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-solarized-base02">No contracts found</h3>
-              <p className="text-solarized-base01 mt-1">Create contracts for employees.</p>
-              <Button className="mt-4 bg-solarized-blue hover:bg-solarized-blue/90">
-                <Plus className="mr-2 h-4 w-4" />
-                New Contract
-              </Button>
+              <FileText className="h-12 w-12 mx-auto mb-4 text-solarized-base01" />
+              <h3 className="text-lg font-medium">No contracts found</h3>
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Employee</TableHead>
-                      <TableHead>Contract Type</TableHead>
-                      <TableHead>Start Date</TableHead>
-                      <TableHead>End Date</TableHead>
-                      <TableHead>Salary</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Employee</TableHead>
+                    <TableHead>Contract Type</TableHead>
+                    <TableHead>Start Date</TableHead>
+                    <TableHead>End Date</TableHead>
+                    <TableHead>Salary</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {contracts.map((contract) => (
+                    <TableRow key={contract.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback>
+                              {getInitials(contract.staff_member?.full_name || 'NA')}
+                            </AvatarFallback>
+                          </Avatar>
+                          {contract.staff_member?.full_name || 'Unknown'}
+                        </div>
+                      </TableCell>
+
+                      <TableCell className="font-medium">
+                        {contract.contract_type?.title || '-'}
+                      </TableCell>
+
+                      <TableCell>{formatDate(contract.start_date)}</TableCell>
+                      <TableCell>{formatDate(contract.end_date)}</TableCell>
+                      <TableCell>{formatCurrency(contract.salary)}</TableCell>
+
+                      <TableCell>
+                        <Badge className={getStatusBadge(contract.status)}>
+                          {contract.status}
+                        </Badge>
+                      </TableCell>
+
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleView(contract)}>
+                              <Eye className="mr-2 h-4 w-4" /> View
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem onClick={() => handleEdit(contract)}>
+                              <Edit className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem>
+                              <Download className="mr-2 h-4 w-4" /> Download
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-600">
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {contracts.map((contract) => (
-                      <TableRow key={contract.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarFallback className="bg-solarized-blue/10 text-solarized-blue text-xs">
-                                {getInitials(contract.staff_member?.full_name || 'UN')}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium">
-                              {contract.staff_member?.full_name || 'Unknown'}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="capitalize">{contract.contract_type?.replace('_', ' ')}</TableCell>
-                        <TableCell>{contract.start_date}</TableCell>
-                        <TableCell>{contract.end_date || 'Indefinite'}</TableCell>
-                        <TableCell>{formatCurrency(contract.salary)}</TableCell>
-                        <TableCell>
-                          <Badge className={getStatusBadge(contract.status)}>
-                            {contract.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Download className="mr-2 h-4 w-4" />
-                                Download
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-solarized-red">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                  ))}
+                </TableBody>
+              </Table>
 
               {meta && meta.last_page > 1 && (
-                <div className="flex items-center justify-between mt-6">
-                  <p className="text-sm text-solarized-base01">
+                <div className="flex justify-between mt-6">
+                  <span>
                     Page {meta.current_page} of {meta.last_page}
-                  </p>
-                  <div className="flex items-center gap-2">
+                  </span>
+                  <div className="flex gap-2">
                     <Button
-                      variant="outline"
                       size="sm"
+                      variant="outline"
                       onClick={() => setPage(page - 1)}
                       disabled={page === 1}
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
                     <Button
-                      variant="outline"
                       size="sm"
+                      variant="outline"
                       onClick={() => setPage(page + 1)}
                       disabled={page === meta.last_page}
                     >
@@ -278,6 +341,88 @@ export default function Contracts() {
           )}
         </CardContent>
       </Card>
+      {/* VIEW CONTRACT MODAL */}
+      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Contract Details</DialogTitle>
+          </DialogHeader>
+
+          {selectedContract && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-solarized-base01">Employee</p>
+                  <p className="font-medium">
+                    {selectedContract.staff_member?.full_name || '-'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-solarized-base01">Contract Type</p>
+                  <p>{selectedContract.contract_type?.title || '-'}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-solarized-base01">Start Date</p>
+                  <p>{formatDate(selectedContract.start_date)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-solarized-base01">End Date</p>
+                  <p>{formatDate(selectedContract.end_date)}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-solarized-base01">Salary</p>
+                  <p>{formatCurrency(selectedContract.salary)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-solarized-base01">Status</p>
+                  <Badge className={getStatusBadge(selectedContract.status)}>
+                    {selectedContract.status}
+                  </Badge>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm text-solarized-base01">Reference Number</p>
+                <p className="font-mono">{selectedContract.reference_number}</p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Contract</DialogTitle>
+          </DialogHeader>
+
+          {selectedContract && (
+            <p className="text-sm">
+              Editing contract <strong>{selectedContract.reference_number}</strong>
+            </p>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+
+
     </div>
   );
 }
