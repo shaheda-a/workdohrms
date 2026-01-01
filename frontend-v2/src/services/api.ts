@@ -266,10 +266,18 @@ export const recruitmentService = {
     api.get('/job-applications', { params }),
   updateApplicationStatus: (id: number, data: { status: string }) =>
     api.put(`/job-applications/${id}/status`, data),
-  getInterviews: (params?: { page?: number }) => api.get('/interview-schedules', { params }),
+  // Interview methods
+  getInterviews: (params?: Record<string, unknown>) => api.get('/interview-schedules', { params }),
   scheduleInterview: (data: Record<string, unknown>) => api.post('/interview-schedules', data),
-  submitFeedback: (id: number, data: Record<string, unknown>) =>
-    api.post(`/interview-schedules/${id}/feedback`, data),
+  updateInterview: (id: number, data: Record<string, unknown>) => api.put(`/interview-schedules/${id}`, data),
+  deleteInterview: (id: number) => api.delete(`/interview-schedules/${id}`),
+  submitFeedback: (id: number, data: Record<string, unknown>) => api.post(`/interview-schedules/${id}/feedback`, data),
+  rescheduleInterview: (id: number, data: Record<string, unknown>) => api.post(`/interview-schedules/${id}/reschedule`, data),
+  getCalendarInterviews: (params?: Record<string, unknown>) => api.get('/interviews/calendar', { params }),
+  getTodayInterviews: () => api.get('/interviews/today'),
+
+  // Staff members for interviewers
+  getStaffMembers: (params?: Record<string, unknown>) => api.get('/staff-members', { params }),
 
   // Job Stages
   getJobStages: (params?: {
