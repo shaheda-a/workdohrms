@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { staffService } from '../../services/api';
 import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
+
 import { Card, CardContent, CardHeader } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -13,6 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../../components/ui/dropdown-menu';
+
 import DataTable, { TableColumn } from 'react-data-table-component';
 import {
   Plus,
@@ -37,97 +39,62 @@ interface StaffMember {
   hire_date: string;
 }
 
-// interface PaginationMeta {
-//   current_page: number;
-//   per_page: number;
-//   total: number;
-//   total_pages: number;
-//   from: number;
-//   to: number;
-//   has_more_pages: boolean;
-// }
-
 export default function StaffList() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [perPage] = useState(1);
+  const [perPage] = useState(10);
   const [totalRows, setTotalRows] = useState(0);
 
-    const fetchStaff = async () => {
+  // ================= FETCH STAFF =================
+  const fetchStaff = useCallback(
+    async (currentPage: number = 1) => {
       setIsLoading(true);
       try {
-        const response = await staffService.getAll({ page, per_page: 10, search });
-        // Handle paginated response: response.data.data is the paginator object
-        // The actual array is in response.data.data.data for paginated responses
-        const payload = response.data.data;
-        if (Array.isArray(payload)) {
-          // Non-paginated response
-          setStaff(payload);
-          setMeta(null);
-        } else if (payload && Array.isArray(payload.data)) {
-          // Paginated response - extract the array and meta from paginator
-          setStaff(payload.data);
-          setMeta({
-            current_page: payload.current_page,
-            last_page: payload.last_page,
-            per_page: payload.per_page,
-            total: payload.total,
-          });
+        const response = await staffService.getAll({
+          page: currentPage,
+          per_page: perPage,
+          search,
+        });
+
+        const { data, meta } = response.data;
+
+        if (Array.isArray(data)) {
+          setStaff(data);
+          setTotalRows(meta?.total ?? 0);
         } else {
-          // Fallback to empty array if response is unexpected
           setStaff([]);
-          setMeta(null);
+          setTotalRows(0);
         }
       } catch (error) {
         console.error('Failed to fetch staff:', error);
-        showAlert('error', 'Error', 'Failed to fetch staff members');
+        showAlert('error', 'Error', getErrorMessage(error, 'Failed to fetch staff'));
         setStaff([]);
+        setTotalRows(0);
       } finally {
         setIsLoading(false);
       }
-    };
-  const fetchStaff = useCallback(async (currentPage: number = 1) => {
-    setIsLoading(true);
-    try {
-      const response = await staffService.getAll({ page: currentPage, per_page: perPage, search });
-      // API response structure: { success, data: [...], message, meta: {...} }
-      const { data: staffData, meta: paginationMeta } = response.data;
-
-      if (Array.isArray(staffData)) {
-        setStaff(staffData);
-        if (paginationMeta) {
-          setTotalRows(paginationMeta.total);
-        }
-      } else {
-        setStaff([]);
-        setTotalRows(0);
-      }
-    } catch (error) {
-      console.error('Failed to fetch staff:', error);
-      setStaff([]);
-      setTotalRows(0);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [perPage, search]);
+    },
+    [perPage, search]
+  );
 
   useEffect(() => {
     fetchStaff(page);
-  }, [page, search, fetchStaff]);
+  }, [page, fetchStaff]);
 
-  // Handle search submit
+  // ================= SEARCH =================
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setPage(1); // This will trigger useEffect to call fetchStaff
+    setPage(1);
   };
 
-  // Handle page change
+  // ================= PAGINATION =================
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
   };
 
+  // ================= DELETE =================
   const handleDelete = async (id: number) => {
     const result = await showConfirmDialog(
       'Are you sure?',
@@ -139,15 +106,13 @@ export default function StaffList() {
     try {
       await staffService.delete(id);
       showAlert('success', 'Deleted!', 'Staff member deleted successfully', 2000);
-      fetchStaff();
-    } catch (error: unknown) {
       fetchStaff(page);
     } catch (error) {
-      console.error('Failed to delete staff:', error);
-      showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete staff member'));
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete staff'));
     }
   };
 
+  // ================= HELPERS ============
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
       active: 'bg-solarized-green/10 text-solarized-green',
@@ -159,16 +124,15 @@ export default function StaffList() {
     return variants[status] || variants.inactive;
   };
 
-  const getInitials = (name: string) => {
-    return name
+  const getInitials = (name: string) =>
+    name
       .split(' ')
       .map((n) => n[0])
       .join('')
       .toUpperCase()
       .slice(0, 2);
-  };
 
-  // DataTable columns
+  // ================= TABLE COLUMNS ====
   const columns: TableColumn<StaffMember>[] = [
     {
       name: 'Employee',
@@ -180,8 +144,8 @@ export default function StaffList() {
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-medium text-solarized-base02">{row.full_name}</p>
-            <p className="text-sm text-solarized-base01">
+            <p className="font-medium">{row.full_name}</p>
+            <p className="text-sm text-muted-foreground">
               {row.work_email || row.personal_email || '-'}
             </p>
           </div>
@@ -226,22 +190,19 @@ export default function StaffList() {
           <DropdownMenuContent align="end">
             <DropdownMenuItem asChild>
               <Link to={`/staff/${row.id}`}>
-                <Eye className="mr-2 h-4 w-4" />
-                View
+                <Eye className="mr-2 h-4 w-4" /> View
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link to={`/staff/${row.id}/edit`}>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
+                <Edit className="mr-2 h-4 w-4" /> Edit
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => handleDelete(row.id)}
-              className="text-solarized-red"
+              className="text-red-600"
             >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
+              <Trash2 className="mr-2 h-4 w-4" /> Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -251,90 +212,45 @@ export default function StaffList() {
     },
   ];
 
-  // Custom styles for DataTable
-  const customStyles = {
-    headRow: {
-      style: {
-        background: 'linear-gradient(to right, #e0eafc, #cfdef3)',
-        fontWeight: 'bold',
-        fontSize: '14px',
-        borderRadius: '8px 8px 0 0',
-      },
-    },
-    rows: {
-      style: {
-        backgroundColor: '#f8f9fa',
-        borderBottom: '1px solid #dee2e6',
-        '&:hover': {
-          backgroundColor: '#e6f0ff',
-        },
-      },
-    },
-    headCells: {
-      style: {
-        color: '#333',
-        fontWeight: '600',
-      },
-    },
-    cells: {
-      style: {
-        paddingTop: '12px',
-        paddingBottom: '12px',
-      },
-    },
-  };
-
+  // ================= UI =================
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-solarized-base02">Staff Members</h1>
-          <p className="text-solarized-base01">Manage your organization's employees</p>
+          <h1 className="text-2xl font-bold">Staff Members</h1>
+          <p className="text-muted-foreground">Manage your organization employees</p>
         </div>
         <Link to="/staff/create">
-          <Button className="bg-solarized-blue hover:bg-solarized-blue/90">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Staff
+          <Button>
+            <Plus className="mr-2 h-4 w-4" /> Add Staff
           </Button>
         </Link>
       </div>
 
-      <Card className="border-0 shadow-md">
-        <CardHeader className="pb-4">
-          <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-solarized-base01" />
-              <Input
-                placeholder="Search staff..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+      <Card>
+        <CardHeader>
+          <form onSubmit={handleSearchSubmit} className="flex gap-4">
+            <Input
+              placeholder="Search staff..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
             <Button type="submit" variant="outline">
-              <Search className="mr-2 h-4 w-4" />
-              Search
+              <Search className="mr-2 h-4 w-4" /> Search
             </Button>
           </form>
         </CardHeader>
+
         <CardContent>
           {!isLoading && staff.length === 0 ? (
             <div className="text-center py-12">
-              <Users className="h-12 w-12 text-solarized-base01 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-solarized-base02">No staff members found</h3>
-              <p className="text-solarized-base01 mt-1">Get started by adding your first employee.</p>
-              <Link to="/staff/create">
-                <Button className="mt-4 bg-solarized-blue hover:bg-solarized-blue/90">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Staff
-                </Button>
-              </Link>
+              <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <p>No staff members found</p>
             </div>
           ) : (
             <DataTable
               columns={columns}
               data={staff}
-              customStyles={customStyles}
               progressPending={isLoading}
               pagination
               paginationServer
@@ -343,7 +259,6 @@ export default function StaffList() {
               paginationDefaultPage={page}
               onChangePage={handlePageChange}
               highlightOnHover
-              pointerOnHover
               responsive
             />
           )}
