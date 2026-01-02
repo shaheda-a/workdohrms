@@ -100,7 +100,7 @@ export const payrollService = {
   bulkGenerate: (data: { employee_ids: number[]; month: number; year: number }) =>
     api.post('/salary-slips/bulk-generate', data),
   getSlipById: (id: number) => api.get(`/salary-slips/${id}`),
-  downloadSlip: (id: number) => api.get(`/salary-slips/${id}/download`, { responseType: 'blob' }),
+  downloadSlip: (id: number) => api.get(`/payroll/salary-slips/${id}/download`, { responseType: 'blob' }),
   // Updated benefits methods for top-level routes
   getBenefits: (params?: { staff_member_id?: number; benefit_type_id?: number; active?: boolean; paginate?: boolean; page?: number; per_page?: number }) =>
     api.get('/staff-benefits', { params }),

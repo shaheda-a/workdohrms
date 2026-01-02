@@ -4,6 +4,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Salary Slip - {{ $slip->slip_reference }}</title>
     <style>
+        /* Keep all existing styles, they're fine */
         body { 
             font-family: 'DejaVu Sans', sans-serif; 
             margin: 0;
@@ -88,29 +89,6 @@
             border-top: 1px solid #ddd;
             padding-top: 15px;
         }
-        .signature-section {
-            margin-top: 40px;
-        }
-        .signature-line {
-            border-top: 1px solid #000;
-            width: 200px;
-            margin: 30px auto 5px;
-        }
-        .signature-label {
-            font-size: 12px;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .status-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .status-paid { background: #d4edda; color: #155724; }
-        .status-generated { background: #fff3cd; color: #856404; }
-        .status-draft { background: #e2e3e5; color: #383d41; }
         .info-row {
             margin-bottom: 8px;
         }
@@ -122,17 +100,28 @@
         .info-value {
             display: inline-block;
         }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-paid { background: #d4edda; color: #155724; }
+        .status-generated { background: #fff3cd; color: #856404; }
+        .status-draft { background: #e2e3e5; color: #383d41; }
     </style>
 </head>
 <body>
     <div class="container">
         <!-- Header Section -->
         <div class="header">
-            <div class="company-name">{{ $company->name ?? 'Your Company Name' }}</div>
+            <div class="company-name">{{ $company->name ?? config('app.name') }}</div>
+            @if(!empty($company->address))
             <div class="company-details">
-                {{ $company->address ?? '123 Main Street, City, Country' }}<br>
-                Phone: {{ $company->phone ?? '(+123) 456-7890' }} | Email: {{ $company->email ?? 'info@company.com' }}
+                {{ $company->address }}
             </div>
+            @endif
             <div class="slip-title">SALARY SLIP</div>
             <div style="font-size: 14px;">
                 <strong>Period:</strong> {{ $slip->salary_period ?? 'N/A' }} | 
@@ -168,13 +157,31 @@
                     {{ $jobTitle->title ?? 'N/A' }}
                 </span>
             </div>
-            <div class="info-row">
+            <!-- <div class="info-row">
                 <span class="info-label">Department:</span>
                 <span class="info-value">
                     @php
                         $division = $staffMember->division ?? null;
                     @endphp
                     {{ $division->name ?? 'N/A' }}
+                </span>
+            </div> -->
+            <div class="info-row">
+                <span class="info-label">Company:</span>
+                <span class="info-value">
+                    @php
+                        $companyModel = $staffMember->company ?? null;
+                    @endphp
+                    {{ $companyModel->company_name ?? 'N/A' }}
+                </span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Organization:</span>
+                <span class="info-value">
+                    @php
+                        $organization = $companyModel->organization ?? null;
+                    @endphp
+                    {{ $organization->name ?? 'N/A' }}
                 </span>
             </div>
             <div class="info-row">
@@ -288,26 +295,6 @@
                 @endif
             </table>
         </div>
-
-        <!-- Signatures Section -->
-        <!-- <div class="signature-section">
-            <table>
-                <tr>
-                    <td width="33%" style="text-align: center;">
-                        <div class="signature-line"></div>
-                        <div class="signature-label">Employee Signature</div>
-                    </td>
-                    <td width="33%" style="text-align: center;">
-                        <div class="signature-line"></div>
-                        <div class="signature-label">HR Manager</div>
-                    </td>
-                    <td width="33%" style="text-align: center;">
-                        <div class="signature-line"></div>
-                        <div class="signature-label">Finance Department</div>
-                    </td>
-                </tr>
-            </table>
-        </div> -->
 
         <!-- Footer -->
         <div class="footer">

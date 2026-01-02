@@ -273,16 +273,24 @@ class SalarySlipController extends Controller
                 return response()->json(['message' => 'Salary slip not found'], 404);
             }
 
-            // Update this line in the download method
+            // Load all necessary relationships
             if (!$slip->relationLoaded('staffMember')) {
-                $slip->load(['staffMember', 'staffMember.job_title', 'staffMember.division']);
+                $slip->load([
+                    'staffMember.company',
+                    'staffMember.company.organization',
+                    'staffMember.job_title',
+                    'staffMember.division'
+                ]);
             }
-            // Define company info
+
+            // Get company data from the database
+            $company = $slip->staffMember->company ?? null;
+            $organization = $company->organization ?? null;
+
+            // Define company info from database
             $companyInfo = [
-                'name' => env('APP_COMPANY_NAME', config('app.name', 'HRMS Company')),
-                'address' => env('APP_COMPANY_ADDRESS', 'Corporate Office, City, Country'),
-                'phone' => env('APP_COMPANY_PHONE', '+1 (234) 567-8900'),
-                'email' => env('APP_COMPANY_EMAIL', 'hr@company.com'),
+                'name' => $company->company_name ?? ($organization->name ?? config('app.name')),
+                'address' => $company->address ?? ($organization->address ?? ''),
             ];
 
             // Decode JSON fields if they're strings
