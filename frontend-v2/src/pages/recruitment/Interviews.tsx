@@ -14,24 +14,114 @@ import {
   TableRow,
 } from '../../components/ui/table';
 import { Skeleton } from '../../components/ui/skeleton';
-import { Plus, Calendar, Clock, Video, MapPin, ChevronLeft, ChevronRight, MoreHorizontal, Eye, Edit, Trash2 } from 'lucide-react';
+import {
+  Plus,
+  Calendar,
+  Clock,
+  Video,
+  MapPin,
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
+  Eye,
+  Edit,
+  Trash2,
+  MessageSquare,
+  RefreshCw,
+  CheckCircle,
+  XCircle,
+  User,
+  AlertCircle
+} from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '../../components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../../components/ui/dropdown-menu';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Textarea } from '../../components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { format, parseISO, isToday } from 'date-fns';
+import { cn } from '../../lib/utils';
 
-interface Interview {
+interface InterviewSchedule {
   id: number;
-  candidate?: { name: string };
-  job?: { title: string };
-  interviewer?: { name: string };
-  interview_date: string;
-  interview_time: string;
-  interview_type: string;
-  location: string;
-  status: string;
+  job_application_id: number;
+  interviewer_id: number | null;
+  round_number: number;
+  scheduled_date: string;
+  scheduled_time: string;
+  duration_minutes: number | null;
+  location: string | null;
+  meeting_link: string | null;
+  notes: string | null;
+  status: 'scheduled' | 'completed' | 'cancelled' | 'rescheduled';
+  feedback: string | null;
+  rating: number | null;
+  recommendation: 'proceed' | 'hold' | 'reject' | null;
+  created_at: string;
+  updated_at: string;
+  application?: {
+    id: number;
+    candidate?: {
+      id: number;
+      name: string;
+      email: string;
+      phone: string;
+    };
+    job?: {
+      id: number;
+      title: string;
+    };
+  };
+  interviewer?: {
+    id: number;
+    full_name: string; // Changed from name to full_name
+    user?: {
+      email: string;
+    };
+  };
+}
+
+interface JobApplication {
+  id: number;
+  candidate?: {
+    id: number;
+    name: string;
+    email: string;
+  };
+  job?: {
+    id: number;
+    title: string;
+  };
+}
+
+interface StaffMember {
+  id: number;
+  full_name: string; // Changed from name to full_name
+  user?: {
+    email: string;
+  };
+  email?: string; // For mapping
 }
 
 interface PaginationMeta {
@@ -42,21 +132,89 @@ interface PaginationMeta {
 }
 
 export default function Interviews() {
-  const [interviews, setInterviews] = useState<Interview[]>([]);
+  const [interviews, setInterviews] = useState<InterviewSchedule[]>([]);
+  const [applications, setApplications] = useState<JobApplication[]>([]);
+  const [interviewers, setInterviewers] = useState<StaffMember[]>([]);
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
 
+  // Dialog states
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
+  const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  const [selectedInterview, setSelectedInterview] = useState<InterviewSchedule | null>(null);
+
+  // Form states
+  const [formData, setFormData] = useState({
+    job_application_id: '',
+    interviewer_id: '',
+    round_number: '',
+    scheduled_date: format(new Date(), 'yyyy-MM-dd'),
+    scheduled_time: '09:00',
+    duration_minutes: '60',
+    location: '',
+    meeting_link: '',
+    notes: '',
+  });
+
+  const [feedbackFormData, setFeedbackFormData] = useState({
+    feedback: '',
+    rating: '3',
+    recommendation: 'proceed' as 'proceed' | 'hold' | 'reject',
+  });
+
+  const [rescheduleFormData, setRescheduleFormData] = useState({
+    scheduled_date: format(new Date(), 'yyyy-MM-dd'),
+    scheduled_time: '09:00',
+    notes: '',
+  });
+
+  // Filter states
+  const [filters, setFilters] = useState({
+    job_application_id: '',
+    interviewer_id: '',
+    status: '',
+    date_from: '',
+    date_to: '',
+  });
+
+  // Calendar view state
+  const [calendarView, setCalendarView] = useState(false);
+  const [calendarDate, setCalendarDate] = useState<Date>(new Date());
+  const [calendarInterviews, setCalendarInterviews] = useState<InterviewSchedule[]>([]);
+  const [todayInterviews, setTodayInterviews] = useState<InterviewSchedule[]>([]);
+
   useEffect(() => {
     fetchInterviews();
-  }, [page]);
+    fetchApplications();
+    fetchInterviewers();
+    fetchTodayInterviews();
+  }, [page, filters]);
+
+  useEffect(() => {
+    if (calendarView) {
+      fetchCalendarInterviews();
+    }
+  }, [calendarView, calendarDate]);
 
   const fetchInterviews = async () => {
     setIsLoading(true);
     try {
-      const response = await recruitmentService.getInterviews({ page });
+      const params: any = { page, paginate: true };
+      Object.keys(filters).forEach(key => {
+        if (filters[key as keyof typeof filters]) {
+          params[key] = filters[key as keyof typeof filters];
+        }
+      });
+
+      const response = await recruitmentService.getInterviews(params);
       setInterviews(response.data.data || []);
-      setMeta(response.data.meta);
+      setMeta(response.data.meta || null);
     } catch (error) {
       console.error('Failed to fetch interviews:', error);
       showAlert('error', 'Error', 'Failed to fetch interviews');
@@ -65,22 +223,267 @@ export default function Interviews() {
     }
   };
 
+  const fetchApplications = async () => {
+    try {
+      const response = await recruitmentService.getJobApplications({ paginate: false });
+      if (response.data && response.data.data) {
+        setApplications(response.data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch applications:', error);
+    }
+  };
+
+  const fetchInterviewers = async () => {
+    try {
+      const response = await recruitmentService.getStaffMembers({ paginate: false });
+      if (response.data && response.data.data) {
+        // Map the backend response to our interface
+        const mappedInterviewers = response.data.data.map((staff: any) => ({
+          id: staff.id,
+          full_name: staff.full_name,
+          email: staff.user?.email || staff.personal_email || '',
+          user: staff.user
+        }));
+        setInterviewers(mappedInterviewers);
+      }
+    } catch (error) {
+      console.error('Failed to fetch interviewers:', error);
+    }
+  };
+
+  const fetchCalendarInterviews = async () => {
+    try {
+      const month = calendarDate.getMonth() + 1;
+      const year = calendarDate.getFullYear();
+      const response = await recruitmentService.getCalendarInterviews({ month, year });
+      setCalendarInterviews(response.data.data || []);
+    } catch (error) {
+      console.error('Failed to fetch calendar interviews:', error);
+    }
+  };
+
+  const fetchTodayInterviews = async () => {
+    try {
+      const response = await recruitmentService.getTodayInterviews();
+      setTodayInterviews(response.data.data || []);
+    } catch (error) {
+      console.error('Failed to fetch today interviews:', error);
+    }
+  };
+
+  const handleCreateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.job_application_id) {
+      alert('Please select a job application');
+      return;
+    }
+
+    if (!formData.scheduled_date || !formData.scheduled_time) {
+      alert('Please select date and time');
+      return;
+    }
+
+    try {
+      const data = {
+        ...formData,
+        round_number: formData.round_number ? parseInt(formData.round_number) : undefined,
+        duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : undefined,
+        interviewer_id: formData.interviewer_id ? parseInt(formData.interviewer_id) : null,
+      };
+
+      await recruitmentService.scheduleInterview(data);
+      setIsCreateDialogOpen(false);
+      resetCreateForm();
+      fetchInterviews();
+      fetchTodayInterviews();
+      if (calendarView) fetchCalendarInterviews();
+    } catch (error: any) {
+      console.error('Failed to schedule interview:', error);
+      alert(error.response?.data?.message || 'Failed to schedule interview');
+    }
+  };
+
+  const handleFeedbackSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!selectedInterview || !feedbackFormData.feedback) {
+      alert('Please provide feedback');
+      return;
+    }
+
+    try {
+      await recruitmentService.submitFeedback(selectedInterview.id, feedbackFormData);
+      setIsFeedbackDialogOpen(false);
+      resetFeedbackForm();
+      fetchInterviews();
+      fetchTodayInterviews();
+      if (calendarView) fetchCalendarInterviews();
+    } catch (error: any) {
+      console.error('Failed to submit feedback:', error);
+      alert(error.response?.data?.message || 'Failed to submit feedback');
+    }
+  };
+
+  const handleRescheduleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!selectedInterview || !rescheduleFormData.scheduled_date || !rescheduleFormData.scheduled_time) {
+      alert('Please select date and time');
+      return;
+    }
+
+    try {
+      await recruitmentService.rescheduleInterview(selectedInterview.id, rescheduleFormData);
+      setIsRescheduleDialogOpen(false);
+      resetRescheduleForm();
+      fetchInterviews();
+      fetchTodayInterviews();
+      if (calendarView) fetchCalendarInterviews();
+    } catch (error: any) {
+      console.error('Failed to reschedule interview:', error);
+      alert(error.response?.data?.message || 'Failed to reschedule interview');
+    }
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!selectedInterview) return;
+
+    try {
+      const data = {
+        scheduled_date: formData.scheduled_date,
+        scheduled_time: formData.scheduled_time,
+        interviewer_id: formData.interviewer_id ? parseInt(formData.interviewer_id) : null,
+        status: selectedInterview.status,
+        notes: formData.notes,
+      };
+
+      await recruitmentService.updateInterview(selectedInterview.id, data);
+      setIsEditDialogOpen(false);
+      resetCreateForm();
+      fetchInterviews();
+      fetchTodayInterviews();
+      if (calendarView) fetchCalendarInterviews();
+    } catch (error: any) {
+      console.error('Failed to update interview:', error);
+      alert(error.response?.data?.message || 'Failed to update interview');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedInterview) return;
+
+    try {
+      await recruitmentService.deleteInterview(selectedInterview.id);
+      setIsDeleteDialogOpen(false);
+      setSelectedInterview(null);
+      fetchInterviews();
+      fetchTodayInterviews();
+      if (calendarView) fetchCalendarInterviews();
+    } catch (error: any) {
+      console.error('Failed to delete interview:', error);
+      alert(error.response?.data?.message || 'Failed to delete interview');
+    }
+  };
+
+  const resetCreateForm = () => {
+    setFormData({
+      job_application_id: '',
+      interviewer_id: '',
+      round_number: '',
+      scheduled_date: format(new Date(), 'yyyy-MM-dd'),
+      scheduled_time: '09:00',
+      duration_minutes: '60',
+      location: '',
+      meeting_link: '',
+      notes: '',
+    });
+  };
+
+  const resetFeedbackForm = () => {
+    setFeedbackFormData({
+      feedback: '',
+      rating: '3',
+      recommendation: 'proceed',
+    });
+  };
+
+  const resetRescheduleForm = () => {
+    setRescheduleFormData({
+      scheduled_date: format(new Date(), 'yyyy-MM-dd'),
+      scheduled_time: '09:00',
+      notes: '',
+    });
+  };
+
+  const handleView = (interview: InterviewSchedule) => {
+    setSelectedInterview(interview);
+    setIsViewDialogOpen(true);
+  };
+
+  const handleEdit = (interview: InterviewSchedule) => {
+    setSelectedInterview(interview);
+
+    const scheduledDate = interview.scheduled_date.split('T')[0];
+    setFormData({
+      job_application_id: interview.job_application_id.toString(),
+      interviewer_id: interview.interviewer_id?.toString() || '',
+      round_number: interview.round_number.toString(),
+      scheduled_date: scheduledDate,
+      scheduled_time: interview.scheduled_time,
+      duration_minutes: interview.duration_minutes?.toString() || '60',
+      location: interview.location || '',
+      meeting_link: interview.meeting_link || '',
+      notes: interview.notes || '',
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleFeedback = (interview: InterviewSchedule) => {
+    setSelectedInterview(interview);
+    setFeedbackFormData({
+      feedback: interview.feedback || '',
+      rating: interview.rating?.toString() || '3',
+      recommendation: interview.recommendation || 'proceed',
+    });
+    setIsFeedbackDialogOpen(true);
+  };
+
+  const handleReschedule = (interview: InterviewSchedule) => {
+    setSelectedInterview(interview);
+    setRescheduleFormData({
+      scheduled_date: interview.scheduled_date,
+      scheduled_time: interview.scheduled_time,
+      notes: interview.notes || '',
+    });
+    setIsRescheduleDialogOpen(true);
+  };
+
+  const handleDeleteClick = (interview: InterviewSchedule) => {
+    setSelectedInterview(interview);
+    setIsDeleteDialogOpen(true);
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
-      scheduled: 'bg-solarized-blue/10 text-solarized-blue',
-      in_progress: 'bg-solarized-yellow/10 text-solarized-yellow',
-      completed: 'bg-solarized-green/10 text-solarized-green',
-      cancelled: 'bg-solarized-red/10 text-solarized-red',
-      rescheduled: 'bg-solarized-orange/10 text-solarized-orange',
+      scheduled: 'bg-blue-100 text-blue-800',
+      completed: 'bg-green-100 text-green-800',
+      cancelled: 'bg-red-100 text-red-800',
+      rescheduled: 'bg-yellow-100 text-yellow-800',
     };
     return variants[status] || variants.scheduled;
   };
 
-  const getTypeIcon = (type: string) => {
-    if (type === 'video' || type === 'online') {
-      return <Video className="h-4 w-4 text-solarized-blue" />;
-    }
-    return <MapPin className="h-4 w-4 text-solarized-green" />;
+  const getRecommendationBadge = (recommendation: string | null) => {
+    const variants: Record<string, string> = {
+      proceed: 'bg-green-100 text-green-800',
+      hold: 'bg-yellow-100 text-yellow-800',
+      reject: 'bg-red-100 text-red-800',
+    };
+    return recommendation ? variants[recommendation] : 'bg-gray-100 text-gray-800';
   };
 
   const getInitials = (name: string) => {
@@ -92,6 +495,33 @@ export default function Interviews() {
       .slice(0, 2);
   };
 
+  const formatDateTime = (date: string, time: string) => {
+    try {
+      const dateObj = parseISO(date);
+      const formattedDate = format(dateObj, 'MMM dd, yyyy');
+      return `${formattedDate} at ${time}`;
+    } catch {
+      return `${date} at ${time}`;
+    }
+  };
+
+  const stats = {
+    total: interviews.length,
+    scheduled: interviews.filter(i => i.status === 'scheduled').length,
+    completed: interviews.filter(i => i.status === 'completed').length,
+    cancelled: interviews.filter(i => i.status === 'cancelled').length,
+    today: todayInterviews.length,
+  };
+
+  const getDayInterviews = (date: Date) => {
+    return calendarInterviews.filter(interview => {
+      const interviewDate = parseISO(interview.scheduled_date);
+      return interviewDate.getDate() === date.getDate() &&
+        interviewDate.getMonth() === date.getMonth() &&
+        interviewDate.getFullYear() === date.getFullYear();
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -99,67 +529,231 @@ export default function Interviews() {
           <h1 className="text-2xl font-bold text-solarized-base02">Interviews</h1>
           <p className="text-solarized-base01">Schedule and manage candidate interviews</p>
         </div>
-        <Button className="bg-solarized-blue hover:bg-solarized-blue/90">
-          <Plus className="mr-2 h-4 w-4" />
-          Schedule Interview
-        </Button>
+        <div className="flex gap-2">
+          {/* <Button
+            variant={calendarView ? "outline" : "default"}
+            onClick={() => setCalendarView(!calendarView)}
+          >
+            <Calendar className="mr-2 h-4 w-4" />
+            {calendarView ? 'List View' : 'Calendar View'}
+          </Button> */}
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-solarized-blue hover:bg-solarized-blue/90">
+                <Plus className="mr-2 h-4 w-4" />
+                Schedule Interview
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Schedule Interview</DialogTitle>
+                <DialogDescription>
+                  Schedule a new interview for a candidate
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleCreateSubmit}>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="job_application_id">Job Application *</Label>
+                      <Select
+                        value={formData.job_application_id}
+                        onValueChange={(value) => setFormData({ ...formData, job_application_id: value })}
+                        required
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select application" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {applications.map((app) => (
+                            <SelectItem key={app.id} value={app.id.toString()}>
+                              {app.candidate?.name} - {app.job?.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="interviewer_id">Interviewer</Label>
+                      <Select
+                        value={formData.interviewer_id}
+                        onValueChange={(value) => setFormData({ ...formData, interviewer_id: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select interviewer" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {interviewers.map((interviewer) => (
+                            <SelectItem key={interviewer.id} value={interviewer.id.toString()}>
+                              {interviewer.full_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="round_number">Round Number</Label>
+                      <Input
+                        id="round_number"
+                        type="number"
+                        min="1"
+                        value={formData.round_number}
+                        onChange={(e) => setFormData({ ...formData, round_number: e.target.value })}
+                        placeholder="Auto-calculated if empty"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="duration_minutes">Duration (minutes)</Label>
+                      <Input
+                        id="duration_minutes"
+                        type="number"
+                        min="15"
+                        value={formData.duration_minutes}
+                        onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value })}
+                        placeholder="60"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="scheduled_date">Date *</Label>
+                      <Input
+                        id="scheduled_date"
+                        type="date"
+                        value={formData.scheduled_date}
+                        onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="scheduled_time">Time *</Label>
+                      <Input
+                        id="scheduled_time"
+                        type="time"
+                        value={formData.scheduled_time}
+                        onChange={(e) => setFormData({ ...formData, scheduled_time: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Location</Label>
+                    <Input
+                      id="location"
+                      value={formData.location}
+                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      placeholder="Interview location"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="meeting_link">Meeting Link (for online interviews)</Label>
+                    <Input
+                      id="meeting_link"
+                      type="url"
+                      value={formData.meeting_link}
+                      onChange={(e) => setFormData({ ...formData, meeting_link: e.target.value })}
+                      placeholder="https://meet.google.com/..."
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Notes</Label>
+                    <Textarea
+                      id="notes"
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      placeholder="Additional notes..."
+                      rows={3}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="bg-solarized-blue hover:bg-solarized-blue/90">
+                    Schedule Interview
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-4">
+      <div className="grid gap-6 sm:grid-cols-5">
         <Card className="border-0 shadow-md">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-solarized-blue/10 flex items-center justify-center">
-                <Calendar className="h-5 w-5 text-solarized-blue" />
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <Calendar className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-solarized-base01">Total</p>
+                <p className="text-xl font-bold text-solarized-base02">{stats.total}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-md">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-blue-600" />
               </div>
               <div>
                 <p className="text-sm text-solarized-base01">Scheduled</p>
-                <p className="text-xl font-bold text-solarized-base02">
-                  {interviews.filter((i) => i.status === 'scheduled').length}
-                </p>
+                <p className="text-xl font-bold text-solarized-base02">{stats.scheduled}</p>
               </div>
             </div>
           </CardContent>
         </Card>
+
         <Card className="border-0 shadow-md">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-solarized-yellow/10 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-solarized-yellow" />
-              </div>
-              <div>
-                <p className="text-sm text-solarized-base01">Today</p>
-                <p className="text-xl font-bold text-solarized-base02">0</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-md">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-solarized-green/10 flex items-center justify-center">
-                <Calendar className="h-5 w-5 text-solarized-green" />
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle className="h-5 w-5 text-green-600" />
               </div>
               <div>
                 <p className="text-sm text-solarized-base01">Completed</p>
-                <p className="text-xl font-bold text-solarized-base02">
-                  {interviews.filter((i) => i.status === 'completed').length}
-                </p>
+                <p className="text-xl font-bold text-solarized-base02">{stats.completed}</p>
               </div>
             </div>
           </CardContent>
         </Card>
+
         <Card className="border-0 shadow-md">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-solarized-red/10 flex items-center justify-center">
-                <Calendar className="h-5 w-5 text-solarized-red" />
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <XCircle className="h-5 w-5 text-red-600" />
               </div>
               <div>
                 <p className="text-sm text-solarized-base01">Cancelled</p>
-                <p className="text-xl font-bold text-solarized-base02">
-                  {interviews.filter((i) => i.status === 'cancelled').length}
-                </p>
+                <p className="text-xl font-bold text-solarized-base02">{stats.cancelled}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-md">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
+                <Calendar className="h-5 w-5 text-yellow-600" />
+              </div>
+              <div>
+                <p className="text-sm text-solarized-base01">Today</p>
+                <p className="text-xl font-bold text-solarized-base02">{stats.today}</p>
               </div>
             </div>
           </CardContent>
@@ -168,136 +762,760 @@ export default function Interviews() {
 
       <Card className="border-0 shadow-md">
         <CardHeader>
-          <CardTitle>Upcoming Interviews</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Filters</CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFilters({
+                job_application_id: '',
+                interviewer_id: '',
+                status: '',
+                date_from: '',
+                date_to: '',
+              })}
+            >
+              Clear Filters
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
+            <div className="space-y-2">
+              <Label>Job Application</Label>
+              <Select
+                value={filters.job_application_id}
+                onValueChange={(value) => setFilters({ ...filters, job_application_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All Applications" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Applications</SelectItem>
+                  {applications.map((app) => (
+                    <SelectItem key={app.id} value={app.id.toString()}>
+                      {app.candidate?.name} - {app.job?.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          ) : interviews.length === 0 ? (
-            <div className="text-center py-12">
-              <Calendar className="h-12 w-12 text-solarized-base01 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-solarized-base02">No interviews scheduled</h3>
-              <p className="text-solarized-base01 mt-1">Schedule interviews with candidates.</p>
-              <Button className="mt-4 bg-solarized-blue hover:bg-solarized-blue/90">
-                <Plus className="mr-2 h-4 w-4" />
-                Schedule Interview
-              </Button>
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Candidate</TableHead>
-                      <TableHead>Position</TableHead>
-                      <TableHead>Date & Time</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Interviewer</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {interviews.map((interview) => (
-                      <TableRow key={interview.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarFallback className="bg-solarized-blue/10 text-solarized-blue text-xs">
-                                {getInitials(interview.candidate?.name || 'UN')}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium">{interview.candidate?.name || 'Unknown'}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>{interview.job?.title || '-'}</TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3 text-solarized-base01" />
-                              {interview.interview_date}
-                            </div>
-                            <div className="flex items-center gap-1 text-sm text-solarized-base01">
-                              <Clock className="h-3 w-3" />
-                              {interview.interview_time}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            {getTypeIcon(interview.interview_type)}
-                            <span className="capitalize">{interview.interview_type}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>{interview.interviewer?.name || '-'}</TableCell>
-                        <TableCell>
-                          <Badge className={getStatusBadge(interview.status)}>
-                            {interview.status?.replace('_', ' ')}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Reschedule
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-solarized-red">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Cancel
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
 
-              {meta && meta.last_page > 1 && (
-                <div className="flex items-center justify-between mt-6">
-                  <p className="text-sm text-solarized-base01">
-                    Page {meta.current_page} of {meta.last_page}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage(page - 1)}
-                      disabled={page === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage(page + 1)}
-                      disabled={page === meta.last_page}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+            <div className="space-y-2">
+              <Label>Interviewer</Label>
+              <Select
+                value={filters.interviewer_id}
+                onValueChange={(value) => setFilters({ ...filters, interviewer_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All Interviewers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Interviewers</SelectItem>
+                  {interviewers.map((interviewer) => (
+                    <SelectItem key={interviewer.id} value={interviewer.id.toString()}>
+                      {interviewer.full_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select
+                value={filters.status}
+                onValueChange={(value) => setFilters({ ...filters, status: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="rescheduled">Rescheduled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>From Date</Label>
+              <Input
+                type="date"
+                value={filters.date_from}
+                onChange={(e) => setFilters({ ...filters, date_from: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>To Date</Label>
+              <Input
+                type="date"
+                value={filters.date_to}
+                onChange={(e) => setFilters({ ...filters, date_to: e.target.value })}
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
+
+      {calendarView ? (
+        <Card className="border-0 shadow-md">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Interview Calendar</CardTitle>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1))}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="font-medium">
+                  {format(calendarDate, 'MMMM yyyy')}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1))}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-7 gap-2">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                <div key={day} className="text-center font-medium py-2">
+                  {day}
+                </div>
+              ))}
+
+              {Array.from({ length: new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 0).getDate() }).map((_, index) => {
+                const day = index + 1;
+                const date = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), day);
+                const dayInterviews = getDayInterviews(date);
+
+                return (
+                  <div
+                    key={day}
+                    className={cn(
+                      "min-h-24 p-2 border rounded-lg",
+                      isToday(date) ? "bg-blue-50 border-blue-200" : "border-gray-200"
+                    )}
+                  >
+                    <div className="flex justify-between items-center mb-1">
+                      <span className={cn(
+                        "font-medium",
+                        isToday(date) ? "text-blue-600" : ""
+                      )}>
+                        {day}
+                      </span>
+                      {dayInterviews.length > 0 && (
+                        <Badge variant="outline" className="h-5 text-xs">
+                          {dayInterviews.length}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="space-y-1 max-h-20 overflow-y-auto">
+                      {dayInterviews.map((interview) => (
+                        <div
+                          key={interview.id}
+                          className="text-xs p-1 rounded bg-blue-100 truncate cursor-pointer hover:bg-blue-200"
+                          onClick={() => handleView(interview)}
+                          title={`${interview.application?.candidate?.name} - ${interview.application?.job?.title}`}
+                        >
+                          <div className="font-medium truncate">
+                            {interview.application?.candidate?.name}
+                          </div>
+                          <div className="truncate">
+                            {interview.scheduled_time}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-0 shadow-md">
+          <CardHeader>
+            <CardTitle>Interview Schedule</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : interviews.length === 0 ? (
+              <div className="text-center py-12">
+                <Calendar className="h-12 w-12 text-solarized-base01 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-solarized-base02">No interviews scheduled</h3>
+                <p className="text-solarized-base01 mt-1">Schedule your first interview with a candidate.</p>
+                <Button
+                  className="mt-4 bg-solarized-blue hover:bg-solarized-blue/90"
+                  onClick={() => setIsCreateDialogOpen(true)}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Schedule Interview
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Candidate</TableHead>
+                        <TableHead>Job Position</TableHead>
+                        <TableHead>Date & Time</TableHead>
+                        <TableHead>Interviewer</TableHead>
+                        <TableHead>Round</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="w-[50px]">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {interviews.map((interview) => (
+                        <TableRow key={interview.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback className="bg-solarized-blue/10 text-solarized-blue text-xs">
+                                  {getInitials(interview.application?.candidate?.name || 'UN')}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium">{interview.application?.candidate?.name || 'Unknown'}</div>
+                                <div className="text-sm text-solarized-base01">
+                                  {interview.application?.candidate?.email}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>{interview.application?.job?.title || '-'}</TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3 text-solarized-base01" />
+                                {interview.scheduled_date}
+                              </div>
+                              <div className="flex items-center gap-1 text-sm text-solarized-base01">
+                                <Clock className="h-3 w-3" />
+                                {interview.scheduled_time}
+                                {interview.duration_minutes && ` (${interview.duration_minutes} mins)`}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <User className="h-3 w-3 text-solarized-base01" />
+                              {interview.interviewer?.full_name || 'Not assigned'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">Round {interview.round_number}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getStatusBadge(interview.status)}>
+                              {interview.status.charAt(0).toUpperCase() + interview.status.slice(1)}
+                            </Badge>
+                            {interview.recommendation && (
+                              <Badge className={cn("ml-2", getRecommendationBadge(interview.recommendation))}>
+                                {interview.recommendation}
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleView(interview)}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleEdit(interview)}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                {/* <DropdownMenuSeparator /> */}
+                                {(interview.status === 'scheduled' || interview.status === 'rescheduled') && (
+                                  <>
+                                    <DropdownMenuItem onClick={() => handleFeedback(interview)}>
+                                      <MessageSquare className="mr-2 h-4 w-4" />
+                                      {interview.status === 'rescheduled' ? 'Submit Feedback (Rescheduled)' : 'Submit Feedback'}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleReschedule(interview)}>
+                                      <RefreshCw className="mr-2 h-4 w-4" />
+                                      Reschedule Again
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                                <DropdownMenuItem
+                                  className="text-red-600"
+                                  onClick={() => handleDeleteClick(interview)}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {meta && meta.last_page > 1 && (
+                  <div className="flex items-center justify-between mt-6">
+                    <p className="text-sm text-solarized-base01">
+                      Showing page {meta.current_page} of {meta.last_page} ({meta.total} total)
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(page - 1)}
+                        disabled={page === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(page + 1)}
+                        disabled={page === meta.last_page}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* View Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Interview Details</DialogTitle>
+            <DialogDescription>
+              Complete information about this interview
+            </DialogDescription>
+          </DialogHeader>
+          {selectedInterview && (
+            <div className="space-y-6 py-4">
+              <Tabs defaultValue="details">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="details">Details</TabsTrigger>
+                  <TabsTrigger value="candidate">Candidate</TabsTrigger>
+                  <TabsTrigger value="feedback">Feedback</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="details" className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-solarized-base01">Candidate</Label>
+                      <p className="font-medium">{selectedInterview.application?.candidate?.name}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-solarized-base01">Job Position</Label>
+                      <p className="font-medium">{selectedInterview.application?.job?.title}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-solarized-base01">Interviewer</Label>
+                      <p className="font-medium">{selectedInterview.interviewer?.full_name || 'Not assigned'}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-solarized-base01">Round Number</Label>
+                      <p className="font-medium">{selectedInterview.round_number}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-solarized-base01">Date & Time</Label>
+                      <p className="font-medium">{formatDateTime(selectedInterview.scheduled_date, selectedInterview.scheduled_time)}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-solarized-base01">Duration</Label>
+                      <p className="font-medium">{selectedInterview.duration_minutes || 60} minutes</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-solarized-base01">Location</Label>
+                      <p className="font-medium">{selectedInterview.location || 'Not specified'}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-solarized-base01">Meeting Link</Label>
+                      {selectedInterview.meeting_link ? (
+                        <a
+                          href={selectedInterview.meeting_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium text-solarized-blue hover:underline"
+                        >
+                          Join Meeting
+                        </a>
+                      ) : (
+                        <p className="font-medium">Not provided</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-solarized-base01">Notes</Label>
+                    <div className="bg-solarized-base03/10 p-4 rounded">
+                      {selectedInterview.notes || 'No notes'}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="candidate" className="space-y-4">
+                  {selectedInterview.application?.candidate && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-solarized-base01">Name</Label>
+                        <p className="font-medium">{selectedInterview.application.candidate.name}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-solarized-base01">Email</Label>
+                        <p className="font-medium">{selectedInterview.application.candidate.email}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-solarized-base01">Phone</Label>
+                        <p className="font-medium">{selectedInterview.application.candidate.phone || 'Not provided'}</p>
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="feedback" className="space-y-4">
+                  {selectedInterview.status === 'completed' ? (
+                    <>
+                      <div className="space-y-2">
+                        <Label className="text-solarized-base01">Status</Label>
+                        <div className="flex items-center gap-2">
+                          <Badge className={getStatusBadge(selectedInterview.status)}>
+                            {selectedInterview.status.charAt(0).toUpperCase() + selectedInterview.status.slice(1)}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-solarized-base01">Rating</Label>
+                        <div className="flex items-center gap-1">
+                          {[...Array(5)].map((_, i) => (
+                            <div
+                              key={i}
+                              className={`w-6 h-6 rounded-full ${i < (selectedInterview.rating || 0) ? 'bg-yellow-400' : 'bg-gray-200'}`}
+                            />
+                          ))}
+                          <span className="ml-2">({selectedInterview.rating}/5)</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-solarized-base01">Feedback</Label>
+                        <div className="bg-solarized-base03/10 p-4 rounded">
+                          {selectedInterview.feedback || 'No feedback provided'}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-8">
+                      <MessageSquare className="h-12 w-12 text-solarized-base01 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-solarized-base02">No feedback yet</h3>
+                      <p className="text-solarized-base01 mt-1">
+                        Feedback will be available after the interview is completed.
+                      </p>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Interview</DialogTitle>
+            <DialogDescription>
+              Update interview details
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdate}>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit_scheduled_date">Date *</Label>
+                  <Input
+                    id="edit_scheduled_date"
+                    type="date"
+                    value={formData.scheduled_date}
+                    onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit_scheduled_time">Time *</Label>
+                  <Input
+                    id="edit_scheduled_time"
+                    type="time"
+                    value={formData.scheduled_time}
+                    onChange={(e) => setFormData({ ...formData, scheduled_time: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit_interviewer_id">Interviewer</Label>
+                  <Select
+                    value={formData.interviewer_id}
+                    onValueChange={(value) => setFormData({ ...formData, interviewer_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select interviewer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {interviewers.map((interviewer) => (
+                        <SelectItem key={interviewer.id} value={interviewer.id.toString()}>
+                          {interviewer.full_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit_status">Status</Label>
+                  <Select
+                    value={selectedInterview?.status || 'scheduled'}
+                    onValueChange={(value) => {
+                      if (selectedInterview) {
+                        setSelectedInterview({
+                          ...selectedInterview,
+                          status: value as 'scheduled' | 'completed' | 'cancelled' | 'rescheduled'
+                        });
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="scheduled">Scheduled</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                      <SelectItem value="rescheduled">Rescheduled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit_notes">Notes</Label>
+                <Textarea
+                  id="edit_notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-solarized-blue hover:bg-solarized-blue/90">
+                Update Interview
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Feedback Dialog */}
+      <Dialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Submit Interview Feedback</DialogTitle>
+            <DialogDescription>
+              Provide feedback for the completed interview
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleFeedbackSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="feedback">Feedback *</Label>
+                <Textarea
+                  id="feedback"
+                  value={feedbackFormData.feedback}
+                  onChange={(e) => setFeedbackFormData({ ...feedbackFormData, feedback: e.target.value })}
+                  placeholder="Enter detailed feedback about the interview..."
+                  rows={4}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="rating">Rating (1-5)</Label>
+                <Select
+                  value={feedbackFormData.rating}
+                  onValueChange={(value) => setFeedbackFormData({ ...feedbackFormData, rating: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select rating" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5].map((num) => (
+                      <SelectItem key={num} value={num.toString()}>
+                        {num} Star{num !== 1 ? 's' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="recommendation">Recommendation</Label>
+                <Select
+                  value={feedbackFormData.recommendation}
+                  onValueChange={(value: 'proceed' | 'hold' | 'reject') =>
+                    setFeedbackFormData({ ...feedbackFormData, recommendation: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select recommendation" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="proceed">Proceed to next round</SelectItem>
+                    <SelectItem value="hold">On Hold</SelectItem>
+                    <SelectItem value="reject">Reject</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsFeedbackDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-solarized-blue hover:bg-solarized-blue/90">
+                Submit Feedback
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reschedule Dialog */}
+      <Dialog open={isRescheduleDialogOpen} onOpenChange={setIsRescheduleDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reschedule Interview</DialogTitle>
+            <DialogDescription>
+              Select new date and time for the interview
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleRescheduleSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="reschedule_date">New Date *</Label>
+                <Input
+                  id="reschedule_date"
+                  type="date"
+                  value={rescheduleFormData.scheduled_date}
+                  onChange={(e) => setRescheduleFormData({ ...rescheduleFormData, scheduled_date: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="reschedule_time">New Time *</Label>
+                <Input
+                  id="reschedule_time"
+                  type="time"
+                  value={rescheduleFormData.scheduled_time}
+                  onChange={(e) => setRescheduleFormData({ ...rescheduleFormData, scheduled_time: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="reschedule_notes">Notes</Label>
+                <Textarea
+                  id="reschedule_notes"
+                  value={rescheduleFormData.notes}
+                  onChange={(e) => setRescheduleFormData({ ...rescheduleFormData, notes: e.target.value })}
+                  placeholder="Reason for rescheduling..."
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsRescheduleDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-solarized-blue hover:bg-solarized-blue/90">
+                Reschedule
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Interview</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this interview? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {selectedInterview && (
+              <div className="space-y-2">
+                <p className="font-medium">{selectedInterview.application?.candidate?.name}</p>
+                <p className="text-sm text-solarized-base01">
+                  {selectedInterview.application?.job?.title} - {formatDateTime(selectedInterview.scheduled_date, selectedInterview.scheduled_time)}
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" className="bg-red-600 hover:bg-red-700" onClick={handleDelete}>
+              Delete Interview
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

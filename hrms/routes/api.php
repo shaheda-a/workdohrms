@@ -245,6 +245,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/salary-slips/generate', [SalarySlipController::class, 'generate']);
     Route::post('/salary-slips/bulk-generate', [SalarySlipController::class, 'bulkGenerate']);
     Route::post('/salary-slips/{salarySlip}/mark-paid', [SalarySlipController::class, 'markPaid']);
+    Route::get('payroll/salary-slips/{id}/download', [SalarySlipController::class, 'download']);
 
     // ============================================
     // PROMPT SET 13: Tax Management

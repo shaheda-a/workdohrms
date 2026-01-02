@@ -8,6 +8,8 @@ use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Log;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 /**
  * Salary Slip Controller
@@ -45,7 +47,7 @@ class SalarySlipController extends Controller
 
             return $this->success($result, 'Salary slips retrieved successfully');
         } catch (\Exception $e) {
-            return $this->serverError('Failed to retrieve salary slips: '.$e->getMessage());
+            return $this->serverError('Failed to retrieve salary slips: ' . $e->getMessage());
         }
     }
 
@@ -73,7 +75,7 @@ class SalarySlipController extends Controller
         } catch (ValidationException $e) {
             return $this->validationError($e->errors());
         } catch (\Exception $e) {
-            return $this->serverError('Failed to generate salary slip: '.$e->getMessage());
+            return $this->serverError('Failed to generate salary slip: ' . $e->getMessage());
         }
     }
 
@@ -91,7 +93,7 @@ class SalarySlipController extends Controller
 
             return $this->success($slip, 'Salary slip retrieved successfully');
         } catch (\Exception $e) {
-            return $this->serverError('Failed to retrieve salary slip: '.$e->getMessage());
+            return $this->serverError('Failed to retrieve salary slip: ' . $e->getMessage());
         }
     }
 
@@ -109,7 +111,7 @@ class SalarySlipController extends Controller
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return $this->notFound('Salary slip not found');
         } catch (\Exception $e) {
-            return $this->serverError('Failed to mark salary slip as paid: '.$e->getMessage());
+            return $this->serverError('Failed to mark salary slip as paid: ' . $e->getMessage());
         }
     }
 
@@ -139,7 +141,7 @@ class SalarySlipController extends Controller
         } catch (ValidationException $e) {
             return $this->validationError($e->errors());
         } catch (\Exception $e) {
-            return $this->serverError('Failed to generate salary slips: '.$e->getMessage());
+            return $this->serverError('Failed to generate salary slips: ' . $e->getMessage());
         }
     }
 
@@ -167,7 +169,7 @@ class SalarySlipController extends Controller
         } catch (ValidationException $e) {
             return $this->validationError($e->errors());
         } catch (\Exception $e) {
-            return $this->serverError('Failed to mark salary slips as paid: '.$e->getMessage());
+            return $this->serverError('Failed to mark salary slips as paid: ' . $e->getMessage());
         }
     }
 
@@ -184,7 +186,7 @@ class SalarySlipController extends Controller
 
             return $this->success($summary, 'Monthly payroll summary retrieved successfully');
         } catch (\Exception $e) {
-            return $this->serverError('Failed to retrieve monthly summary: '.$e->getMessage());
+            return $this->serverError('Failed to retrieve monthly summary: ' . $e->getMessage());
         }
     }
 
@@ -198,7 +200,7 @@ class SalarySlipController extends Controller
 
             return $this->collection($history, 'Salary history retrieved successfully');
         } catch (\Exception $e) {
-            return $this->serverError('Failed to retrieve salary history: '.$e->getMessage());
+            return $this->serverError('Failed to retrieve salary history: ' . $e->getMessage());
         }
     }
 
@@ -212,13 +214,130 @@ class SalarySlipController extends Controller
 
             return $this->success($stats, 'Payroll statistics retrieved successfully');
         } catch (\Exception $e) {
-            return $this->serverError('Failed to retrieve payroll statistics: '.$e->getMessage());
+            return $this->serverError('Failed to retrieve payroll statistics: ' . $e->getMessage());
         }
     }
+
+    // public function download(int $id): \Symfony\Component\HttpFoundation\Response
+    // {
+    //     try {
+    //         $slip = $this->service->findById($id);
+
+    //         if (!$slip) {
+    //             return response()->json(['message' => 'Salary slip not found'], 404);
+    //         }
+
+    //         // Generate PDF using your preferred method
+    //         // Option 1: Using DomPDF/Laravel PDF
+    //         // $pdf = \PDF::loadView('pdf.salary-slip', ['slip' => $slip]);
+            
+    //         // Option 2: Using a PDF service
+    //         $pdf = $this->service->generateSalarySlipPdf($slip);
+            
+    //         if (!$pdf) {
+    //             return response()->json(['message' => 'Failed to generate PDF'], 500);
+    //         }
+
+    //         $filename = "salary-slip-{$slip->slip_reference}-{$slip->salary_period}.pdf";
+            
+    //         return response($pdf)
+    //             ->header('Content-Type', 'application/pdf')
+    //             ->header('Content-Disposition', "attachment; filename=\"{$filename}\"")
+    //             ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+    //             ->header('Pragma', 'no-cache')
+    //             ->header('Expires', '0');
+
+    //     } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+    //         return response()->json(['message' => 'Salary slip not found'], 404);
+    //     } catch (\Exception $e) {
+    //         Log::error('Failed to download salary slip PDF: ' . $e->getMessage());
+    //         return response()->json(['message' => 'Failed to generate PDF: ' . $e->getMessage()], 500);
+    //     }
+    // }
+
 
     /**
      * Delete a salary slip.
      */
+
+
+    /**
+     * Download salary slip as PDF.
+     */
+    public function download(int $id): \Symfony\Component\HttpFoundation\Response
+    {
+        try {
+            $slip = $this->service->findById($id);
+
+            if (!$slip) {
+                return response()->json(['message' => 'Salary slip not found'], 404);
+            }
+
+            // Update this line in the download method
+            if (!$slip->relationLoaded('staff_member')) {
+                $slip->load(['staff_member', 'staff_member.job_title', 'staff_member.division']);
+            }
+            // Define company info
+            $companyInfo = [
+                'name' => env('APP_COMPANY_NAME', config('app.name', 'HRMS Company')),
+                'address' => env('APP_COMPANY_ADDRESS', 'Corporate Office, City, Country'),
+                'phone' => env('APP_COMPANY_PHONE', '+1 (234) 567-8900'),
+                'email' => env('APP_COMPANY_EMAIL', 'hr@company.com'),
+            ];
+
+            // Decode JSON fields if they're strings
+            $jsonFields = [
+                'benefits_breakdown',
+                'incentives_breakdown',
+                'bonus_breakdown',
+                'overtime_breakdown',
+                'contributions_breakdown',
+                'deductions_breakdown',
+                'advances_breakdown',
+                'tax_breakdown'
+            ];
+
+            foreach ($jsonFields as $field) {
+                if (isset($slip->$field) && is_string($slip->$field)) {
+                    $decoded = json_decode($slip->$field, true);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        $slip->$field = $decoded;
+                    } else {
+                        $slip->$field = [];
+                    }
+                } elseif (!isset($slip->$field)) {
+                    $slip->$field = [];
+                }
+            }
+
+            // Generate PDF
+            $pdf = PDF::loadView('pdf.salary-slip', [
+                'slip' => $slip,
+                'company' => (object) $companyInfo,
+            ]);
+
+            $pdf->setPaper('A4', 'portrait');
+            $pdf->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'defaultFont' => 'sans-serif',
+            ]);
+
+            $filename = "salary-slip-{$slip->slip_reference}-{$slip->salary_period}.pdf";
+
+            return response($pdf->output())
+                ->header('Content-Type', 'application/pdf')
+                ->header('Content-Disposition', "attachment; filename=\"{$filename}\"")
+                ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                ->header('Pragma', 'no-cache')
+                ->header('Expires', '0');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Salary slip not found'], 404);
+        } catch (\Exception $e) {
+            Log::error('Failed to download salary slip PDF: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to generate PDF: ' . $e->getMessage()], 500);
+        }
+    }
     public function destroy(int $id): JsonResponse
     {
         try {
@@ -228,7 +347,7 @@ class SalarySlipController extends Controller
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return $this->notFound('Salary slip not found');
         } catch (\Exception $e) {
-            return $this->serverError('Failed to delete salary slip: '.$e->getMessage());
+            return $this->serverError('Failed to delete salary slip: ' . $e->getMessage());
         }
     }
 }

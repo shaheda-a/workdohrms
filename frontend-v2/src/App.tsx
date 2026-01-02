@@ -93,6 +93,8 @@ import Permissions from './pages/admin/Permissions';
 import BenefitTypes from './pages/payroll/BenefitTypes';
 import WithholdingTypes from './pages/payroll/WithHoldingType';
 import JobCategories from './pages/recruitment/JobCategory';
+import JobStages from './pages/recruitment/JobStages';
+import JobApplications from './pages/recruitment/JobApplications';
 
 function App() {
   return (
@@ -168,6 +170,8 @@ function App() {
             <Route path="/recruitment/jobs" element={<Jobs />} />
             <Route path="/recruitment/candidates" element={<Candidates />} />
             <Route path="/recruitment/interviews" element={<Interviews />} />
+            <Route path="/recruitment/job/stages" element={<JobStages />} />
+            <Route path="/recruitment/applications" element={<JobApplications />} />
 
             {/* Performance */}
             <Route path="/performance" element={<Goals />} />

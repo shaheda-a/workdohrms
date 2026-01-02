@@ -105,14 +105,14 @@ export default function SalarySlips() {
       return;
       
       // Uncomment when backend implements download endpoint
-      // const response = await payrollService.downloadSlip(id);
-      // const url = window.URL.createObjectURL(new Blob([response.data]));
-      // const link = document.createElement('a');
-      // link.href = url;
-      // link.setAttribute('download', `salary-slip-${id}.pdf`);
-      // document.body.appendChild(link);
-      // link.click();
-      // link.remove();
+      const response = await payrollService.downloadSlip(id);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `salary-slip-${id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
     } catch (error) {
       console.error('Failed to download slip:', error);
       showAlert('error', 'Error', 'PDF download not available yet');
@@ -313,13 +313,13 @@ export default function SalarySlips() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => handleDownload(slip.id)}
-                                title="Download PDF (Coming Soon)"
+                                // title="Download PDF (Coming Soon)"
                                 className="relative group"
                               >
                                 <Download className="h-4 w-4" />
-                                <span className="absolute -top-1 -right-1">
+                                {/* <span className="absolute -top-1 -right-1">
                                   <AlertCircle className="h-3 w-3 text-yellow-500" />
-                                </span>
+                                </span> */}
                               </Button>
                             </div>
                           </TableCell>

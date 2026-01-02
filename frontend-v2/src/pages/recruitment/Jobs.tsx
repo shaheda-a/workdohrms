@@ -36,7 +36,8 @@ import { Skeleton } from '../../components/ui/skeleton';
 import {
   Plus, Briefcase, MapPin, Users, ChevronLeft,
   ChevronRight, MoreHorizontal, Eye, Edit, Trash2,
-  Calendar, DollarSign, Award, Target
+  Calendar, DollarSign, Award, Target,
+  MoreVertical
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -179,7 +180,8 @@ const fetchJobs = async () => {
     const response = await recruitmentService.getJobs(params);
 
     if (response.data.success) {
-      const jobsData = response.data.data.data || [];
+      debugger;
+      const jobsData = response.data.data || [];
       
       // Map API data to match our Job interface
       const mappedJobs = jobsData.map((job: any) => ({
@@ -1016,7 +1018,7 @@ const handleView = async (job: Job) => {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
+                                <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">

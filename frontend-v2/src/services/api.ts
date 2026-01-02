@@ -243,19 +243,101 @@ export const recruitmentService = {
   }>) => api.put(`/job-categories/${id}`, data),
 
   deleteJobCategory: (id: number) => api.delete(`/job-categories/${id}`),
-  getCandidates: (params?: { job_id?: number; page?: number }) => api.get('/candidates', { params }),
+  getCandidates: (params?: Record<string, unknown>) => api.get('/candidates', { params }),
   getCandidate: (id: number) => api.get(`/candidates/${id}`),
-  createCandidate: (data: Record<string, unknown>) => api.post('/candidates', data),
-  updateCandidate: (id: number, data: Record<string, unknown>) => api.put(`/candidates/${id}`, data),
+  createCandidate: (data: FormData | Record<string, unknown>) => {
+    if (data instanceof FormData) {
+      return api.post('/candidates', data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+    }
+    return api.post('/candidates', data);
+  },
+  updateCandidate: (id: number, data: Record<string, unknown>) =>
+    api.put(`/candidates/${id}`, data),
   deleteCandidate: (id: number) => api.delete(`/candidates/${id}`),
+  archiveCandidate: (id: number) => api.post(`/candidates/${id}/archive`),
+  convertToEmployee: (id: number, data: Record<string, unknown>) =>
+    api.post(`/candidates/${id}/convert-to-employee`, data),
   getApplications: (params?: { job_id?: number; status?: string; page?: number }) =>
     api.get('/job-applications', { params }),
   updateApplicationStatus: (id: number, data: { status: string }) =>
     api.put(`/job-applications/${id}/status`, data),
-  getInterviews: (params?: { page?: number }) => api.get('/interview-schedules', { params }),
+  // Interview methods
+  getInterviews: (params?: Record<string, unknown>) => api.get('/interview-schedules', { params }),
   scheduleInterview: (data: Record<string, unknown>) => api.post('/interview-schedules', data),
-  submitFeedback: (id: number, data: Record<string, unknown>) =>
-    api.post(`/interview-schedules/${id}/feedback`, data),
+  updateInterview: (id: number, data: Record<string, unknown>) => api.put(`/interview-schedules/${id}`, data),
+  deleteInterview: (id: number) => api.delete(`/interview-schedules/${id}`),
+  submitFeedback: (id: number, data: Record<string, unknown>) => api.post(`/interview-schedules/${id}/feedback`, data),
+  rescheduleInterview: (id: number, data: Record<string, unknown>) => api.post(`/interview-schedules/${id}/reschedule`, data),
+  getCalendarInterviews: (params?: Record<string, unknown>) => api.get('/interviews/calendar', { params }),
+  getTodayInterviews: () => api.get('/interviews/today'),
+
+  // Staff members for interviewers
+  getStaffMembers: (params?: Record<string, unknown>) => api.get('/staff-members', { params }),
+
+  // Job Stages
+  getJobStages: (params?: {
+    paginate?: boolean;
+    page?: number;
+    per_page?: number;
+  }) => api.get('/job-stages', { params }),
+
+  createJobStage: (data: {
+    title: string;
+    color?: string;
+    is_default?: boolean;
+  }) => api.post('/job-stages', data),
+
+  updateJobStage: (id: number, data: Partial<{
+    title: string;
+    color?: string;
+    is_default?: boolean;
+  }>) => api.put(`/job-stages/${id}`, data),
+
+  deleteJobStage: (id: number) => api.delete(`/job-stages/${id}`),
+
+  reorderJobStages: (data: {
+    stages: Array<{ id: number; order: number }>
+  }) => api.post('/job-stages/reorder', data),
+
+  // Job Applications
+  getJobApplications: (params?: {
+    job_posting_id?: number;
+    job_stage_id?: number;
+    status?: string;
+    paginate?: boolean;
+    page?: number;
+    per_page?: number;
+  }) => api.get('/job-applications', { params }),
+
+  createJobApplication: (jobId: number, data: {
+    candidate_id: number;
+    custom_answers?: Record<string, unknown>;
+  }) => api.post(`/jobs/${jobId}/applications`, data),
+
+  getJobApplication: (id: number) => api.get(`/job-applications/${id}`),
+
+  moveJobApplicationStage: (id: number, data: {
+    job_stage_id: number
+  }) => api.post(`/job-applications/${id}/move-stage`, data),
+
+  rateJobApplication: (id: number, data: {
+    rating: number;
+    notes?: string;
+  }) => api.post(`/job-applications/${id}/rate`, data),
+
+  addJobApplicationNote: (id: number, data: {
+    note: string;
+  }) => api.post(`/job-applications/${id}/notes`, data),
+
+  shortlistJobApplication: (id: number) => api.post(`/job-applications/${id}/shortlist`),
+
+  rejectJobApplication: (id: number) => api.post(`/job-applications/${id}/reject`),
+
+  hireJobApplication: (id: number) => api.post(`/job-applications/${id}/hire`),
 };
 
 export const performanceService = {
@@ -268,8 +350,12 @@ export const performanceService = {
   getAppraisals: (params?: { staff_member_id?: number; page?: number }) => api.get('/appraisal-records', { params }),
   getAppraisalCycles: () => api.get('/appraisal-cycles'),
   createAppraisalCycle: (data: Record<string, unknown>) => api.post('/appraisal-cycles', data),
+  activateCycle: (id: number) => api.post(`/appraisal-cycles/${id}/activate`),
+  closeCycle: (id: number) => api.post(`/appraisal-cycles/${id}/close`),
+  deleteCycle: (id: number) => api.delete(`/appraisal-cycles/${id}`),
   submitSelfReview: (id: number, data: Record<string, unknown>) => api.post(`/appraisal-records/${id}/self-review`, data),
   submitManagerReview: (id: number, data: Record<string, unknown>) => api.post(`/appraisal-records/${id}/manager-review`, data),
+  getStaffMembers: () => api.get('/staff-members'),
 };
 
 export const assetService = {
