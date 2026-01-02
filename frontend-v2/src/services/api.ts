@@ -351,6 +351,7 @@ export const performanceService = {
   getAppraisals: (params?: { staff_member_id?: number; page?: number }) => api.get('/appraisal-records', { params }),
   getAppraisalCycles: () => api.get('/appraisal-cycles'),
   createAppraisalCycle: (data: Record<string, unknown>) => api.post('/appraisal-cycles', data),
+  updateAppraisalCycle: (id: number, data: Record<string, unknown>) => api.put(`/appraisal-cycles/${id}`, data),
   activateCycle: (id: number) => api.post(`/appraisal-cycles/${id}/activate`),
   closeCycle: (id: number) => api.post(`/appraisal-cycles/${id}/close`),
   deleteCycle: (id: number) => api.delete(`/appraisal-cycles/${id}`),

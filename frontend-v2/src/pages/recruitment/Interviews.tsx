@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { recruitmentService } from '../../services/api';
-import { showAlert } from '../../lib/sweetalert';
+import { showAlert, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -269,6 +269,7 @@ export default function Interviews() {
       setTodayInterviews(response.data.data || []);
     } catch (error) {
       console.error('Failed to fetch today interviews:', error);
+      showAlert('error', 'Error', 'Failed to fetch today interviews');
     }
   };
 
@@ -294,6 +295,7 @@ export default function Interviews() {
       };
 
       await recruitmentService.scheduleInterview(data);
+      showAlert('success', 'Interview Scheduled!', 'Interview scheduled successfully', 2000);
       setIsCreateDialogOpen(false);
       resetCreateForm();
       fetchInterviews();
@@ -301,7 +303,7 @@ export default function Interviews() {
       if (calendarView) fetchCalendarInterviews();
     } catch (error: any) {
       console.error('Failed to schedule interview:', error);
-      alert(error.response?.data?.message || 'Failed to schedule interview');
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to schedule interview'));
     }
   };
 
@@ -315,6 +317,7 @@ export default function Interviews() {
 
     try {
       await recruitmentService.submitFeedback(selectedInterview.id, feedbackFormData);
+      showAlert('success', 'Feedback Submitted!', 'Interview feedback submitted successfully', 2000);
       setIsFeedbackDialogOpen(false);
       resetFeedbackForm();
       fetchInterviews();
@@ -322,7 +325,7 @@ export default function Interviews() {
       if (calendarView) fetchCalendarInterviews();
     } catch (error: any) {
       console.error('Failed to submit feedback:', error);
-      alert(error.response?.data?.message || 'Failed to submit feedback');
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to submit feedback'));
     }
   };
 
@@ -336,6 +339,7 @@ export default function Interviews() {
 
     try {
       await recruitmentService.rescheduleInterview(selectedInterview.id, rescheduleFormData);
+      showAlert('success', 'Rescheduled!', 'Interview rescheduled successfully', 2000);
       setIsRescheduleDialogOpen(false);
       resetRescheduleForm();
       fetchInterviews();
@@ -343,7 +347,7 @@ export default function Interviews() {
       if (calendarView) fetchCalendarInterviews();
     } catch (error: any) {
       console.error('Failed to reschedule interview:', error);
-      alert(error.response?.data?.message || 'Failed to reschedule interview');
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to reschedule interview'));
     }
   };
 
@@ -362,14 +366,15 @@ export default function Interviews() {
       };
 
       await recruitmentService.updateInterview(selectedInterview.id, data);
+      showAlert('success', 'Updated!', 'Interview updated successfully', 2000);
       setIsEditDialogOpen(false);
       resetCreateForm();
       fetchInterviews();
       fetchTodayInterviews();
       if (calendarView) fetchCalendarInterviews();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to update interview:', error);
-      alert(error.response?.data?.message || 'Failed to update interview');
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to update interview'));
     }
   };
 
