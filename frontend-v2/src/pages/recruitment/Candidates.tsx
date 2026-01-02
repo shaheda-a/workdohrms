@@ -156,19 +156,12 @@ export default function Candidates() {
     } catch (error) {
       console.error('Failed to fetch candidates:', error);
       setCandidates([]);
+      showAlert('error', 'Error', 'Failed to fetch candidates');
       setMeta(null);
     } finally {
       setIsLoading(false);
     }
-  } catch (error) {
-    console.error('Failed to fetch candidates:', error);
-    showAlert('error', 'Error', 'Failed to fetch candidates');
-    setCandidates([]);
-    setMeta(null);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const handleSearch = () => {
     setPage(1);
@@ -202,17 +195,17 @@ export default function Candidates() {
 
         await recruitmentService.createCandidate(formDataToSend);
       }
-      showAlert(
+           showAlert(
         'success',
         'Success!',
         editingCandidate ? 'Candidate updated successfully' : 'Candidate created successfully',
         2000
-      );
+      ); 
       setIsDialogOpen(false);
       setEditingCandidate(null);
       resetForm();
       fetchCandidates();
-    } catch (error: unknown) {
+    } catch (error) {
       console.error('Failed to save candidate:', error);
       showAlert('error', 'Error', getErrorMessage(error, 'Failed to save candidate'));
     }

@@ -274,8 +274,8 @@ class SalarySlipController extends Controller
             }
 
             // Update this line in the download method
-            if (!$slip->relationLoaded('staff_member')) {
-                $slip->load(['staff_member', 'staff_member.job_title', 'staff_member.division']);
+            if (!$slip->relationLoaded('staffMember')) {
+                $slip->load(['staffMember', 'staffMember.job_title', 'staffMember.division']);
             }
             // Define company info
             $companyInfo = [

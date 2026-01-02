@@ -122,13 +122,6 @@
         .info-value {
             display: inline-block;
         }
-        .employee-info {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            border-left: 4px solid #3498db;
-        }
     </style>
 </head>
 <body>
@@ -151,33 +144,42 @@
         <!-- Employee Information -->
         <div class="section">
             <div class="section-title">Employee Information</div>
-            <div class="employee-info">
-                <div class="info-row">
-                    <span class="info-label">Employee Name:</span>
-                    <span class="info-value">{{ $slip->staff_member->full_name ?? 'N/A' }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Employee ID:</span>
-                    <span class="info-value">{{ $slip->staff_member->staff_code ?? 'N/A' }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Designation:</span>
-                    <span class="info-value">{{ $slip->staff_member->job_title->title ?? 'N/A' }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Department:</span>
-                    <span class="info-value">
-                        @if(isset($slip->staff_member->division->name) && $slip->staff_member->division->name)
-                            {{ $slip->staff_member->division->name }}
-                        @else
-                            N/A
-                        @endif
-                    </span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Pay Date:</span>
-                    <span class="info-value">{{ date('Y-m-d') }}</span>
-                </div>
+            <div class="info-row">
+                <span class="info-label">Employee Name:</span>
+                <span class="info-value">
+                    @php
+                        $staffMember = $slip->staffMember ?? $slip->staff_member ?? null;
+                    @endphp
+                    {{ $staffMember->full_name ?? 'N/A' }}
+                </span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Employee ID:</span>
+                <span class="info-value">
+                    {{ $staffMember->staff_code ?? 'N/A' }}
+                </span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Designation:</span>
+                <span class="info-value">
+                    @php
+                        $jobTitle = $staffMember->jobTitle ?? $staffMember->job_title ?? null;
+                    @endphp
+                    {{ $jobTitle->title ?? 'N/A' }}
+                </span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Department:</span>
+                <span class="info-value">
+                    @php
+                        $division = $staffMember->division ?? null;
+                    @endphp
+                    {{ $division->name ?? 'N/A' }}
+                </span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Pay Date:</span>
+                <span class="info-value">{{ date('Y-m-d') }}</span>
             </div>
         </div>
 
@@ -200,12 +202,7 @@
 
                     <!-- Benefits -->
                     @php
-                        $benefits = [];
-                        if (isset($slip->benefits_breakdown) && is_array($slip->benefits_breakdown)) {
-                            $benefits = $slip->benefits_breakdown;
-                        } elseif (isset($slip->benefits_breakdown) && is_string($slip->benefits_breakdown)) {
-                            $benefits = json_decode($slip->benefits_breakdown, true) ?? [];
-                        }
+                        $benefits = is_array($slip->benefits_breakdown) ? $slip->benefits_breakdown : [];
                     @endphp
                     
                     @if(!empty($benefits))
@@ -214,69 +211,6 @@
                             <tr>
                                 <td>{{ $benefit['name'] ?? 'Benefit' }}</td>
                                 <td class="text-right">{{ number_format($benefit['amount'], 2) }}</td>
-                            </tr>
-                            @endif
-                        @endforeach
-                    @endif
-
-                    <!-- Incentives -->
-                    @php
-                        $incentives = [];
-                        if (isset($slip->incentives_breakdown) && is_array($slip->incentives_breakdown)) {
-                            $incentives = $slip->incentives_breakdown;
-                        } elseif (isset($slip->incentives_breakdown) && is_string($slip->incentives_breakdown)) {
-                            $incentives = json_decode($slip->incentives_breakdown, true) ?? [];
-                        }
-                    @endphp
-                    
-                    @if(!empty($incentives))
-                        @foreach($incentives as $incentive)
-                            @if(is_array($incentive) && isset($incentive['amount']) && floatval($incentive['amount']) > 0)
-                            <tr>
-                                <td>{{ $incentive['name'] ?? 'Incentive' }}</td>
-                                <td class="text-right">{{ number_format($incentive['amount'], 2) }}</td>
-                            </tr>
-                            @endif
-                        @endforeach
-                    @endif
-
-                    <!-- Bonus -->
-                    @php
-                        $bonuses = [];
-                        if (isset($slip->bonus_breakdown) && is_array($slip->bonus_breakdown)) {
-                            $bonuses = $slip->bonus_breakdown;
-                        } elseif (isset($slip->bonus_breakdown) && is_string($slip->bonus_breakdown)) {
-                            $bonuses = json_decode($slip->bonus_breakdown, true) ?? [];
-                        }
-                    @endphp
-                    
-                    @if(!empty($bonuses))
-                        @foreach($bonuses as $bonus)
-                            @if(is_array($bonus) && isset($bonus['amount']) && floatval($bonus['amount']) > 0)
-                            <tr>
-                                <td>{{ $bonus['name'] ?? 'Bonus' }}</td>
-                                <td class="text-right">{{ number_format($bonus['amount'], 2) }}</td>
-                            </tr>
-                            @endif
-                        @endforeach
-                    @endif
-
-                    <!-- Overtime -->
-                    @php
-                        $overtimes = [];
-                        if (isset($slip->overtime_breakdown) && is_array($slip->overtime_breakdown)) {
-                            $overtimes = $slip->overtime_breakdown;
-                        } elseif (isset($slip->overtime_breakdown) && is_string($slip->overtime_breakdown)) {
-                            $overtimes = json_decode($slip->overtime_breakdown, true) ?? [];
-                        }
-                    @endphp
-                    
-                    @if(!empty($overtimes))
-                        @foreach($overtimes as $overtime)
-                            @if(is_array($overtime) && isset($overtime['amount']) && floatval($overtime['amount']) > 0)
-                            <tr>
-                                <td>{{ $overtime['name'] ?? 'Overtime' }}</td>
-                                <td class="text-right">{{ number_format($overtime['amount'], 2) }}</td>
                             </tr>
                             @endif
                         @endforeach
@@ -302,35 +236,9 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- Tax -->
-                    @php
-                        $taxes = [];
-                        if (isset($slip->tax_breakdown) && is_array($slip->tax_breakdown)) {
-                            $taxes = $slip->tax_breakdown;
-                        } elseif (isset($slip->tax_breakdown) && is_string($slip->tax_breakdown)) {
-                            $taxes = json_decode($slip->tax_breakdown, true) ?? [];
-                        }
-                    @endphp
-                    
-                    @if(!empty($taxes))
-                        @foreach($taxes as $tax)
-                            @if(is_array($tax) && isset($tax['amount']) && floatval($tax['amount']) > 0)
-                            <tr>
-                                <td>{{ $tax['name'] ?? 'Tax' }}</td>
-                                <td class="text-right">{{ number_format($tax['amount'], 2) }}</td>
-                            </tr>
-                            @endif
-                        @endforeach
-                    @endif
-
                     <!-- Deductions -->
                     @php
-                        $deductions = [];
-                        if (isset($slip->deductions_breakdown) && is_array($slip->deductions_breakdown)) {
-                            $deductions = $slip->deductions_breakdown;
-                        } elseif (isset($slip->deductions_breakdown) && is_string($slip->deductions_breakdown)) {
-                            $deductions = json_decode($slip->deductions_breakdown, true) ?? [];
-                        }
+                        $deductions = is_array($slip->deductions_breakdown) ? $slip->deductions_breakdown : [];
                     @endphp
                     
                     @if(!empty($deductions))
@@ -339,48 +247,6 @@
                             <tr>
                                 <td>{{ $deduction['name'] ?? 'Deduction' }}</td>
                                 <td class="text-right">{{ number_format($deduction['amount'], 2) }}</td>
-                            </tr>
-                            @endif
-                        @endforeach
-                    @endif
-
-                    <!-- Contributions -->
-                    @php
-                        $contributions = [];
-                        if (isset($slip->contributions_breakdown) && is_array($slip->contributions_breakdown)) {
-                            $contributions = $slip->contributions_breakdown;
-                        } elseif (isset($slip->contributions_breakdown) && is_string($slip->contributions_breakdown)) {
-                            $contributions = json_decode($slip->contributions_breakdown, true) ?? [];
-                        }
-                    @endphp
-                    
-                    @if(!empty($contributions))
-                        @foreach($contributions as $contribution)
-                            @if(is_array($contribution) && isset($contribution['amount']) && floatval($contribution['amount']) > 0)
-                            <tr>
-                                <td>{{ $contribution['name'] ?? 'Contribution' }}</td>
-                                <td class="text-right">{{ number_format($contribution['amount'], 2) }}</td>
-                            </tr>
-                            @endif
-                        @endforeach
-                    @endif
-
-                    <!-- Advances -->
-                    @php
-                        $advances = [];
-                        if (isset($slip->advances_breakdown) && is_array($slip->advances_breakdown)) {
-                            $advances = $slip->advances_breakdown;
-                        } elseif (isset($slip->advances_breakdown) && is_string($slip->advances_breakdown)) {
-                            $advances = json_decode($slip->advances_breakdown, true) ?? [];
-                        }
-                    @endphp
-                    
-                    @if(!empty($advances))
-                        @foreach($advances as $advance)
-                            @if(is_array($advance) && isset($advance['amount']) && floatval($advance['amount']) > 0)
-                            <tr>
-                                <td>{{ $advance['name'] ?? 'Advance' }}</td>
-                                <td class="text-right">{{ number_format($advance['amount'], 2) }}</td>
                             </tr>
                             @endif
                         @endforeach

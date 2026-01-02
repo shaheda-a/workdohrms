@@ -213,6 +213,7 @@ export const recruitmentService = {
   getDivisions: () => api.get('/divisions'),
   getJobs: (params?: {
     status?: string;
+    paginate?: boolean;
     page?: number;
     per_page?: number;
     search?: string;
