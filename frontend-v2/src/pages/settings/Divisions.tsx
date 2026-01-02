@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { settingsService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -80,6 +81,7 @@ export default function Divisions() {
       setLocations(locRes.data.data || []);
     } catch (error) {
       console.error('Failed to fetch data:', error);
+      showAlert('error', 'Error', 'Failed to fetch divisions');
     } finally {
       setIsLoading(false);
     }
@@ -93,12 +95,19 @@ export default function Divisions() {
       } else {
         await settingsService.createDivision(formData);
       }
+      showAlert(
+        'success',
+        'Success!',
+        editingDivision ? 'Division updated successfully' : 'Division created successfully',
+        2000
+      );
       setIsDialogOpen(false);
       setEditingDivision(null);
       resetForm();
       fetchData();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to save division:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to save division'));
     }
   };
 
@@ -113,12 +122,20 @@ export default function Divisions() {
     };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this division?')) return;
+    const result = await showConfirmDialog(
+      'Are you sure?',
+      'You want to delete this division?'
+    );
+
+    if (!result.isConfirmed) return;
+
     try {
       await settingsService.deleteDivision(id);
+      showAlert('success', 'Deleted!', 'Division deleted successfully', 2000);
       fetchData();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to delete division:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete division'));
     }
   };
 

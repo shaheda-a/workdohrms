@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { payrollService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -79,6 +80,7 @@ export default function WithholdingTypes() {
       }
     } catch (error) {
       console.error('Failed to fetch withholding types:', error);
+      showAlert('error', 'Error', 'Failed to fetch withholding types');
       setWithholdingTypes([]);
     } finally {
       setIsLoading(false);
@@ -96,12 +98,18 @@ export default function WithholdingTypes() {
         await payrollService.createWithholdingType(formData);
       }
       
+      showAlert(
+        'success',
+        'Success!',
+        isEditMode ? 'Withholding type updated successfully' : 'Withholding type created successfully',
+        2000
+      );
       setIsDialogOpen(false);
       resetForm();
       fetchWithholdingTypes();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to save withholding type:', error);
-      alert('Failed to save withholding type. Please check the form and try again.');
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to save withholding type'));
     }
   };
 
@@ -118,20 +126,20 @@ export default function WithholdingTypes() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this withholding type? This action cannot be undone.')) {
-      return;
-    }
+    const result = await showConfirmDialog(
+      'Are you sure?',
+      'You want to delete this withholding type? This action cannot be undone.'
+    );
+
+    if (!result.isConfirmed) return;
 
     try {
       await payrollService.deleteWithholdingType(id);
+      showAlert('success', 'Deleted!', 'Withholding type deleted successfully', 2000);
       fetchWithholdingTypes();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to delete withholding type:', error);
-      if (error.response?.data?.message) {
-        alert(`Failed to delete: ${error.response.data.message}`);
-      } else {
-        alert('Failed to delete withholding type. It may be in use.');
-      }
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete withholding type'));
     }
   };
 

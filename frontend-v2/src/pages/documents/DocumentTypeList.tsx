@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { documentTypeService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -48,7 +49,6 @@ import {
     ChevronRight,
     FileText,
 } from 'lucide-react';
-import { toast } from '../../hooks/use-toast';
 
 interface DocumentType {
     id: number;
@@ -117,11 +117,7 @@ export default function DocumentTypeList() {
         } catch (error) {
             console.error('Failed to fetch document types:', error);
             setDocumentTypes([]);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to fetch document types',
-            });
+            showAlert('error', 'Error', 'Failed to fetch document types');
         } finally {
             setIsLoading(false);
         }
@@ -139,21 +135,16 @@ export default function DocumentTypeList() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this document type?')) return;
+        const result = await showConfirmDialog('Delete Document Type', 'Are you sure you want to delete this document type?');
+        if (!result.isConfirmed) return;
         try {
             await documentTypeService.delete(id);
-            toast({
-                title: 'Success',
-                description: 'Document type deleted successfully',
-            });
+            showAlert('success', 'Deleted!', 'Document type deleted successfully', 2000);
             fetchDocumentTypes();
         } catch (error) {
             console.error('Failed to delete document type:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to delete document type',
-            });
+            const errorMessage = getErrorMessage(error, 'Failed to delete document type');
+            showAlert('error', 'Error', errorMessage);
         }
     };
 
@@ -173,27 +164,18 @@ export default function DocumentTypeList() {
         try {
             if (editingDocumentType) {
                 await documentTypeService.update(editingDocumentType.id, formData);
-                toast({
-                    title: 'Success',
-                    description: 'Document type updated successfully',
-                });
+                showAlert('success', 'Success', 'Document type updated successfully', 2000);
             } else {
                 await documentTypeService.create(formData);
-                toast({
-                    title: 'Success',
-                    description: 'Document type created successfully',
-                });
+                showAlert('success', 'Success', 'Document type created successfully', 2000);
             }
             setIsDialogOpen(false);
             resetForm();
             fetchDocumentTypes();
         } catch (error) {
             console.error('Failed to save document type:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to save document type',
-            });
+            const errorMessage = getErrorMessage(error, 'Failed to save document type');
+            showAlert('error', 'Error', errorMessage);
         } finally {
             setIsSubmitting(false);
         }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { payrollService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -83,9 +84,11 @@ export default function TaxSlabs() {
     try {
       const response = await payrollService.getTaxSlabs();
       setSlabs(response.data.data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to fetch tax slabs:', error);
-      setError(error.response?.data?.message || 'Failed to load tax slabs');
+      const errorMessage = getErrorMessage(error, 'Failed to load tax slabs');
+      setError(errorMessage);
+      showAlert('error', 'Error', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -116,25 +119,41 @@ export default function TaxSlabs() {
         await payrollService.createTaxSlab(data);
       }
       
+      showAlert(
+        'success',
+        'Success!',
+        editingSlab ? 'Tax slab updated successfully' : 'Tax slab created successfully',
+        2000
+      );
       setIsDialogOpen(false);
       resetForm();
       fetchSlabs();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to save tax slab:', error);
-      setError(error.response?.data?.message || 'Failed to save tax slab');
+      const errorMessage = getErrorMessage(error, 'Failed to save tax slab');
+      setError(errorMessage);
+      showAlert('error', 'Error', errorMessage);
     }
   };
 
   // Handle delete
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this tax slab?')) return;
+    const result = await showConfirmDialog(
+      'Are you sure?',
+      'You want to delete this tax slab?'
+    );
+
+    if (!result.isConfirmed) return;
     
     try {
       await payrollService.deleteTaxSlab(id);
+      showAlert('success', 'Deleted!', 'Tax slab deleted successfully', 2000);
       fetchSlabs();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to delete tax slab:', error);
-      setError(error.response?.data?.message || 'Failed to delete tax slab');
+      const errorMessage = getErrorMessage(error, 'Failed to delete tax slab');
+      setError(errorMessage);
+      showAlert('error', 'Error', errorMessage);
     }
   };
 

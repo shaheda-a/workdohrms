@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { leaveService } from '../../services/api';
+import { showAlert, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
@@ -63,6 +64,7 @@ export default function LeaveApprovals() {
       setMeta(response.data.meta);
     } catch (error) {
       console.error('Failed to fetch leave requests:', error);
+      showAlert('error', 'Error', 'Failed to fetch leave requests');
     } finally {
       setIsLoading(false);
     }
@@ -74,12 +76,19 @@ export default function LeaveApprovals() {
     setIsProcessing(true);
     try {
       await leaveService.processRequest(selectedRequest.id, { action, remarks });
+      showAlert(
+        'success',
+        'Success!',
+        action === 'approve' ? 'Leave request approved successfully' : 'Leave request declined successfully',
+        2000
+      );
       setSelectedRequest(null);
       setAction(null);
       setRemarks('');
       fetchRequests();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to process request:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to process leave request'));
     } finally {
       setIsProcessing(false);
     }

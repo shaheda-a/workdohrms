@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { assetTypeService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -39,7 +40,6 @@ import {
     ChevronRight,
     Package,
 } from 'lucide-react';
-import { toast } from '../../hooks/use-toast';
 
 interface AssetType {
     id: number;
@@ -100,11 +100,7 @@ export default function AssetTypeList() {
         } catch (error) {
             console.error('Failed to fetch asset types:', error);
             setAssetTypes([]);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to fetch asset types',
-            });
+            showAlert('error', 'Error', 'Failed to fetch asset types');
         } finally {
             setIsLoading(false);
         }
@@ -121,21 +117,16 @@ export default function AssetTypeList() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this asset type?')) return;
+        const result = await showConfirmDialog('Delete Asset Type', 'Are you sure you want to delete this asset type?');
+        if (!result.isConfirmed) return;
         try {
             await assetTypeService.delete(id);
-            toast({
-                title: 'Success',
-                description: 'Asset type deleted successfully',
-            });
+            showAlert('success', 'Deleted!', 'Asset type deleted successfully', 2000);
             fetchAssetTypes();
         } catch (error) {
             console.error('Failed to delete asset type:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to delete asset type',
-            });
+            const errorMessage = getErrorMessage(error, 'Failed to delete asset type');
+            showAlert('error', 'Error', errorMessage);
         }
     };
 
@@ -154,27 +145,18 @@ export default function AssetTypeList() {
         try {
             if (editingAssetType) {
                 await assetTypeService.update(editingAssetType.id, formData);
-                toast({
-                    title: 'Success',
-                    description: 'Asset type updated successfully',
-                });
+                showAlert('success', 'Success', 'Asset type updated successfully', 2000);
             } else {
                 await assetTypeService.create(formData);
-                toast({
-                    title: 'Success',
-                    description: 'Asset type created successfully',
-                });
+                showAlert('success', 'Success', 'Asset type created successfully', 2000);
             }
             setIsDialogOpen(false);
             resetForm();
             fetchAssetTypes();
         } catch (error) {
             console.error('Failed to save asset type:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to save asset type',
-            });
+            const errorMessage = getErrorMessage(error, 'Failed to save asset type');
+            showAlert('error', 'Error', errorMessage);
         } finally {
             setIsSubmitting(false);
         }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { staffService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent, CardHeader } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -91,6 +92,7 @@ export default function StaffList() {
         }
       } catch (error) {
         console.error('Failed to fetch staff:', error);
+        showAlert('error', 'Error', 'Failed to fetch staff members');
         setStaff([]);
       } finally {
         setIsLoading(false);
@@ -98,12 +100,20 @@ export default function StaffList() {
     };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this staff member?')) return;
+    const result = await showConfirmDialog(
+      'Are you sure?',
+      'You want to delete this staff member?'
+    );
+
+    if (!result.isConfirmed) return;
+
     try {
       await staffService.delete(id);
+      showAlert('success', 'Deleted!', 'Staff member deleted successfully', 2000);
       fetchStaff();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to delete staff:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete staff member'));
     }
   };
 

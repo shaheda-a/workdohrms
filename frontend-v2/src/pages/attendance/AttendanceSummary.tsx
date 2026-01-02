@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { attendanceService, staffService } from '../../services/api';
+import { showAlert } from '../../lib/sweetalert';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -44,6 +45,7 @@ export default function AttendanceSummary() {
         setStaff(response.data.data || []);
       } catch (error) {
         console.error('Failed to fetch staff:', error);
+        showAlert('error', 'Error', 'Failed to fetch staff');
       }
     };
     fetchStaff();
@@ -67,6 +69,7 @@ export default function AttendanceSummary() {
       setSummary(response.data.data);
     } catch (error) {
       console.error('Failed to fetch summary:', error);
+      showAlert('error', 'Error', 'Failed to fetch attendance summary');
       setSummary({
         total_days: 22,
         present_days: 18,

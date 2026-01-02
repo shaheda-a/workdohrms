@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { leaveService } from '../../services/api';
+import { showAlert } from '../../lib/sweetalert';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -90,6 +91,7 @@ export default function LeaveRequests() {
       setMeta(response.data.meta);
     } catch (error) {
       console.error('Failed to fetch leave requests:', error);
+      showAlert('error', 'Error', 'Failed to fetch leave requests');
     } finally {
       setIsLoading(false);
     }

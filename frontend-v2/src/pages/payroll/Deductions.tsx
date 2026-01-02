@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { payrollService, staffService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -111,7 +112,7 @@ export default function Deductions() {
     
     // Check if a valid withholding type is selected
     if (formData.withholding_type_id === "no-withholding-types" || !formData.withholding_type_id) {
-      alert('Please select a valid deduction type');
+      showAlert('warning', 'Validation Error', 'Please select a valid deduction type');
       return;
     }
     
@@ -136,14 +137,15 @@ export default function Deductions() {
       console.log('Submitting deduction:', payload);
       
       await payrollService.createDeduction(payload);
+      showAlert('success', 'Success!', 'Deduction created successfully', 2000);
       setIsDialogOpen(false);
       resetForm();
       if (selectedStaff) {
         fetchDeductions();
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to create deduction:', error);
-      alert('Failed to create deduction. Please check the form and try again.');
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to create deduction'));
     }
   };
 
@@ -172,15 +174,16 @@ export default function Deductions() {
       console.log('Updating deduction:', payload);
       
       await payrollService.updateDeduction(selectedDeduction.id, payload);
+      showAlert('success', 'Success!', 'Deduction updated successfully', 2000);
       setIsEditDialogOpen(false);
       resetForm();
       setSelectedDeduction(null);
       if (selectedStaff) {
         fetchDeductions();
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to update deduction:', error);
-      alert('Failed to update deduction. Please check the form and try again.');
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to update deduction'));
     }
   };
 
@@ -215,18 +218,22 @@ export default function Deductions() {
   };
 
   const handleDelete = async (deduction: Deduction) => {
-    if (!confirm(`Are you sure you want to delete this deduction: "${deduction.description}"?`)) {
-      return;
-    }
+    const result = await showConfirmDialog(
+      'Are you sure?',
+      `You want to delete this deduction: "${deduction.description}"?`
+    );
+
+    if (!result.isConfirmed) return;
 
     try {
       await payrollService.deleteDeduction(deduction.id);
+      showAlert('success', 'Deleted!', 'Deduction deleted successfully', 2000);
       if (selectedStaff) {
         fetchDeductions();
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to delete deduction:', error);
-      alert('Failed to delete deduction. Please try again.');
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete deduction'));
     }
   };
 

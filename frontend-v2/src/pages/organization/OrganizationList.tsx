@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { organizationService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -39,7 +40,6 @@ import {
     ChevronRight,
     Building2,
 } from 'lucide-react';
-import { toast } from '../../hooks/use-toast';
 
 interface Organization {
     id: number;
@@ -98,11 +98,7 @@ export default function OrganizationList() {
         } catch (error) {
             console.error('Failed to fetch organizations:', error);
             setOrganizations([]);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to fetch organizations',
-            });
+            showAlert('error', 'Error', 'Failed to fetch organizations');
         } finally {
             setIsLoading(false);
         }
@@ -118,21 +114,16 @@ export default function OrganizationList() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this organization?')) return;
+        const result = await showConfirmDialog('Delete Organization', 'Are you sure you want to delete this organization?');
+        if (!result.isConfirmed) return;
         try {
             await organizationService.delete(id);
-            toast({
-                title: 'Success',
-                description: 'Organization deleted successfully',
-            });
+            showAlert('success', 'Deleted!', 'Organization deleted successfully', 2000);
             fetchOrganizations();
         } catch (error) {
             console.error('Failed to delete organization:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to delete organization',
-            });
+            const errorMessage = getErrorMessage(error, 'Failed to delete organization');
+            showAlert('error', 'Error', errorMessage);
         }
     };
 
@@ -150,27 +141,18 @@ export default function OrganizationList() {
         try {
             if (editingOrganization) {
                 await organizationService.update(editingOrganization.id, formData);
-                toast({
-                    title: 'Success',
-                    description: 'Organization updated successfully',
-                });
+                showAlert('success', 'Success', 'Organization updated successfully', 2000);
             } else {
                 await organizationService.create(formData);
-                toast({
-                    title: 'Success',
-                    description: 'Organization created successfully',
-                });
+                showAlert('success', 'Success', 'Organization created successfully', 2000);
             }
             setIsDialogOpen(false);
             resetForm();
             fetchOrganizations();
         } catch (error) {
             console.error('Failed to save organization:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to save organization',
-            });
+            const errorMessage = getErrorMessage(error, 'Failed to save organization');
+            showAlert('error', 'Error', errorMessage);
         } finally {
             setIsSubmitting(false);
         }

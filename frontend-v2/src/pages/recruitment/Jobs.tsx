@@ -1,6 +1,7 @@
 // Jobs.tsx
 import { useState, useEffect } from 'react';
 import { recruitmentService, settingsService } from '../../services/api'; // Only import the service
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -210,6 +211,7 @@ const fetchJobs = async () => {
     }
   } catch (error) {
     console.error('Failed to fetch jobs:', error);
+    showAlert('error', 'Error', 'Failed to fetch jobs');
   } finally {
     setIsLoading(false);
   }
@@ -276,6 +278,7 @@ const fetchJobs = async () => {
 
     } catch (error) {
       console.error('Failed to fetch dropdown data:', error);
+      showAlert('error', 'Error', 'Failed to fetch dropdown data');
       setDropdowns({
         categories: [],
         locations: [],
@@ -328,17 +331,20 @@ const fetchJobs = async () => {
       }
 
       if (response.data.success) {
+        showAlert(
+          'success',
+          'Success!',
+          editingJob ? 'Job updated successfully' : 'Job created successfully',
+          2000
+        );
         setIsDialogOpen(false);
         setEditingJob(null);
         resetForm();
         fetchJobs();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to save job:', error);
-      // You can show error messages to the user here
-      if (error.response?.data?.errors) {
-        alert(Object.values(error.response.data.errors).flat().join('\n'));
-      }
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to save job'));
     }
   };
 
@@ -402,19 +408,28 @@ const handleView = async (job: Job) => {
     }
   } catch (error) {
     console.error('Failed to fetch job details:', error);
+    showAlert('error', 'Error', 'Failed to fetch job details');
   }
 };
 
   // Handle delete job
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this job posting?')) return;
+    const result = await showConfirmDialog(
+      'Are you sure?',
+      'You want to delete this job posting?'
+    );
+
+    if (!result.isConfirmed) return;
+
     try {
       const response = await recruitmentService.deleteJob(id);
       if (response.data.success) {
+        showAlert('success', 'Deleted!', 'Job deleted successfully', 2000);
         fetchJobs();
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to delete job:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete job'));
     }
   };
 
@@ -423,10 +438,12 @@ const handleView = async (job: Job) => {
     try {
       const response = await recruitmentService.publishJob(id);
       if (response.data.success) {
+        showAlert('success', 'Success!', 'Job published successfully', 2000);
         fetchJobs();
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to publish job:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to publish job'));
     }
   };
 
@@ -435,10 +452,12 @@ const handleView = async (job: Job) => {
     try {
       const response = await recruitmentService.closeJob(id);
       if (response.data.success) {
+        showAlert('success', 'Success!', 'Job closed successfully', 2000);
         fetchJobs();
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to close job:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to close job'));
     }
   };
 

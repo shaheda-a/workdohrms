@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { settingsService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -65,6 +66,7 @@ export default function FileCategories() {
       setCategories(Array.isArray(data) ? data : data?.data || []);
     } catch (error) {
       console.error('Failed to fetch file categories:', error);
+      showAlert('error', 'Error', 'Failed to fetch file categories');
     } finally {
       setIsLoading(false);
     }
@@ -78,12 +80,19 @@ export default function FileCategories() {
       } else {
         await settingsService.createFileCategory(formData);
       }
+      showAlert(
+        'success',
+        'Success!',
+        editingCategory ? 'File category updated successfully' : 'File category created successfully',
+        2000
+      );
       setIsDialogOpen(false);
       setEditingCategory(null);
       resetForm();
       fetchData();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to save file category:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to save file category'));
     }
   };
 
@@ -99,12 +108,20 @@ export default function FileCategories() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this file category?')) return;
+    const result = await showConfirmDialog(
+      'Are you sure?',
+      'You want to delete this file category?'
+    );
+
+    if (!result.isConfirmed) return;
+
     try {
       await settingsService.deleteFileCategory(id);
+      showAlert('success', 'Deleted!', 'File category deleted successfully', 2000);
       fetchData();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to delete file category:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete file category'));
     }
   };
 

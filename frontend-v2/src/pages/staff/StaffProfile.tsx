@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { staffService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import {
   Card,
   CardContent,
@@ -104,6 +105,7 @@ export default function StaffProfile() {
         setStaff(response.data.data);
       } catch (error) {
         console.error('Failed to fetch staff:', error);
+        showAlert('error', 'Error', 'Failed to fetch staff details');
       } finally {
         setIsLoading(false);
       }
@@ -143,26 +145,36 @@ export default function StaffProfile() {
       formData.append('file', selectedFile);
       formData.append('file_category_id', selectedCategory);
       await staffService.uploadFile(Number(id), formData);
+      showAlert('success', 'Success!', 'File uploaded successfully', 2000);
       const response = await staffService.getFiles(Number(id));
       setFiles(response.data.data || []);
       setSelectedFile(null);
       setSelectedCategory('');
       const fileInput = document.getElementById('file-upload') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to upload file:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to upload file'));
     } finally {
       setIsUploadingFile(false);
     }
   };
 
   const handleFileDelete = async (fileId: number) => {
-    if (!confirm('Are you sure you want to delete this file?')) return;
+    const result = await showConfirmDialog(
+      'Are you sure?',
+      'You want to delete this file?'
+    );
+
+    if (!result.isConfirmed) return;
+
     try {
       await staffService.deleteFile(Number(id), fileId);
+      showAlert('success', 'Deleted!', 'File deleted successfully', 2000);
       setFiles(files.filter(f => f.id !== fileId));
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to delete file:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete file'));
     }
   };
 

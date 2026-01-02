@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { leaveService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -92,6 +93,7 @@ export default function LeaveCategories() {
       setCategories(mapped);
     } catch (error) {
       console.error('Failed to fetch categories:', error);
+      showAlert('error', 'Error', 'Failed to fetch leave categories');
     } finally {
       setIsLoading(false);
     }
@@ -120,12 +122,19 @@ export default function LeaveCategories() {
         await leaveService.createCategory(payload);
       }
 
+      showAlert(
+        'success',
+        'Success!',
+        editingCategory ? 'Leave category updated successfully' : 'Leave category created successfully',
+        2000
+      );
       setIsDialogOpen(false);
       setEditingCategory(null);
       resetForm();
       fetchCategories();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to save category:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to save leave category'));
     }
   };
 
@@ -155,12 +164,20 @@ export default function LeaveCategories() {
      DELETE
   ========================= */
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this category?')) return;
+    const result = await showConfirmDialog(
+      'Are you sure?',
+      'You want to delete this leave category?'
+    );
+
+    if (!result.isConfirmed) return;
+
     try {
       await leaveService.deleteCategory(id);
+      showAlert('success', 'Deleted!', 'Leave category deleted successfully', 2000);
       fetchCategories();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to delete category:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete leave category'));
     }
   };
 

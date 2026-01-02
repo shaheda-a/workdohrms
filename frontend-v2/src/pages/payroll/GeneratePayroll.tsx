@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { payrollService, staffService } from '../../services/api';
+import { showAlert, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -36,6 +37,7 @@ export default function GeneratePayroll() {
         setStaff(response.data.data || []);
       } catch (error) {
         console.error('Failed to fetch staff:', error);
+        showAlert('error', 'Error', 'Failed to fetch staff');
       } finally {
         setIsLoading(false);
       }
@@ -102,6 +104,7 @@ export default function GeneratePayroll() {
       const response = await payrollService.bulkGenerate(payload);
       
       setSuccess(`Successfully generated payroll for ${selectedStaff.length} employees`);
+      showAlert('success', 'Success!', `Successfully generated payroll for ${selectedStaff.length} employees`, 2000);
       
       // Navigate to payroll slips after successful generation
       setTimeout(() => navigate('/payroll/slips'), 2000);
@@ -109,23 +112,9 @@ export default function GeneratePayroll() {
       console.error('Generation error:', err);
       
       // Handle validation errors from backend
-      if (err && typeof err === 'object' && 'response' in err) {
-        const axiosError = err as any;
-        if (axiosError.response?.data?.errors) {
-          // Format validation errors
-          const validationErrors = axiosError.response.data.errors;
-          const errorMessages = Object.entries(validationErrors)
-            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
-            .join('; ');
-          setError(`Validation failed: ${errorMessages}`);
-        } else if (axiosError.response?.data?.message) {
-          setError(axiosError.response.data.message);
-        } else {
-          setError('Failed to generate payroll. Please try again.');
-        }
-      } else {
-        setError('An unexpected error occurred. Please try again.');
-      }
+      const errorMessage = getErrorMessage(err, 'Failed to generate payroll. Please try again.');
+      setError(errorMessage);
+      showAlert('error', 'Error', errorMessage);
     } finally {
       setIsGenerating(false);
     }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { leaveService, staffService } from '../../services/api';
+import { showAlert } from '../../lib/sweetalert';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import {
   Select,
@@ -39,6 +40,7 @@ export default function LeaveBalances() {
         setStaff(response.data.data || []);
       } catch (error) {
         console.error('Failed to fetch staff:', error);
+        showAlert('error', 'Error', 'Failed to fetch staff');
       }
     };
     fetchStaff();
@@ -57,6 +59,7 @@ export default function LeaveBalances() {
       setBalances(response.data.data || []);
     } catch (error) {
       console.error('Failed to fetch balances:', error);
+      showAlert('error', 'Error', 'Failed to fetch leave balances');
       setBalances([
         { id: 1, category_name: 'Annual Leave', annual_quota: 20, used: 5, remaining: 15, is_paid: true },
         { id: 2, category_name: 'Sick Leave', annual_quota: 10, used: 2, remaining: 8, is_paid: true },

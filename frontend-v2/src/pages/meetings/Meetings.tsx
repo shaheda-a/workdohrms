@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { meetingService } from '../../services/api';
+import { showAlert } from '../../lib/sweetalert';
 import {
   Card,
   CardContent,
@@ -117,6 +118,7 @@ export default function Meetings() {
     console.error('Failed to fetch meetings:', error);
     setMeetings([]);
     setMeta(null);
+    showAlert('error', 'Error', 'Failed to fetch meetings');
   } finally {
     setIsLoading(false);
   }

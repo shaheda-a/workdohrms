@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { companyService, organizationService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -46,7 +47,6 @@ import {
     ChevronRight,
     Briefcase,
 } from 'lucide-react';
-import { toast } from '../../hooks/use-toast';
 
 interface Company {
     id: number;
@@ -115,11 +115,7 @@ export default function CompanyList() {
         } catch (error) {
             console.error('Failed to fetch companies:', error);
             setCompanies([]);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to fetch companies',
-            });
+            showAlert('error', 'Error', 'Failed to fetch companies');
         } finally {
             setIsLoading(false);
         }
@@ -150,21 +146,16 @@ export default function CompanyList() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this company?')) return;
+        const result = await showConfirmDialog('Delete Company', 'Are you sure you want to delete this company?');
+        if (!result.isConfirmed) return;
         try {
             await companyService.delete(id);
-            toast({
-                title: 'Success',
-                description: 'Company deleted successfully',
-            });
+            showAlert('success', 'Deleted!', 'Company deleted successfully', 2000);
             fetchCompanies();
         } catch (error) {
             console.error('Failed to delete company:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to delete company',
-            });
+            const errorMessage = getErrorMessage(error, 'Failed to delete company');
+            showAlert('error', 'Error', errorMessage);
         }
     };
 
@@ -183,27 +174,18 @@ export default function CompanyList() {
         try {
             if (editingCompany) {
                 await companyService.update(editingCompany.id, formData);
-                toast({
-                    title: 'Success',
-                    description: 'Company updated successfully',
-                });
+                showAlert('success', 'Success', 'Company updated successfully', 2000);
             } else {
                 await companyService.create(formData);
-                toast({
-                    title: 'Success',
-                    description: 'Company created successfully',
-                });
+                showAlert('success', 'Success', 'Company created successfully', 2000);
             }
             setIsDialogOpen(false);
             resetForm();
             fetchCompanies();
         } catch (error) {
             console.error('Failed to save company:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to save company',
-            });
+            const errorMessage = getErrorMessage(error, 'Failed to save company');
+            showAlert('error', 'Error', errorMessage);
         } finally {
             setIsSubmitting(false);
         }

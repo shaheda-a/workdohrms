@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { roleService, permissionService } from '../../services/api';
+import { showAlert, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -80,6 +81,7 @@ export default function RolePermissions() {
       setExpandedResources(allSlugs);
     } catch (error) {
       console.error('Failed to fetch data:', error);
+      showAlert('error', 'Error', 'Failed to fetch role permissions');
     } finally {
       setIsLoading(false);
     }
@@ -132,10 +134,11 @@ export default function RolePermissions() {
       await roleService.syncPermissions(parseInt(id), {
         permissions: Array.from(selectedPermissions),
       });
+      showAlert('success', 'Success!', 'Permissions saved successfully', 2000);
       navigate('/admin/roles');
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to save permissions:', error);
-      alert('Failed to save permissions. Please try again.');
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to save permissions'));
     } finally {
       setIsSaving(false);
     }

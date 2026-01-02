@@ -6,8 +6,7 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
 import { Badge } from "../../components/ui/badge";
-import Swal from "sweetalert2";
-import "../../styles/swal-custom.css";
+import { showAlert, showConfirmDialog, getErrorMessage } from "../../lib/sweetalert";
 import {
   Table,
   TableBody,
@@ -55,51 +54,6 @@ export default function OfficeLocations() {
     contact_email: "",
   });
 
-  // Custom SweetAlert2 configuration matching Solarized theme
-  const showAlert = (
-    type: "success" | "error" | "warning",
-    title: string,
-    text: string,
-    timer?: number
-  ) => {
-    const config: any = {
-      icon: type,
-      title,
-      text,
-      confirmButtonColor: "#268bd2",
-      customClass: {
-        popup: "swal-solarized",
-        title: "swal-title",
-        htmlContainer: "swal-text",
-      },
-    };
-
-    if (timer) {
-      config.timer = timer;
-      config.showConfirmButton = false;
-    }
-
-    return Swal.fire(config);
-  };
-
-  const showConfirmDialog = async (title: string, text: string) => {
-    return Swal.fire({
-      title,
-      text,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#dc322f",
-      cancelButtonColor: "#268bd2",
-      confirmButtonText: "Yes, delete it!",
-      cancelButtonText: "Cancel",
-      customClass: {
-        popup: "swal-solarized",
-        title: "swal-title",
-        htmlContainer: "swal-text",
-      },
-    });
-  };
-
   useEffect(() => {
     fetchLocations();
   }, []);
@@ -144,11 +98,9 @@ export default function OfficeLocations() {
       setEditingLocation(null);
       resetForm();
       fetchLocations();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to save location:", error);
-      const errorMessage =
-        error?.response?.data?.message || "Failed to save office location";
-      showAlert("error", "Error", errorMessage);
+      showAlert("error", "Error", getErrorMessage(error, "Failed to save office location"));
     }
   };
 
@@ -180,11 +132,9 @@ export default function OfficeLocations() {
         2000
       );
       fetchLocations();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to delete location:", error);
-      const errorMessage =
-        error?.response?.data?.message || "Failed to delete office location";
-      showAlert("error", "Error", errorMessage);
+      showAlert("error", "Error", getErrorMessage(error, "Failed to delete office location"));
     }
   };
 

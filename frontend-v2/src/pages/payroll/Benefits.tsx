@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { payrollService, staffService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -110,7 +111,7 @@ export default function Benefits() {
 
     // Check if a valid benefit type is selected
     if (formData.benefit_type_id === "no-benefit-types" || !formData.benefit_type_id) {
-      alert('Please select a valid benefit type');
+      showAlert('warning', 'Validation Error', 'Please select a valid benefit type');
       return;
     }
 
@@ -135,14 +136,15 @@ export default function Benefits() {
       console.log('Submitting benefit:', payload);
 
       await payrollService.createBenefit(payload);
+      showAlert('success', 'Success!', 'Benefit created successfully', 2000);
       setIsDialogOpen(false);
       resetForm();
       if (selectedStaff) {
         fetchBenefits();
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to create benefit:', error);
-      alert('Failed to create benefit. Please check the form and try again.');
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to create benefit'));
     }
   };
 
@@ -176,15 +178,16 @@ export default function Benefits() {
       console.log('Updating benefit:', payload);
 
       await payrollService.updateBenefit(selectedBenefit.id, payload);
+      showAlert('success', 'Success!', 'Benefit updated successfully', 2000);
       setIsEditDialogOpen(false);
       resetForm();
       setSelectedBenefit(null);
       if (selectedStaff) {
         fetchBenefits();
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to update benefit:', error);
-      alert('Failed to update benefit. Please check the form and try again.');
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to update benefit'));
     }
   };
 
@@ -243,18 +246,22 @@ export default function Benefits() {
   };
 
   const handleDelete = async (benefit: Benefit) => {
-    if (!confirm(`Are you sure you want to delete this benefit: "${benefit.description}"?`)) {
-      return;
-    }
+    const result = await showConfirmDialog(
+      'Are you sure?',
+      `You want to delete this benefit: "${benefit.description}"?`
+    );
+
+    if (!result.isConfirmed) return;
 
     try {
       await payrollService.deleteBenefit(benefit.id);
+      showAlert('success', 'Deleted!', 'Benefit deleted successfully', 2000);
       if (selectedStaff) {
         fetchBenefits();
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to delete benefit:', error);
-      alert('Failed to delete benefit. Please try again.');
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete benefit'));
     }
   };
 

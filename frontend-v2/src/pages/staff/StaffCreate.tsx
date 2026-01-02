@@ -15,7 +15,7 @@ import {
 } from '../../components/ui/select';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
-import { toast } from '../../hooks/use-toast';
+import { showAlert, getErrorMessage } from '../../lib/sweetalert';
 
 interface SelectOption {
   id: number;
@@ -125,11 +125,7 @@ export default function StaffCreate() {
     setFieldErrors(errors);
 
     if (Object.keys(errors).length > 0) {
-      toast({
-        variant: 'destructive',
-        title: 'Validation Error',
-        description: 'Please fix the errors in the form',
-      });
+      showAlert('error', 'Validation Error', 'Please fix the errors in the form');
       return false;
     }
 
@@ -149,14 +145,11 @@ export default function StaffCreate() {
 
     try {
       await staffService.create(formData);
-      toast({
-        title: 'Success',
-        description: 'Staff member created successfully',
-      });
+      showAlert('success', 'Success!', 'Staff member created successfully', 2000);
       navigate('/staff');
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
-      const errorMessage = error.response?.data?.message || 'Failed to create staff member';
+      const errorMessage = getErrorMessage(err, 'Failed to create staff member');
 
       if (error.response?.data?.errors) {
         const apiErrors: FieldErrors = {};
@@ -168,11 +161,7 @@ export default function StaffCreate() {
       }
 
       setError(errorMessage);
-      toast({
-        variant: 'destructive',
-        title: 'Creation Failed',
-        description: errorMessage,
-      });
+      showAlert('error', 'Creation Failed', errorMessage);
     } finally {
       setIsLoading(false);
     }

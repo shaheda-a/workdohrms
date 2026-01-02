@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { recruitmentService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -101,6 +102,7 @@ const fetchCandidates = async () => {
     }
   } catch (error) {
     console.error('Failed to fetch candidates:', error);
+    showAlert('error', 'Error', 'Failed to fetch candidates');
     setCandidates([]);
     setMeta(null);
   } finally {
@@ -121,12 +123,19 @@ const fetchCandidates = async () => {
       } else {
         await recruitmentService.createCandidate(formData);
       }
+      showAlert(
+        'success',
+        'Success!',
+        editingCandidate ? 'Candidate updated successfully' : 'Candidate created successfully',
+        2000
+      );
       setIsDialogOpen(false);
       setEditingCandidate(null);
       resetForm();
       fetchCandidates();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to save candidate:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to save candidate'));
     }
   };
 
@@ -147,12 +156,20 @@ const fetchCandidates = async () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this candidate?')) return;
+    const result = await showConfirmDialog(
+      'Are you sure?',
+      'You want to delete this candidate?'
+    );
+
+    if (!result.isConfirmed) return;
+
     try {
       await recruitmentService.deleteCandidate(id);
+      showAlert('success', 'Deleted!', 'Candidate deleted successfully', 2000);
       fetchCandidates();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to delete candidate:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete candidate'));
     }
   };
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { roleService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -70,6 +71,7 @@ export default function Roles() {
       setRoles(response.data.data || []);
     } catch (error) {
       console.error('Failed to fetch roles:', error);
+      showAlert('error', 'Error', 'Failed to fetch roles');
     } finally {
       setIsLoading(false);
     }
@@ -83,12 +85,19 @@ export default function Roles() {
       } else {
         await roleService.create(formData);
       }
+      showAlert(
+        'success',
+        'Success!',
+        editingRole ? 'Role updated successfully' : 'Role created successfully',
+        2000
+      );
       setIsDialogOpen(false);
       setEditingRole(null);
       resetForm();
       fetchRoles();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to save role:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to save role'));
     }
   };
 
@@ -105,15 +114,24 @@ export default function Roles() {
 
   const handleDelete = async (id: number, isSystem: boolean) => {
     if (isSystem) {
-      alert('System roles cannot be deleted.');
+      showAlert('warning', 'Cannot Delete', 'System roles cannot be deleted.');
       return;
     }
-    if (!confirm('Are you sure you want to delete this role?')) return;
+
+    const result = await showConfirmDialog(
+      'Are you sure?',
+      'You want to delete this role?'
+    );
+
+    if (!result.isConfirmed) return;
+
     try {
       await roleService.delete(id);
+      showAlert('success', 'Deleted!', 'Role deleted successfully', 2000);
       fetchRoles();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to delete role:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete role'));
     }
   };
 

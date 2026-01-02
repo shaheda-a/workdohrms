@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { recruitmentService } from '../../services/api';
+import { showAlert } from '../../lib/sweetalert';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -58,6 +59,7 @@ export default function Interviews() {
       setMeta(response.data.meta);
     } catch (error) {
       console.error('Failed to fetch interviews:', error);
+      showAlert('error', 'Error', 'Failed to fetch interviews');
     } finally {
       setIsLoading(false);
     }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { contractService } from '../../services/api';
+import { showAlert } from '../../lib/sweetalert';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -109,6 +110,7 @@ export default function Contracts() {
     } catch (error) {
       console.error('Failed to fetch contracts:', error);
       setContracts([]);
+      showAlert('error', 'Error', 'Failed to fetch contracts');
     } finally {
       setIsLoading(false);
     }

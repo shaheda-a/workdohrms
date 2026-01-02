@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -79,6 +80,7 @@ export default function JobCategories() {
             }
         } catch (error) {
             console.error('Failed to fetch job categories:', error);
+            showAlert('error', 'Error', 'Failed to fetch job categories');
             setJobCategories([]);
         } finally {
             setIsLoading(false);
@@ -96,17 +98,18 @@ export default function JobCategories() {
                 await recruitmentService.createJobCategory(formData);
             }
 
+            showAlert(
+                'success',
+                'Success!',
+                isEditMode ? 'Job category updated successfully' : 'Job category created successfully',
+                2000
+            );
             setIsDialogOpen(false);
             resetForm();
             fetchJobCategories();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Failed to save job category:', error);
-            if (error.response?.data?.errors) {
-                const errors = Object.values(error.response.data.errors).flat();
-                alert(`Failed to save: ${errors.join(', ')}`);
-            } else {
-                alert('Failed to save job category. Please check the form and try again.');
-            }
+            showAlert('error', 'Error', getErrorMessage(error, 'Failed to save job category'));
         }
     };
 
@@ -121,20 +124,20 @@ export default function JobCategories() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this job category? This action cannot be undone.')) {
-            return;
-        }
+        const result = await showConfirmDialog(
+            'Are you sure?',
+            'You want to delete this job category? This action cannot be undone.'
+        );
+
+        if (!result.isConfirmed) return;
 
         try {
             await recruitmentService.deleteJobCategory(id);
+            showAlert('success', 'Deleted!', 'Job category deleted successfully', 2000);
             fetchJobCategories();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Failed to delete job category:', error);
-            if (error.response?.data?.message) {
-                alert(`Failed to delete: ${error.response.data.message}`);
-            } else {
-                alert('Failed to delete job category. It may be in use.');
-            }
+            showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete job category'));
         }
     };
 

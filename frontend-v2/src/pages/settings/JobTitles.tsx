@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { settingsService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -80,6 +81,7 @@ export default function JobTitles() {
       setDivisions(divRes.data.data || []);
     } catch (error) {
       console.error('Failed to fetch data:', error);
+      showAlert('error', 'Error', 'Failed to fetch job titles');
     } finally {
       setIsLoading(false);
     }
@@ -93,12 +95,19 @@ export default function JobTitles() {
       } else {
         await settingsService.createJobTitle(formData);
       }
+      showAlert(
+        'success',
+        'Success!',
+        editingJobTitle ? 'Job title updated successfully' : 'Job title created successfully',
+        2000
+      );
       setIsDialogOpen(false);
       setEditingJobTitle(null);
       resetForm();
       fetchData();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to save job title:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to save job title'));
     }
   };
 
@@ -113,12 +122,20 @@ export default function JobTitles() {
     };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this job title?')) return;
+    const result = await showConfirmDialog(
+      'Are you sure?',
+      'You want to delete this job title?'
+    );
+
+    if (!result.isConfirmed) return;
+
     try {
       await settingsService.deleteJobTitle(id);
+      showAlert('success', 'Deleted!', 'Job title deleted successfully', 2000);
       fetchData();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to delete job title:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete job title'));
     }
   };
 

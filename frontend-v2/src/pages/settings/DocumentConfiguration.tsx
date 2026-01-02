@@ -3,7 +3,7 @@ import { documentLocationService, documentConfigService } from '../../services/a
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { HardDrive, Cloud, Database, Settings as SettingsIcon, Plus, CheckCircle2 } from 'lucide-react';
-import { toast } from '../../hooks/use-toast';
+import { showAlert, getErrorMessage } from '../../lib/sweetalert';
 import { Badge } from '../../components/ui/badge';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -80,7 +80,7 @@ export default function DocumentConfiguration() {
             setLocations(locationsWithConfigs);
         } catch (error) {
             console.error('Failed to fetch locations:', error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch storage locations' });
+            showAlert('error', 'Error', 'Failed to fetch storage locations');
         } finally {
             // setIsLoading(false); // Removed unused state
         }
@@ -89,7 +89,7 @@ export default function DocumentConfiguration() {
     const handleConfigureStorage = async (locationType: number, type: StorageType) => {
         if (loadingTypes.has(type)) return;
         if (!user?.org_id || !user?.company_id) {
-            toast({ variant: 'destructive', title: 'Error', description: 'User organization or company not found.' });
+            showAlert('error', 'Error', 'User organization or company not found.');
             return;
         }
 
@@ -101,11 +101,11 @@ export default function DocumentConfiguration() {
                 company_id: Number(user.company_id),
             });
 
-            toast({ title: 'Success', description: `${type.charAt(0).toUpperCase()}${type.slice(1)} storage configured successfully` });
+            showAlert('success', 'Success!', `${type.charAt(0).toUpperCase()}${type.slice(1)} storage configured successfully`, 2000);
             fetchLocations();
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Failed to configure:', error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to configure storage' });
+            showAlert('error', 'Error', getErrorMessage(error, 'Failed to configure storage'));
         } finally {
             setLoadingTypes(prev => {
                 const next = new Set(prev);
@@ -152,12 +152,12 @@ export default function DocumentConfiguration() {
             else if (currentStorage.type === 'wasabi') await documentConfigService.createWasabi(configData);
             else if (currentStorage.type === 'aws') await documentConfigService.createAws(configData);
 
-            toast({ title: 'Success', description: 'Detailed configuration saved successfully' });
+            showAlert('success', 'Success!', 'Detailed configuration saved successfully', 2000);
             setIsDialogOpen(false);
             fetchLocations();
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Failed to save config:', error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to save detailed configuration' });
+            showAlert('error', 'Error', getErrorMessage(error, 'Failed to save detailed configuration'));
         } finally {
             if (currentStorage) {
                 setLoadingTypes(prev => {

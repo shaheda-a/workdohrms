@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { trainingService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -98,8 +99,11 @@ export default function Programs() {
       setEditingProgram(null);
       resetForm();
       fetchPrograms();
+      showAlert('success', 'Success', editingProgram ? 'Program updated successfully' : 'Program created successfully', 2000);
     } catch (error) {
       console.error('Failed to save program:', error);
+      const errorMessage = getErrorMessage(error, 'Failed to save program');
+      showAlert('error', 'Error', errorMessage);
     }
   };
 
@@ -123,12 +127,16 @@ export default function Programs() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this program?')) return;
+    const result = await showConfirmDialog('Delete Program', 'Are you sure you want to delete this program?');
+    if (!result.isConfirmed) return;
     try {
       await trainingService.deleteProgram(id);
       fetchPrograms();
+      showAlert('success', 'Deleted!', 'Program deleted successfully', 2000);
     } catch (error) {
       console.error('Failed to delete program:', error);
+      const errorMessage = getErrorMessage(error, 'Failed to delete program');
+      showAlert('error', 'Error', errorMessage);
     }
   };
 
@@ -173,6 +181,7 @@ export default function Programs() {
     } catch (error) {
       console.error('Failed to fetch programs:', error);
       setPrograms([]);
+      showAlert('error', 'Error', 'Failed to fetch programs');
     } finally {
       setIsLoading(false);
     }

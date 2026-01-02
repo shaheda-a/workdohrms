@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { assetService, assetTypeService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -109,8 +110,11 @@ export default function AssetsList() {
       setEditingAsset(null);
       resetForm();
       fetchAssets();
+      showAlert('success', 'Success', editingAsset ? 'Asset updated successfully' : 'Asset created successfully', 2000);
     } catch (error) {
       console.error('Failed to save asset:', error);
+      const errorMessage = getErrorMessage(error, 'Failed to save asset');
+      showAlert('error', 'Error', errorMessage);
     }
   };
 
@@ -134,12 +138,16 @@ export default function AssetsList() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this asset?')) return;
+    const result = await showConfirmDialog('Delete Asset', 'Are you sure you want to delete this asset?');
+    if (!result.isConfirmed) return;
     try {
       await assetService.delete(id);
       fetchAssets();
+      showAlert('success', 'Deleted!', 'Asset deleted successfully', 2000);
     } catch (error) {
       console.error('Failed to delete asset:', error);
+      const errorMessage = getErrorMessage(error, 'Failed to delete asset');
+      showAlert('error', 'Error', errorMessage);
     }
   };
 
@@ -171,6 +179,7 @@ export default function AssetsList() {
       }
     } catch (error) {
       console.error('Failed to fetch asset types:', error);
+      showAlert('error', 'Error', 'Failed to fetch asset types');
     }
   };
 
@@ -205,6 +214,7 @@ export default function AssetsList() {
     } catch (error) {
       console.error('Failed to fetch assets:', error);
       setAssets([]);
+      showAlert('error', 'Error', 'Failed to fetch assets');
     } finally {
       setIsLoading(false);
     }

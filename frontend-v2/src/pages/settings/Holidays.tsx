@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { settingsService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -60,6 +61,7 @@ export default function Holidays() {
       setHolidays(response.data.data.data|| []);
     } catch (error) {
       console.error('Failed to fetch holidays:', error);
+      showAlert('error', 'Error', 'Failed to fetch holidays');
     } finally {
       setIsLoading(false);
     }
@@ -73,12 +75,19 @@ export default function Holidays() {
       } else {
         await settingsService.createHoliday(formData);
       }
+      showAlert(
+        'success',
+        'Success!',
+        editingHoliday ? 'Holiday updated successfully' : 'Holiday created successfully',
+        2000
+      );
       setIsDialogOpen(false);
       setEditingHoliday(null);
       resetForm();
       fetchHolidays();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to save holiday:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to save holiday'));
     }
   };
 
@@ -93,12 +102,20 @@ export default function Holidays() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this holiday?')) return;
+    const result = await showConfirmDialog(
+      'Are you sure?',
+      'You want to delete this holiday?'
+    );
+
+    if (!result.isConfirmed) return;
+
     try {
       await settingsService.deleteHoliday(id);
+      showAlert('success', 'Deleted!', 'Holiday deleted successfully', 2000);
       fetchHolidays();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to delete holiday:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete holiday'));
     }
   };
 
