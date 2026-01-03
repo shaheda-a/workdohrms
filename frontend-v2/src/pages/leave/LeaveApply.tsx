@@ -62,9 +62,10 @@ export default function LeaveApply() {
         const response = await leaveService.getCategories();
 
         // paginated response → data.data
+        debugger;
         const paginated = response.data.data;
-        const categoriesArray = Array.isArray(paginated?.data)
-          ? paginated.data
+        const categoriesArray = Array.isArray(paginated)
+          ? paginated
           : [];
 
         const mapped: LeaveCategory[] = categoriesArray.map((cat: any) => ({
@@ -265,7 +266,7 @@ export default function LeaveApply() {
                   <Button type="button" variant="outline" onClick={() => navigate(-1)}>
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isLoading}>
+                  <Button type="submit"  className="bg-solarized-blue hover:bg-solarized-blue/90" disabled={isLoading}> 
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -26,7 +26,7 @@ import { CheckCircle, XCircle, Clock, Calendar, ChevronLeft, ChevronRight } from
 interface LeaveRequest {
   id: number;
   staff_member?: { full_name: string };
-  time_off_category?: { name: string };
+  category?: { title: string };
   start_date: string;
   end_date: string;
   total_days: number;
@@ -186,7 +186,7 @@ export default function LeaveApprovals() {
                         <TableCell className="font-medium">
                           {request.staff_member?.full_name || 'Unknown'}
                         </TableCell>
-                        <TableCell>{request.time_off_category?.name || 'Unknown'}</TableCell>
+                        <TableCell>{request.category?.title || 'Unknown'}</TableCell>
                         <TableCell>
                           {request.start_date} - {request.end_date}
                         </TableCell>
@@ -267,7 +267,7 @@ export default function LeaveApprovals() {
             <div className="space-y-4">
               <div className="bg-solarized-base3 p-4 rounded-lg space-y-2">
                 <p><strong>Employee:</strong> {selectedRequest.staff_member?.full_name}</p>
-                <p><strong>Type:</strong> {selectedRequest.time_off_category?.name}</p>
+                <p><strong>Type:</strong> {selectedRequest.category?.title}</p>
                 <p><strong>Dates:</strong> {selectedRequest.start_date} to {selectedRequest.end_date}</p>
                 <p><strong>Days:</strong> {selectedRequest.total_days}</p>
                 {selectedRequest.reason && <p><strong>Reason:</strong> {selectedRequest.reason}</p>}

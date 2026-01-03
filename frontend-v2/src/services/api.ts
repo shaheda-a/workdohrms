@@ -89,7 +89,7 @@ export const leaveService = {
   createRequest: (data: Record<string, unknown>) => api.post('/time-off-requests', data),
   processRequest: (id: number, data: { action: 'approve' | 'decline'; remarks?: string }) =>
     api.post(`/time-off-requests/${id}/process`, data),
-  getBalances: (staffMemberId: number) => api.get(`/staff-members/${staffMemberId}/leave-balances`),
+  getBalances: (staffMemberId: number) => api.get(`/time-off-balance`, { params: { staff_member_id: staffMemberId } }),
 };
 
 export const payrollService = {
