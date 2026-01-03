@@ -18,6 +18,8 @@ class TimeOffCategory extends Model
         'is_active',
         'tenant_id',
         'author_id',
+        'is_carry_forward_allowed',
+        'max_carry_forward_days',
     ];
 
     protected $casts = [

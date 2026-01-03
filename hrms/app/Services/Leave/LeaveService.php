@@ -47,6 +47,10 @@ class LeaveService extends BaseService
             $query = $this->applySearch($query, $params['search']);
         }
 
+        if (! empty($params['status'])) {
+            $query->where('approval_status', $params['status']);
+        }
+
         // Date range filter
         if (! empty($params['start_date'])) {
             $query->where('start_date', '>=', $params['start_date']);
