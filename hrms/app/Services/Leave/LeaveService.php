@@ -194,9 +194,9 @@ class LeaveService extends BaseService
             $balances[] = [
                 'category_id' => $category->id,
                 'category_name' => $category->title,
-                'allocated' => $category->default_days_per_year ?? 0,
+                'allocated' => $category->annual_quota  ?? 0,
                 'used' => $used,
-                'remaining' => ($category->default_days_per_year ?? 0) - $used,
+                'remaining' => ($category->annual_quota  ?? 0) - $used,
             ];
         }
 

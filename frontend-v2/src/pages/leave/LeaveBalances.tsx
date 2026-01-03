@@ -12,6 +12,7 @@ import {
 import { Progress } from '../../components/ui/progress';
 import { Skeleton } from '../../components/ui/skeleton';
 import { Calendar, User } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface StaffMember {
   id: number;
@@ -19,12 +20,11 @@ interface StaffMember {
 }
 
 interface LeaveBalance {
-  id: number;
+  category_id: number;
   category_name: string;
-  annual_quota: number;
+  allocated: number;
   used: number;
   remaining: number;
-  is_paid: boolean;
 }
 
 export default function LeaveBalances() {
@@ -32,15 +32,19 @@ export default function LeaveBalances() {
   const [selectedStaff, setSelectedStaff] = useState('');
   const [balances, setBalances] = useState<LeaveBalance[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingStaff, setIsLoadingStaff] = useState(true);
 
   useEffect(() => {
     const fetchStaff = async () => {
+      setIsLoadingStaff(true);
       try {
         const response = await staffService.getAll({ per_page: 100 });
         setStaff(response.data.data || []);
       } catch (error) {
         console.error('Failed to fetch staff:', error);
         showAlert('error', 'Error', 'Failed to fetch staff');
+      } finally {
+        setIsLoadingStaff(false);
       }
     };
     fetchStaff();
@@ -49,26 +53,48 @@ export default function LeaveBalances() {
   useEffect(() => {
     if (selectedStaff) {
       fetchBalances();
+    } else {
+      // Clear balances when no staff is selected
+      setBalances([]);
     }
   }, [selectedStaff]);
 
   const fetchBalances = async () => {
+    if (!selectedStaff) return;
+    
     setIsLoading(true);
     try {
       const response = await leaveService.getBalances(Number(selectedStaff));
-      setBalances(response.data.data || []);
-    } catch (error) {
+      
+      // Log the response to debug
+      console.log('Balance API Response:', response.data);
+      
+      // Check if response has data property
+      if (response.data.success && response.data.data) {
+        setBalances(response.data.data);
+      } else {
+        // Handle case where response format is different
+        setBalances(response.data.data || response.data || []);
+      }
+    } catch (error: any) {
       console.error('Failed to fetch balances:', error);
-      showAlert('error', 'Error', 'Failed to fetch leave balances');
-      setBalances([
-        { id: 1, category_name: 'Annual Leave', annual_quota: 20, used: 5, remaining: 15, is_paid: true },
-        { id: 2, category_name: 'Sick Leave', annual_quota: 10, used: 2, remaining: 8, is_paid: true },
-        { id: 3, category_name: 'Personal Leave', annual_quota: 5, used: 1, remaining: 4, is_paid: true },
-        { id: 4, category_name: 'Unpaid Leave', annual_quota: 30, used: 0, remaining: 30, is_paid: false },
-      ]);
+      
+      // More detailed error message
+      if (error.response?.data?.message) {
+        showAlert('error', 'Error', error.response.data.message);
+      } else {
+        showAlert('error', 'Error', 'Failed to fetch leave balances');
+      }
+      
+      // Set empty balances on error
+      setBalances([]);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleStaffChange = (value: string) => {
+    setSelectedStaff(value);
   };
 
   return (
@@ -85,9 +111,15 @@ export default function LeaveBalances() {
         </CardHeader>
         <CardContent>
           <div className="flex gap-4">
-            <Select value={selectedStaff} onValueChange={setSelectedStaff}>
+            <Select 
+              value={selectedStaff} 
+              onValueChange={handleStaffChange}
+              disabled={isLoadingStaff}
+            >
               <SelectTrigger className="w-[300px]">
-                <SelectValue placeholder="Select employee" />
+                <SelectValue placeholder={
+                  isLoadingStaff ? "Loading employees..." : "Select employee"
+                } />
               </SelectTrigger>
               <SelectContent>
                 {staff.map((s) => (
@@ -97,6 +129,16 @@ export default function LeaveBalances() {
                 ))}
               </SelectContent>
             </Select>
+            
+            {selectedStaff && (
+              <Button 
+                variant="outline" 
+                onClick={fetchBalances}
+                disabled={isLoading}
+              >
+                {isLoading ? "Refreshing..." : "Refresh"}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -114,28 +156,19 @@ export default function LeaveBalances() {
       ) : selectedStaff && balances.length > 0 ? (
         <div className="grid gap-6 sm:grid-cols-2">
           {balances.map((balance) => (
-            <Card key={balance.id} className="border-0 shadow-md">
+            <Card key={balance.category_id} className="border-0 shadow-md">
               <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">{balance.category_name}</CardTitle>
-                  <span
-                    className={`text-xs px-2 py-1 rounded ${
-                      balance.is_paid
-                        ? 'bg-solarized-green/10 text-solarized-green'
-                        : 'bg-solarized-base01/10 text-solarized-base01'
-                    }`}
-                  >
-                    {balance.is_paid ? 'Paid' : 'Unpaid'}
-                  </span>
-                </div>
+                <CardTitle className="text-lg">{balance.category_name}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-solarized-base01">Used</span>
-                  <span className="font-medium">{balance.used} / {balance.annual_quota} days</span>
+                  <span className="font-medium">
+                    {balance.used} / {balance.allocated} days
+                  </span>
                 </div>
                 <Progress
-                  value={(balance.used / balance.annual_quota) * 100}
+                  value={(balance.used / balance.allocated) * 100}
                   className="h-2"
                 />
                 <div className="flex items-center justify-between">
