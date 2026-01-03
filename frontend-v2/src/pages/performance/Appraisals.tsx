@@ -10,6 +10,7 @@ import {
 } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
+import { showAlert, getErrorMessage } from '../../lib/sweetalert';
 import { Avatar, AvatarFallback } from '../../components/ui/avatar';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -282,29 +283,37 @@ export default function Appraisals() {
   };
 
   // ============ CYCLE FUNCTIONS ============
-  const handleCreateCycle = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
+const handleCreateCycle = async (e: React.FormEvent) => {
+  e.preventDefault();
+  try {
+    if (editingCycle) {
+      // Update existing cycle
+      await performanceService.updateAppraisalCycle(editingCycle.id, cycleForm);
+      showAlert('success', 'Success!', 'Appraisal cycle updated successfully', 2000);
+    } else {
+      // Create new cycle
       await performanceService.createAppraisalCycle(cycleForm);
-      setIsCycleDialogOpen(false);
-      resetCycleForm();
-      fetchAppraisalCycles();
-    } catch (error) {
-      console.error('Failed to create appraisal cycle:', error);
-      alert('Failed to create appraisal cycle');
+      showAlert('success', 'Success!', 'Appraisal cycle created successfully', 2000);
     }
-  };
+    setIsCycleDialogOpen(false);
+    resetCycleForm();
+    fetchAppraisalCycles();
+  } catch (error) {
+    console.error('Failed to save appraisal cycle:', error);
+    showAlert('error', 'Error', getErrorMessage(error, 'Failed to save appraisal cycle.'));
+  }
+};
 
   const handleActivateCycle = async (cycleId: number) => {
     if (!confirm('Activating this cycle will create appraisal records for all active staff members. Continue?')) return;
     
     try {
       await performanceService.activateCycle(cycleId);
-      alert('Cycle activated successfully!');
+      showAlert('success', 'Success!', 'Cycle activated successfully', 2000);
       fetchAppraisalCycles();
     } catch (error) {
       console.error('Failed to activate cycle:', error);
-      alert('Failed to activate cycle');
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to activate cycle.'));
     }
   };
 
@@ -313,11 +322,11 @@ export default function Appraisals() {
     
     try {
       await performanceService.closeCycle(cycleId);
-      alert('Cycle closed successfully!');
+      showAlert('success', 'Success!', 'Cycle closed successfully', 2000);
       fetchAppraisalCycles();
     } catch (error) {
       console.error('Failed to close cycle:', error);
-      alert('Failed to close cycle');
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to close cycle.'));
     }
   };
 
@@ -326,11 +335,11 @@ export default function Appraisals() {
     
     try {
       await performanceService.deleteCycle(cycleId);
-      alert('Cycle deleted successfully!');
+      showAlert('success', 'Success!', 'Cycle deleted successfully', 2000);
       fetchAppraisalCycles();
     } catch (error) {
       console.error('Failed to delete cycle:', error);
-      alert('Failed to delete cycle');
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete cycle.'));
     }
   };
 
@@ -341,12 +350,13 @@ export default function Appraisals() {
     
     try {
       await performanceService.submitSelfReview(selectedRecord.id, selfReviewForm);
+      showAlert('success', 'Success!', 'Self review submitted successfully', 2000);
       setIsSelfReviewDialogOpen(false);
       setSelfReviewForm({ self_assessment: '', career_goals: '' });
       fetchAppraisalRecords();
     } catch (error) {
       console.error('Failed to submit self review:', error);
-      alert('Failed to submit self review');
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to submit self review.'));
     }
   };
 
@@ -362,6 +372,7 @@ export default function Appraisals() {
       };
       
       await performanceService.submitManagerReview(selectedRecord.id, data);
+      showAlert('success', 'Success!', 'Manager review submitted successfully', 2000);
       setIsManagerReviewDialogOpen(false);
       setManagerReviewForm({
         manager_feedback: '',
@@ -372,7 +383,7 @@ export default function Appraisals() {
       fetchAppraisalRecords();
     } catch (error) {
       console.error('Failed to submit manager review:', error);
-      alert('Failed to submit manager review');
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to submit manager review.'));
     }
   };
 

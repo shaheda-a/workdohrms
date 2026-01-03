@@ -99,6 +99,7 @@ export default function LeaveCategories() {
     }
   };
 
+
   /* =========================
      SUBMIT
   ========================= */
@@ -204,7 +205,7 @@ export default function LeaveCategories() {
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button
+            <Button className="bg-solarized-blue hover:bg-solarized-blue/90"
               onClick={() => {
                 setEditingCategory(null);
                 resetForm();
@@ -302,7 +303,7 @@ export default function LeaveCategories() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button type="submit" className="bg-solarized-blue hover:bg-solarized-blue/90">
                   {editingCategory ? 'Update' : 'Create'}
                 </Button>
               </DialogFooter>
@@ -339,7 +340,7 @@ export default function LeaveCategories() {
                     <TableCell>{cat.name}</TableCell>
                     <TableCell>{cat.annual_quota ?? 0} days</TableCell>
                     <TableCell>
-                      <Badge>
+                      <Badge className={cat.is_active ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
                         {cat.is_paid ? 'Paid' : 'Unpaid'}
                       </Badge>
                     </TableCell>
@@ -349,7 +350,7 @@ export default function LeaveCategories() {
                         : 'Not allowed'}
                     </TableCell>
                     <TableCell>
-                      <Badge>
+                      <Badge className={cat.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
                         {cat.is_active ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>

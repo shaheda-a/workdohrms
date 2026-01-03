@@ -7,6 +7,7 @@ import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import { Badge } from '../../components/ui/badge';
 import { Progress } from '../../components/ui/progress';
+import { showAlert, getErrorMessage } from '../../lib/sweetalert';
 import {
   Dialog,
   DialogContent,
@@ -277,13 +278,19 @@ export default function Goals() {
       } else {
         await performanceService.createGoal(data);
       }
+                 showAlert(
+        'success',
+        'Success!',
+        editingGoal ? 'Goal updated successfully' : 'Goal created successfully',
+        2000
+      ); 
       setIsGoalDialogOpen(false);
       setEditingGoal(null);
       resetForm();
       fetchGoals();
     } catch (error) {
       console.error('Failed to save goal:', error);
-      alert('Failed to save objective. Please check the form and try again.');
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to save goal. Please check the form and try again.'));
     }
   };
 
@@ -298,13 +305,14 @@ export default function Goals() {
       };
       
       await performanceService.updateProgress(updatingGoal.id, data);
+      showAlert('success', 'Success!', 'Progress updated successfully', 2000);
       setIsProgressDialogOpen(false);
       setUpdatingGoal(null);
       setProgressData({ current_value: '', notes: '' });
       fetchGoals();
     } catch (error) {
       console.error('Failed to update progress:', error);
-      alert('Failed to update progress. Please try again.');
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to update progress. Please try again.'));
     }
   };
 
@@ -314,6 +322,7 @@ export default function Goals() {
     
     try {
       await performanceService.rateGoal(ratingGoal.id, ratingData);
+      showAlert('success', 'Success!', 'Goal rated successfully', 2000);
       setIsRatingDialogOpen(false);
       setRatingGoal(null);
       setRatingData({ 
@@ -323,7 +332,7 @@ export default function Goals() {
       fetchGoals();
     } catch (error) {
       console.error('Failed to rate goal:', error);
-      alert('Failed to submit rating. Please try again.');
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to rate goal. Please try again.'));
     }
   };
 

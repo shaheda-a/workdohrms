@@ -89,7 +89,7 @@ export const leaveService = {
   createRequest: (data: Record<string, unknown>) => api.post('/time-off-requests', data),
   processRequest: (id: number, data: { action: 'approve' | 'decline'; remarks?: string }) =>
     api.post(`/time-off-requests/${id}/process`, data),
-  getBalances: (staffMemberId: number) => api.get(`/staff-members/${staffMemberId}/leave-balances`),
+  getBalances: (staffMemberId: number) => api.get(`/time-off-balance`, { params: { staff_member_id: staffMemberId } }),
 };
 
 export const payrollService = {
@@ -100,7 +100,7 @@ export const payrollService = {
   bulkGenerate: (data: { employee_ids: number[]; month: number; year: number }) =>
     api.post('/salary-slips/bulk-generate', data),
   getSlipById: (id: number) => api.get(`/salary-slips/${id}`),
-  downloadSlip: (id: number) => api.get(`/salary-slips/${id}/download`, { responseType: 'blob' }),
+  downloadSlip: (id: number) => api.get(`/payroll/salary-slips/${id}/download`, { responseType: 'blob' }),
   // Updated benefits methods for top-level routes
   getBenefits: (params?: { staff_member_id?: number; benefit_type_id?: number; active?: boolean; paginate?: boolean; page?: number; per_page?: number }) =>
     api.get('/staff-benefits', { params }),
@@ -351,6 +351,7 @@ export const performanceService = {
   getAppraisals: (params?: { staff_member_id?: number; page?: number }) => api.get('/appraisal-records', { params }),
   getAppraisalCycles: () => api.get('/appraisal-cycles'),
   createAppraisalCycle: (data: Record<string, unknown>) => api.post('/appraisal-cycles', data),
+  updateAppraisalCycle: (id: number, data: Record<string, unknown>) => api.put(`/appraisal-cycles/${id}`, data),
   activateCycle: (id: number) => api.post(`/appraisal-cycles/${id}/activate`),
   closeCycle: (id: number) => api.post(`/appraisal-cycles/${id}/close`),
   deleteCycle: (id: number) => api.delete(`/appraisal-cycles/${id}`),
@@ -520,6 +521,7 @@ export const assetTypeService = {
 };
 
 export const documentTypeService = {
+  getAll: (params?: { page?: number; search?: string; per_page?: number }) => api.get('/document-types', { params }),
   getAll: (params?: { page?: number; per_page?: number; search?: string }) => api.get('/document-types', { params }),
   getById: (id: number) => api.get(`/document-types/${id}`),
   create: (data: Record<string, unknown>) => api.post('/document-types', data),
@@ -535,12 +537,34 @@ export const documentLocationService = {
   delete: (id: number) => api.delete(`/document-locations/${id}`),
 };
 
+export const documentService = {
+  upload: (data: FormData) =>
+    api.post('/documents/upload', data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  getAll: (params?: {
+    page?: number;
+    per_page?: number;
+    search?: string;
+    owner_type?: string;
+    owner_id?: number;
+    document_type_id?: number;
+  }) => api.get('/documents', { params }),
+  getById: (id: number) => api.get(`/documents/${id}`),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/documents/${id}`, data),
+  delete: (id: number) => api.delete(`/documents/${id}`),
+  download: (id: number) => api.get(`/documents/${id}/download`),
+};
+
 export const documentConfigService = {
   createLocal: (data: Record<string, unknown>) => api.post('/document-configs/local', data),
   updateLocal: (id: number, data: Record<string, unknown>) => api.put(`/document-configs/local/${id}`, data),
+  getLocalConfig: (locationId: number) => api.get(`/document-configs/local/${locationId}`),
   createWasabi: (data: Record<string, unknown>) => api.post('/document-configs/wasabi', data),
   updateWasabi: (id: number, data: Record<string, unknown>) => api.put(`/document-configs/wasabi/${id}`, data),
+  getWasabiConfig: (locationId: number) => api.get(`/document-configs/wasabi/${locationId}`),
   createAws: (data: Record<string, unknown>) => api.post('/document-configs/aws', data),
   updateAws: (id: number, data: Record<string, unknown>) => api.put(`/document-configs/aws/${id}`, data),
+  getAwsConfig: (locationId: number) => api.get(`/document-configs/aws/${locationId}`),
   getConfig: (locationId: number) => api.get(`/document-configs/${locationId}`),
 };

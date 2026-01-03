@@ -322,9 +322,7 @@ export default function DocumentTypeList() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Title</TableHead>
-                                            <TableHead>Owner Type</TableHead>
                                             <TableHead>Notes</TableHead>
-                                            <TableHead>Status</TableHead>
                                             <TableHead className="w-[50px]"></TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -334,17 +332,7 @@ export default function DocumentTypeList() {
                                                 <TableCell className="font-medium text-solarized-base02">
                                                     {docType.title}
                                                 </TableCell>
-                                                <TableCell>
-                                                    <Badge variant="outline">
-                                                        {getOwnerTypeLabel(docType.owner_type)}
-                                                    </Badge>
-                                                </TableCell>
                                                 <TableCell>{docType.notes || '-'}</TableCell>
-                                                <TableCell>
-                                                    <Badge className={docType.is_active ? 'bg-solarized-green/10 text-solarized-green' : 'bg-solarized-base01/10 text-solarized-base01'}>
-                                                        {docType.is_active ? 'Active' : 'Inactive'}
-                                                    </Badge>
-                                                </TableCell>
                                                 <TableCell>
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>

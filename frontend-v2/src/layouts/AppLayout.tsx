@@ -58,7 +58,7 @@ const navigation: NavItem[] = [
     icon: FileText,
     children: [
       { name: 'Document Types', href: '/documents/types' },
-      { name: 'Document Locations', href: '/documents/locations' },
+      // { name: 'Document Locations', href: '/documents/locations' },
       { name: 'All Documents', href: '/documents' },
     ]
   },

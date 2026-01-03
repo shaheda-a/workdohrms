@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { staffService } from '../../services/api';
+import { staffService, documentService, documentTypeService } from '../../services/api';
 import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import {
   Card,
@@ -70,21 +70,20 @@ interface StaffMember {
   emergency_contact_relationship?: string;
 }
 
-interface StaffFile {
+interface DocumentItem {
   id: number;
-  staff_member_id: number;
-  file_category_id: number;
-  file_path: string;
-  original_name: string;
+  document_name: string;
+  original_name?: string; // Fallback
   created_at: string;
-  file_category?: { id: number; title: string };
+  document_type?: { id: number; title: string };
+  temporary_url?: string;
+  storage_type?: string;
 }
 
-interface FileCategory {
+interface DocumentType {
   id: number;
   title: string;
-  is_mandatory: boolean;
-  is_active: boolean;
+  notes?: string;
 }
 
 export default function StaffProfile() {
@@ -92,10 +91,10 @@ export default function StaffProfile() {
   const navigate = useNavigate();
   const [staff, setStaff] = useState<StaffMember | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [files, setFiles] = useState<StaffFile[]>([]);
-  const [fileCategories, setFileCategories] = useState<FileCategory[]>([]);
+  const [files, setFiles] = useState<DocumentItem[]>([]);
+  const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedType, setSelectedType] = useState<string>('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   useEffect(() => {
@@ -114,67 +113,87 @@ export default function StaffProfile() {
   }, [id]);
 
   useEffect(() => {
-    const fetchFiles = async () => {
+    const fetchDocuments = async () => {
       try {
-        const response = await staffService.getFiles(Number(id));
-        setFiles(response.data.data || []);
+        // Fetch documents for this staff member (owner_type=employee)
+        const response = await documentService.getAll({
+          owner_type: 'employee',
+          owner_id: Number(id),
+          per_page: 100
+        });
+        // The API returns { success: true, data: [...] } or just [...] depend on implementation
+        // Controller seems to return { success: true, data: [...] }
+        const docs = response.data.data || [];
+        setFiles(docs);
       } catch (error) {
-        console.error('Failed to fetch files:', error);
+        console.error('Failed to fetch documents:', error);
       }
     };
-    const fetchCategories = async () => {
+    const fetchDocTypes = async () => {
       try {
-        const response = await staffService.getFileCategories();
-        const categories = response.data.data || response.data || [];
-        setFileCategories(Array.isArray(categories) ? categories : []);
+        const response = await documentTypeService.getAll({ page: 1, per_page: 100 });
+        const types = response.data.data || [];
+        setDocumentTypes(types);
       } catch (error) {
-        console.error('Failed to fetch file categories:', error);
+        console.error('Failed to fetch document types:', error);
       }
     };
     if (id) {
-      fetchFiles();
-      fetchCategories();
+      fetchDocuments();
+      fetchDocTypes();
     }
   }, [id]);
 
   const handleFileUpload = async () => {
-    if (!selectedFile || !selectedCategory) return;
+    if (!selectedFile || !selectedType) return;
     setIsUploadingFile(true);
     try {
       const formData = new FormData();
       formData.append('file', selectedFile);
-      formData.append('file_category_id', selectedCategory);
-      await staffService.uploadFile(Number(id), formData);
-      showAlert('success', 'Success!', 'File uploaded successfully', 2000);
-      const response = await staffService.getFiles(Number(id));
+      formData.append('document_type_id', selectedType);
+      formData.append('owner_type', 'employee');
+      formData.append('owner_id', String(id));
+      // Optional: document_name defaults to file name if not provided
+
+      await documentService.upload(formData);
+
+      showAlert('success', 'Success!', 'Document uploaded successfully', 2000);
+
+      // Refresh list
+      const response = await documentService.getAll({
+        owner_type: 'employee',
+        owner_id: Number(id),
+        per_page: 100
+      });
       setFiles(response.data.data || []);
+
       setSelectedFile(null);
-      setSelectedCategory('');
+      setSelectedType('');
       const fileInput = document.getElementById('file-upload') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
     } catch (error: unknown) {
-      console.error('Failed to upload file:', error);
-      showAlert('error', 'Error', getErrorMessage(error, 'Failed to upload file'));
+      console.error('Failed to upload document:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to upload document'));
     } finally {
       setIsUploadingFile(false);
     }
   };
 
-  const handleFileDelete = async (fileId: number) => {
+  const handleFileDelete = async (docId: number) => {
     const result = await showConfirmDialog(
       'Are you sure?',
-      'You want to delete this file?'
+      'You want to delete this document?'
     );
 
     if (!result.isConfirmed) return;
 
     try {
-      await staffService.deleteFile(Number(id), fileId);
-      showAlert('success', 'Deleted!', 'File deleted successfully', 2000);
-      setFiles(files.filter(f => f.id !== fileId));
+      await documentService.delete(docId);
+      showAlert('success', 'Deleted!', 'Document deleted successfully', 2000);
+      setFiles(files.filter(f => f.id !== docId));
     } catch (error: unknown) {
-      console.error('Failed to delete file:', error);
-      showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete file'));
+      console.error('Failed to delete document:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete document'));
     }
   };
 
@@ -347,15 +366,15 @@ export default function StaffProfile() {
                     <h4 className="font-medium">Upload New Document</h4>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
-                        <Label htmlFor="file-category">Category</Label>
-                        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                        <Label htmlFor="document-type">Document Type</Label>
+                        <Select value={selectedType} onValueChange={setSelectedType}>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select category" />
+                            <SelectValue placeholder="Select type" />
                           </SelectTrigger>
                           <SelectContent>
-                            {fileCategories.map((cat) => (
-                              <SelectItem key={cat.id} value={String(cat.id)}>
-                                {cat.title}
+                            {documentTypes.map((type) => (
+                              <SelectItem key={type.id} value={String(type.id)}>
+                                {type.title}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -372,7 +391,7 @@ export default function StaffProfile() {
                     </div>
                     <Button
                       onClick={handleFileUpload}
-                      disabled={!selectedFile || !selectedCategory || isUploadingFile}
+                      disabled={!selectedFile || !selectedType || isUploadingFile}
                     >
                       {isUploadingFile ? (
                         <>
@@ -402,26 +421,53 @@ export default function StaffProfile() {
                             <div className="flex items-center gap-3">
                               <FileText className="h-5 w-5 text-solarized-blue" />
                               <div>
-                                <p className="font-medium">{file.original_name}</p>
+                                <p className="font-medium">{file.document_name || file.original_name}</p>
                                 <p className="text-sm text-solarized-base01">
-                                  {file.file_category?.title || 'Uncategorized'} • {new Date(file.created_at).toLocaleDateString()}
+                                  {file.document_type?.title || 'Uncategorized'} • {new Date(file.created_at).toLocaleDateString()}
+                                  {file.storage_type && <span className="ml-2 text-xs bg-gray-100 px-2 py-0.5 rounded">{file.storage_type}</span>}
                                 </p>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                asChild
-                              >
-                                                                <a
-                                                                  href={`http://127.0.0.1:8000/api/staff-members/${id}/files/${file.id}`}
-                                                                  target="_blank"
-                                                                  rel="noopener noreferrer"
-                                                                >
-                                                                  <Download className="h-4 w-4" />
-                                                                </a>
-                              </Button>
+                              {file.temporary_url ? (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  asChild
+                                >
+                                  <a
+                                    href={file.temporary_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <Download className="h-4 w-4" />
+                                  </a>
+                                </Button>
+                              ) : (
+                                // Fallback download if no temp URL (though index should provide it)
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={async () => {
+                                    try {
+                                      const res = await documentService.download(file.id);
+                                      // Handle download response if it's a blob or url
+                                      if (res.data.download_url) {
+                                        window.open(res.data.download_url, '_blank');
+                                      } else {
+                                        // Direct blob download handled by browser or fallback
+                                        window.location.href = `http://127.0.0.1:8000/api/documents/${file.id}/download`;
+                                      }
+                                    } catch (e) {
+                                      console.error(e);
+                                      showAlert('error', 'Error', 'Failed to download');
+                                    }
+                                  }}
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              )}
+
                               <Button
                                 variant="ghost"
                                 size="icon"

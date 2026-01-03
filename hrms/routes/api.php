@@ -578,6 +578,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // AWS
     Route::post('/document-configs/aws', [DocumentConfigController::class, 'storeAws']);
     Route::put('/document-configs/aws/{id}', [DocumentConfigController::class, 'updateAws']);
+    
+    // Show Config
+    Route::get('/document-configs/local/{locationId}', [DocumentConfigController::class, 'showLocal']);
+    Route::get('/document-configs/wasabi/{locationId}', [DocumentConfigController::class, 'showWasabi']);
+    Route::get('/document-configs/aws/{locationId}', [DocumentConfigController::class, 'showAws']);
+    Route::get('/document-configs/{locationId}', [DocumentConfigController::class, 'show']);
 
     // ============================================
     // ROLE MANAGEMENT (RBAC)

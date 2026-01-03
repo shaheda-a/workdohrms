@@ -101,8 +101,8 @@ export default function SalarySlips() {
   const handleDownload = async (id: number) => {
     try {
       // First check if we need to implement this endpoint
-      showAlert('warning', 'Coming Soon', 'PDF download feature coming soon!');
-      return;
+      // showAlert('warning', 'Coming Soon', 'PDF download feature coming soon!');
+      // return;
       
       // Uncomment when backend implements download endpoint
       const response = await payrollService.downloadSlip(id);
