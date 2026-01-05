@@ -3,10 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Organization;
+use App\Models\User;
 use App\Services\OrganizationService;
 use Illuminate\Http\Request;
 use Exception;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class OrganizationController extends Controller
 {
@@ -25,9 +29,9 @@ class OrganizationController extends Controller
         try {
             $perPage = $request->input('per_page', 10);
             $search = $request->input('search', null);
-            
+
             $organizations = $this->orgService->getPaginatedOrganizations($perPage, $search);
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $organizations->items(),
@@ -51,8 +55,14 @@ class OrganizationController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
+            // Organization fields
+            'org_name' => 'required|string|max:255',
             'address' => 'nullable|string',
+
+            // User fields
+            'user_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'nullable|string|min:8',
         ]);
 
         if ($validator->fails()) {
@@ -64,16 +74,47 @@ class OrganizationController extends Controller
         }
 
         try {
-            $organization = $this->orgService->createOrganization($request->all());
+            DB::beginTransaction();
+
+            // 1️⃣ Create Organization
+            $organization = Organization::create([
+                'name' => $request->org_name,
+                'address' => $request->address,
+            ]);
+
+            // 2️⃣ Create User and STORE org_id
+            $user = User::create([
+                'name' => $request->user_name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password ?? 'password123'),
+                'org_id' => $organization->id, // ✅ STORED HERE
+                'is_active' => true,
+            ]);
+
+            $user->assignRole('organisation');
+
+            DB::commit();
+
             return response()->json([
                 'success' => true,
-                'message' => 'Organization created successfully',
-                'data' => $organization
+                'message' => 'Organization and user created successfully',
+                'data' => [
+                    'organization' => $organization,
+                    'user' => $user,
+                ]
             ], 201);
-        } catch (Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create organization',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
+
 
     /**
      * Get Organization Details
@@ -87,7 +128,7 @@ class OrganizationController extends Controller
             }
             return response()->json(['success' => true, 'data' => $organization]);
         } catch (Exception $e) {
-             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 
@@ -102,7 +143,7 @@ class OrganizationController extends Controller
         ]);
 
         if ($validator->fails()) {
-             return response()->json([
+            return response()->json([
                 'success' => false,
                 'message' => 'Validation Error',
                 'errors' => $validator->errors()

@@ -58,6 +58,9 @@ export default function OrganizationList() {
     const [formData, setFormData] = useState({
         name: '',
         address: '',
+        user_name: '',
+        email: '',
+        password: '',
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -120,6 +123,9 @@ export default function OrganizationList() {
         setFormData({
             name: org.name,
             address: org.address || '',
+            user_name: '',
+            email: '',
+            password: '',
         });
         setIsDialogOpen(true);
     };
@@ -142,6 +148,9 @@ export default function OrganizationList() {
         setFormData({
             name: '',
             address: '',
+            user_name: '',
+            email: '',
+            password: '',
         });
         setEditingOrganization(null);
     };
@@ -154,7 +163,15 @@ export default function OrganizationList() {
                 await organizationService.update(editingOrganization.id, formData);
                 showAlert('success', 'Success', 'Organization updated successfully', 2000);
             } else {
-                await organizationService.create(formData);
+                // Backend expects 'org_name' for create
+                const createPayload = {
+                    org_name: formData.name,
+                    address: formData.address,
+                    user_name: formData.user_name,
+                    email: formData.email,
+                    password: formData.password,
+                };
+                await organizationService.create(createPayload);
                 showAlert('success', 'Success', 'Organization created successfully', 2000);
             }
             setIsDialogOpen(false);
@@ -253,6 +270,43 @@ export default function OrganizationList() {
                                         rows={3}
                                     />
                                 </div>
+
+                                {!editingOrganization && (
+                                    <>
+                                        <hr />
+                                        <div className="space-y-2">
+                                            <Label htmlFor="user_name">Admin Name *</Label>
+                                            <Input
+                                                id="user_name"
+                                                value={formData.user_name}
+                                                onChange={(e) => setFormData({ ...formData, user_name: e.target.value })}
+                                                placeholder="John Doe"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="email">Admin Email *</Label>
+                                            <Input
+                                                id="email"
+                                                type="email"
+                                                value={formData.email}
+                                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                                placeholder="admin@example.com"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="password">Password</Label>
+                                            <Input
+                                                id="password"
+                                                type="password"
+                                                value={formData.password}
+                                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                                placeholder="Default: password123"
+                                            />
+                                        </div>
+                                    </>
+                                )}
                             </div>
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
