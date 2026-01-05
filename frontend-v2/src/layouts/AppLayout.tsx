@@ -59,7 +59,7 @@ const navigation: NavItem[] = [
     children: [
       { name: 'Document Types', href: '/documents/types' },
       // { name: 'Document Locations', href: '/documents/locations' },
-      { name: 'All Documents', href: '/documents' },
+      // { name: 'All Documents', href: '/documents' },
     ]
   },
   {
@@ -162,6 +162,11 @@ const navigation: NavItem[] = [
     name: 'Meetings',
     href: '/meetings',
     icon: Video,
+    children: [
+      { name: 'All Meetings', href: '/meetings' },
+      { name: 'Meeting Types', href: '/meetings/types' },
+      { name: 'Meeting Rooms', href: '/meetings/rooms' },
+    ]
   },
   {
     name: 'Reports',

@@ -72,6 +72,8 @@ import Contracts from './pages/contracts/Contracts';
 
 // Meetings
 import Meetings from './pages/meetings/Meetings';
+import MeetingTypes from './pages/meetings/MeetingTypes';
+import MeetingRooms from './pages/meetings/MeetingRooms';
 
 // Reports
 import AttendanceReport from './pages/reports/AttendanceReport';
@@ -195,6 +197,8 @@ function App() {
 
             {/* Meetings */}
             <Route path="/meetings" element={<Meetings />} />
+            <Route path="/meetings/types" element={<MeetingTypes />} />
+            <Route path="/meetings/rooms" element={<MeetingRooms />} />
 
             {/* Reports */}
             <Route path="/reports" element={<AttendanceReport />} />
