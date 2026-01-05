@@ -37,7 +37,8 @@ interface NavItem {
   name: string;
   href: string;
   icon: React.ElementType;
-  children?: { name: string; href: string }[];
+  permission?: string;
+  children?: { name: string; href: string; permission?: string }[];
 }
 
 const navigation: NavItem[] = [
@@ -46,10 +47,11 @@ const navigation: NavItem[] = [
     name: 'Staff',
     href: '/staff',
     icon: Users,
+    permission: 'view_staff',
     children: [
-      { name: 'All Staff', href: '/staff' },
-      { name: 'Add Staff', href: '/staff/create' },
-      { name: 'Departments', href: '/staff/departments' },
+      { name: 'All Staff', href: '/staff', permission: 'view_staff' },
+      { name: 'Add Staff', href: '/staff/create', permission: 'create_staff' },
+      { name: 'Departments', href: '/staff/departments', permission: 'view_settings' },
     ]
   },
   {
@@ -66,97 +68,107 @@ const navigation: NavItem[] = [
     name: 'Organizations',
     href: '/organizations',
     icon: Building2,
+    permission: 'manage_settings',
   },
   {
     name: 'Companies',
     href: '/companies',
-    icon: Building2, // Reusing Building2 for now, or find another icon like Briefcase if imported
+    icon: Building2,
+    permission: 'manage_settings',
   },
   {
     name: 'Attendance',
     href: '/attendance',
     icon: Clock,
+    permission: 'view_attendance',
     children: [
       { name: 'Clock In/Out', href: '/attendance/clock' },
-      { name: 'Work Logs', href: '/attendance/logs' },
-      { name: 'Summary', href: '/attendance/summary' },
-      { name: 'Shifts', href: '/attendance/shifts' },
+      { name: 'Work Logs', href: '/attendance/logs', permission: 'view_attendance' },
+      { name: 'Summary', href: '/attendance/summary', permission: 'view_attendance' },
+      { name: 'Shifts', href: '/attendance/shifts', permission: 'edit_attendance' },
     ]
   },
   {
     name: 'Leave',
     href: '/leave',
     icon: Calendar,
+    permission: 'view_time_off',
     children: [
       { name: 'My Requests', href: '/leave/requests' },
-      { name: 'Apply Leave', href: '/leave/apply' },
-      { name: 'Approvals', href: '/leave/approvals' },
-      { name: 'Balances', href: '/leave/balances' },
-      { name: 'Categories', href: '/leave/categories' },
+      { name: 'Apply Leave', href: '/leave/apply', permission: 'create_time_off' },
+      { name: 'Approvals', href: '/leave/approvals', permission: 'approve_time_off' },
+      { name: 'Balances', href: '/leave/balances', permission: 'view_time_off' },
+      { name: 'Categories', href: '/leave/categories', permission: 'edit_time_off' },
     ]
   },
   {
     name: 'Payroll',
     href: '/payroll',
     icon: DollarSign,
+    permission: 'view_payslips',
     children: [
-      { name: 'Salary Slips', href: '/payroll/slips' },
-      { name: 'Generate Payroll', href: '/payroll/generate' },
-      { name: 'Benefit Types', href: '/payroll/benefits/types' },
-      { name: 'Benefits', href: '/payroll/benefits' },
-      { name: 'Deduction Types', href: '/payroll/deductions/types' },
-      { name: 'Deductions', href: '/payroll/deductions' },
-      { name: 'Tax Slabs', href: '/payroll/tax' },
+      { name: 'Salary Slips', href: '/payroll/slips', permission: 'view_payslips' },
+      { name: 'Generate Payroll', href: '/payroll/generate', permission: 'generate_payslips' },
+      { name: 'Benefit Types', href: '/payroll/benefits/types', permission: 'edit_payslips' },
+      { name: 'Benefits', href: '/payroll/benefits', permission: 'edit_payslips' },
+      { name: 'Deduction Types', href: '/payroll/deductions/types', permission: 'edit_payslips' },
+      { name: 'Deductions', href: '/payroll/deductions', permission: 'edit_payslips' },
+      { name: 'Tax Slabs', href: '/payroll/tax', permission: 'edit_payslips' },
     ]
   },
   {
     name: 'Recruitment',
     href: '/recruitment',
     icon: Briefcase,
+    permission: 'view_recruitment',
     children: [
-      { name: 'Job Categories', href: '/recruitment/job/categories' },
-      { name: 'Jobs', href: '/recruitment/jobs' },
-      { name: 'Candidates', href: '/recruitment/candidates' },
-      { name: 'Job Stages', href: '/recruitment/job/stages' },
-      { name: 'Applications', href: '/recruitment/applications' },
-      { name: 'Interviews', href: '/recruitment/interviews' },
+      { name: 'Job Categories', href: '/recruitment/job/categories', permission: 'view_recruitment' },
+      { name: 'Jobs', href: '/recruitment/jobs', permission: 'view_recruitment' },
+      { name: 'Candidates', href: '/recruitment/candidates', permission: 'view_recruitment' },
+      { name: 'Job Stages', href: '/recruitment/job/stages', permission: 'view_recruitment' },
+      { name: 'Applications', href: '/recruitment/applications', permission: 'view_recruitment' },
+      { name: 'Interviews', href: '/recruitment/interviews', permission: 'view_recruitment' },
     ]
   },
   {
     name: 'Performance',
     href: '/performance',
     icon: Target,
+    permission: 'view_staff_performance',
     children: [
-      { name: 'Goals', href: '/performance/goals' },
-      // { name: 'KPIs', href: '/performance/kpis' },
-      { name: 'Appraisals', href: '/performance/appraisals' },
-      { name: 'Competencies', href: '/performance/competencies' },
+      { name: 'Goals', href: '/performance/goals', permission: 'view_staff_performance' },
+      // { name: 'KPIs', href: '/performance/kpis', permission: 'view_staff_performance' },
+      { name: 'Appraisals', href: '/performance/appraisals', permission: 'view_staff_performance' },
+      { name: 'Competencies', href: '/performance/competencies', permission: 'view_staff_performance' },
     ]
   },
   {
     name: 'Assets',
     href: '/assets',
     icon: Package,
+    permission: 'view_staff_assets',
     children: [
-      { name: 'All Assets', href: '/assets' },
-      { name: 'Asset Types', href: '/assets/types' },
-      { name: 'Assignments', href: '/assets/assignments' },
+      { name: 'All Assets', href: '/assets', permission: 'view_staff_assets' },
+      { name: 'Asset Types', href: '/assets/types', permission: 'manage_staff_assets' },
+      { name: 'Assignments', href: '/assets/assignments', permission: 'manage_staff_assets' },
     ]
   },
   {
     name: 'Training',
     href: '/training',
     icon: GraduationCap,
+    permission: 'view_staff_training',
     children: [
-      { name: 'Programs', href: '/training/programs' },
-      { name: 'Training Types', href: '/training/types' },
-      { name: 'Enrollments', href: '/training/enrollments' },
+      { name: 'Programs', href: '/training/programs', permission: 'view_staff_training' },
+      { name: 'Training Types', href: '/training/types', permission: 'view_staff_training' },
+      { name: 'Enrollments', href: '/training/enrollments', permission: 'manage_staff_training' },
     ]
   },
   {
     name: 'Contracts',
     href: '/contracts',
     icon: FileText,
+    permission: 'view_staff_contracts',
   },
   {
     name: 'Meetings',
@@ -172,36 +184,39 @@ const navigation: NavItem[] = [
     name: 'Reports',
     href: '/reports',
     icon: BarChart3,
+    permission: 'view_reports',
     children: [
-      { name: 'Attendance Report', href: '/reports/attendance' },
-      { name: 'Leave Report', href: '/reports/leave' },
-      { name: 'Payroll Report', href: '/reports/payroll' },
-      { name: 'Headcount', href: '/reports/headcount' },
-      { name: 'Turnover', href: '/reports/turnover' },
+      { name: 'Attendance Report', href: '/reports/attendance', permission: 'view_reports' },
+      { name: 'Leave Report', href: '/reports/leave', permission: 'view_reports' },
+      { name: 'Payroll Report', href: '/reports/payroll', permission: 'view_reports' },
+      { name: 'Headcount', href: '/reports/headcount', permission: 'view_reports' },
+      { name: 'Turnover', href: '/reports/turnover', permission: 'view_reports' },
     ]
   },
   {
     name: 'Settings',
     href: '/settings',
     icon: Settings,
+    permission: 'view_settings',
     children: [
-      { name: 'Office Locations', href: '/settings/locations' },
-      { name: 'Divisions', href: '/settings/divisions' },
-      { name: 'Job Titles', href: '/settings/job-titles' },
-      { name: 'Holidays', href: '/settings/holidays' },
-      { name: 'File Categories', href: '/settings/file-categories' },
-      { name: 'Notices', href: '/settings/notices' },
-      { name: 'Document Configuration', href: '/settings/document-config' },
+      { name: 'Office Locations', href: '/settings/locations', permission: 'view_settings' },
+      { name: 'Divisions', href: '/settings/divisions', permission: 'view_settings' },
+      { name: 'Job Titles', href: '/settings/job-titles', permission: 'view_settings' },
+      { name: 'Holidays', href: '/settings/holidays', permission: 'view_settings' },
+      { name: 'File Categories', href: '/settings/file-categories', permission: 'view_settings' },
+      { name: 'Notices', href: '/settings/notices', permission: 'view_settings' },
+      { name: 'Document Configuration', href: '/settings/document-config', permission: 'view_settings' },
     ]
   },
   {
     name: 'Admin',
     href: '/admin',
     icon: Shield,
+    permission: 'view_roles',
     children: [
-      { name: 'Users', href: '/admin/users' },
-      { name: 'Roles', href: '/admin/roles' },
-      { name: 'Permissions', href: '/admin/permissions' },
+      { name: 'Users', href: '/admin/users', permission: 'view_roles' },
+      { name: 'Roles', href: '/admin/roles', permission: 'view_roles' },
+      { name: 'Permissions', href: '/admin/permissions', permission: 'view_roles' },
     ]
   },
 ];
@@ -264,7 +279,7 @@ function NavItemComponent({ item, isCollapsed }: { item: NavItem; isCollapsed: b
 }
 
 export default function AppLayout() {
-  const { user, logout } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -317,13 +332,25 @@ export default function AppLayout() {
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto p-4 space-y-1">
             {navigation.filter(item => {
-              if (item.name === 'Organizations' || item.name === 'Companies') {
-                return user?.role === 'administrator' || user?.role === 'Administrator'; // Checking both just in case, though usually lowercase in backend
+              // Filter based on permission requirements
+              if (item.permission && !hasPermission(item.permission)) {
+                return false;
               }
               return true;
-            }).map((item) => (
-              <NavItemComponent key={item.href} item={item} isCollapsed={sidebarCollapsed} />
-            ))}
+            }).map((item) => {
+              // Also filter children based on permissions
+              const filteredItem = item.children ? {
+                ...item,
+                children: item.children.filter(child => 
+                  !child.permission || hasPermission(child.permission)
+                )
+              } : item;
+              // Only show parent if it has visible children or no children
+              if (filteredItem.children && filteredItem.children.length === 0) {
+                return null;
+              }
+              return <NavItemComponent key={item.href} item={filteredItem} isCollapsed={sidebarCollapsed} />;
+            })}
           </nav>
 
           {/* User section */}

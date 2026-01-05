@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { authService } from '../services/api';
 
 interface User {
@@ -26,8 +26,10 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
   hasPermission: (permission: string) => boolean;
   hasRole: (role: string) => boolean;
+  hasAnyRole: (roles: string[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -76,12 +78,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const refreshUser = useCallback(async () => {
+    if (!token) return;
+    try {
+      const response = await authService.getProfile();
+      const userData = response.data.data.user;
+      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+    }
+  }, [token]);
+
   const hasPermission = (permission: string) => {
+    // Admin users have all permissions
+    if (user?.roles?.includes('admin') || user?.roles?.includes('administrator')) {
+      return true;
+    }
     return user?.permissions?.includes(permission) ?? false;
   };
 
   const hasRole = (role: string) => {
     return user?.roles?.includes(role) ?? false;
+  };
+
+  const hasAnyRole = (roles: string[]) => {
+    return roles.some(role => user?.roles?.includes(role)) ?? false;
   };
 
   return (
@@ -93,8 +115,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         login,
         logout,
+        refreshUser,
         hasPermission,
         hasRole,
+        hasAnyRole,
       }}
     >
       {children}

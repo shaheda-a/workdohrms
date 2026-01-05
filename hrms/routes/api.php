@@ -156,8 +156,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // ============================================
     // PROMPT SET 3: Staff Member Management
     // ============================================
-    Route::apiResource('staff-members', StaffMemberController::class);
-    Route::get('/staff-members-dropdown', [StaffMemberController::class, 'dropdown']);
+    Route::get('/staff-members', [StaffMemberController::class, 'index'])->middleware('permission:view_staff');
+    Route::post('/staff-members', [StaffMemberController::class, 'store'])->middleware('permission:create_staff');
+    Route::get('/staff-members/{staff_member}', [StaffMemberController::class, 'show'])->middleware('permission:view_staff');
+    Route::put('/staff-members/{staff_member}', [StaffMemberController::class, 'update'])->middleware('permission:edit_staff');
+    Route::delete('/staff-members/{staff_member}', [StaffMemberController::class, 'destroy'])->middleware('permission:delete_staff');
+    Route::get('/staff-members-dropdown', [StaffMemberController::class, 'dropdown'])->middleware('permission:view_staff');
 
     // Staff Files (nested resource)
     Route::get('/staff-members/{staffMember}/files', [StaffFileController::class, 'index']);
@@ -542,18 +546,18 @@ Route::middleware('auth:sanctum')->group(function () {
     // ORGANIZATIONS & COMPANIES
     // ============================================
     // Organizations
-    Route::get('/organizations', [OrganizationController::class, 'index']);
-    Route::post('/organizations', [OrganizationController::class, 'store']);
-    Route::get('/organizations/{organization}', [OrganizationController::class, 'show']);
-    Route::put('/organizations/{organization}', [OrganizationController::class, 'update']);
-    Route::delete('/organizations/{organization}', [OrganizationController::class, 'destroy']);
+    Route::get('/organizations', [OrganizationController::class, 'index'])->middleware('permission:manage_settings');
+    Route::post('/organizations', [OrganizationController::class, 'store'])->middleware('permission:manage_settings');
+    Route::get('/organizations/{organization}', [OrganizationController::class, 'show'])->middleware('permission:manage_settings');
+    Route::put('/organizations/{organization}', [OrganizationController::class, 'update'])->middleware('permission:manage_settings');
+    Route::delete('/organizations/{organization}', [OrganizationController::class, 'destroy'])->middleware('permission:manage_settings');
 
     // Companies
-    Route::get('/companies', [CompanyController::class, 'index']);
-    Route::post('/companies', [CompanyController::class, 'store']);
-    Route::get('/companies/{company}', [CompanyController::class, 'show']);
-    Route::put('/companies/{company}', [CompanyController::class, 'update']);
-    Route::delete('/companies/{company}', [CompanyController::class, 'destroy']);
+    Route::get('/companies', [CompanyController::class, 'index'])->middleware('permission:manage_settings');
+    Route::post('/companies', [CompanyController::class, 'store'])->middleware('permission:manage_settings');
+    Route::get('/companies/{company}', [CompanyController::class, 'show'])->middleware('permission:manage_settings');
+    Route::put('/companies/{company}', [CompanyController::class, 'update'])->middleware('permission:manage_settings');
+    Route::delete('/companies/{company}', [CompanyController::class, 'destroy'])->middleware('permission:manage_settings');
 
     // Document Locations
     Route::get('/document-locations', [DocumentLocationController::class, 'index']);
@@ -589,34 +593,34 @@ Route::middleware('auth:sanctum')->group(function () {
     // ROLE MANAGEMENT (RBAC)
     // ============================================
     Route::prefix('roles')->group(function () {
-        Route::get('/', [RoleController::class, 'index']);
-        Route::post('/', [RoleController::class, 'store']);
-        Route::get('/{id}', [RoleController::class, 'show']);
-        Route::put('/{id}', [RoleController::class, 'update']);
-        Route::delete('/{id}', [RoleController::class, 'destroy']);
-        Route::post('/{id}/permissions', [RoleController::class, 'syncPermissions']);
-        Route::get('/{id}/permissions', [RoleController::class, 'getPermissions']);
+        Route::get('/', [RoleController::class, 'index'])->middleware('permission:view_roles');
+        Route::post('/', [RoleController::class, 'store'])->middleware('permission:create_roles');
+        Route::get('/{id}', [RoleController::class, 'show'])->middleware('permission:view_roles');
+        Route::put('/{id}', [RoleController::class, 'update'])->middleware('permission:edit_roles');
+        Route::delete('/{id}', [RoleController::class, 'destroy'])->middleware('permission:delete_roles');
+        Route::post('/{id}/permissions', [RoleController::class, 'syncPermissions'])->middleware('permission:edit_roles');
+        Route::get('/{id}/permissions', [RoleController::class, 'getPermissions'])->middleware('permission:view_roles');
     });
 
-    Route::prefix('permissions')->group(function () {
+    Route::prefix('permissions')->middleware('permission:view_roles')->group(function () {
         Route::get('/', [PermissionController::class, 'index']);
         Route::get('/grouped', [PermissionController::class, 'groupedByResource']);
         Route::get('/{id}', [PermissionController::class, 'show']);
     });
 
-    Route::prefix('resources')->group(function () {
+    Route::prefix('resources')->middleware('permission:view_roles')->group(function () {
         Route::get('/', [ResourceController::class, 'index']);
         Route::get('/{id}', [ResourceController::class, 'show']);
         Route::get('/slug/{slug}', [ResourceController::class, 'getBySlug']);
     });
 
     Route::prefix('users')->group(function () {
-        Route::get('/', [UserRoleController::class, 'index']);
-        Route::get('/{id}', [UserRoleController::class, 'show']);
-        Route::get('/{id}/roles', [UserRoleController::class, 'getUserRoles']);
-        Route::post('/{id}/roles', [UserRoleController::class, 'assignRoles']);
-        Route::post('/{id}/roles/add', [UserRoleController::class, 'addRole']);
-        Route::post('/{id}/roles/remove', [UserRoleController::class, 'removeRole']);
+        Route::get('/', [UserRoleController::class, 'index'])->middleware('permission:view_roles');
+        Route::get('/{id}', [UserRoleController::class, 'show'])->middleware('permission:view_roles');
+        Route::get('/{id}/roles', [UserRoleController::class, 'getUserRoles'])->middleware('permission:view_roles');
+        Route::post('/{id}/roles', [UserRoleController::class, 'assignRoles'])->middleware('permission:edit_roles');
+        Route::post('/{id}/roles/add', [UserRoleController::class, 'addRole'])->middleware('permission:edit_roles');
+        Route::post('/{id}/roles/remove', [UserRoleController::class, 'removeRole'])->middleware('permission:edit_roles');
     });
 
 });
