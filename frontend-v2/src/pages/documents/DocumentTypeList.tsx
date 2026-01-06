@@ -1,20 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { documentTypeService } from '../../services/api';
 import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
-import { Card, CardContent } from '../../components/ui/card';
+import { Card, CardContent, CardHeader } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import { Switch } from '../../components/ui/switch';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '../../components/ui/table';
 import {
     Dialog,
     DialogContent,
@@ -37,7 +29,6 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '../../components/ui/dropdown-menu';
-import { Skeleton } from '../../components/ui/skeleton';
 import { Badge } from '../../components/ui/badge';
 import {
     Plus,
@@ -45,10 +36,9 @@ import {
     MoreHorizontal,
     Edit,
     Trash2,
-    ChevronLeft,
-    ChevronRight,
     FileText,
 } from 'lucide-react';
+import DataTable, { TableColumn } from 'react-data-table-component';
 
 interface DocumentType {
     id: number;
@@ -56,13 +46,6 @@ interface DocumentType {
     notes: string;
     owner_type: string;
     is_active: boolean;
-}
-
-interface PaginationMeta {
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
 }
 
 const OWNER_TYPES = [
@@ -73,10 +56,16 @@ const OWNER_TYPES = [
 
 export default function DocumentTypeList() {
     const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
-    const [meta, setMeta] = useState<PaginationMeta | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [search, setSearch] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+    // Pagination & Sorting State
+    const [searchInput, setSearchInput] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
     const [page, setPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
+    const [totalRows, setTotalRows] = useState(0);
+    const [sortField, setSortField] = useState<string>('');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
     // Dialog state
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -89,37 +78,71 @@ export default function DocumentTypeList() {
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    useEffect(() => {
-        fetchDocumentTypes();
-    }, [page, search]);
+    // Fetch document types with pagination
+    const fetchDocumentTypes = useCallback(
+        async (currentPage: number = 1) => {
+            setIsLoading(true);
+            try {
+                const params: Record<string, unknown> = {
+                    page: currentPage,
+                    per_page: perPage,
+                    search: searchQuery,
+                };
 
-    const fetchDocumentTypes = async () => {
-        setIsLoading(true);
-        try {
-            const response = await documentTypeService.getAll({ page, search });
-            const payload = response.data.data;
+                if (sortField) {
+                    params.order_by = sortField;
+                    params.order = sortDirection;
+                }
 
-            if (Array.isArray(payload)) {
-                setDocumentTypes(payload);
-                setMeta(null);
-            } else if (payload && Array.isArray(payload.data)) {
-                setDocumentTypes(payload.data);
-                setMeta({
-                    current_page: payload.current_page,
-                    last_page: payload.last_page,
-                    per_page: payload.per_page,
-                    total: payload.total,
-                });
-            } else {
+                const response = await documentTypeService.getAll(params);
+                const { data, meta } = response.data;
+
+                if (Array.isArray(data)) {
+                    setDocumentTypes(data);
+                    setTotalRows(meta?.total ?? 0);
+                } else {
+                    setDocumentTypes([]);
+                    setTotalRows(0);
+                }
+            } catch (error) {
+                console.error('Failed to fetch document types:', error);
+                showAlert('error', 'Error', getErrorMessage(error, 'Failed to fetch document types'));
                 setDocumentTypes([]);
-                setMeta(null);
+                setTotalRows(0);
+            } finally {
+                setIsLoading(false);
             }
-        } catch (error) {
-            console.error('Failed to fetch document types:', error);
-            setDocumentTypes([]);
-            showAlert('error', 'Error', 'Failed to fetch document types');
-        } finally {
-            setIsLoading(false);
+        },
+        [perPage, searchQuery, sortField, sortDirection]
+    );
+
+    useEffect(() => {
+        fetchDocumentTypes(page);
+    }, [page, fetchDocumentTypes]);
+
+    // Search Handler
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setSearchQuery(searchInput);
+        setPage(1);
+    };
+
+    // Pagination Handlers
+    const handlePageChange = (newPage: number) => {
+        setPage(newPage);
+    };
+
+    const handlePerRowsChange = (newPerPage: number) => {
+        setPerPage(newPerPage);
+        setPage(1);
+    };
+
+    // Sorting Handler - Only Title column is sortable
+    const handleSort = (column: TableColumn<DocumentType>, sortDirection: 'asc' | 'desc') => {
+        if (column.name === 'Title') {
+            setSortField('title');
+            setSortDirection(sortDirection);
+            setPage(1);
         }
     };
 
@@ -140,7 +163,7 @@ export default function DocumentTypeList() {
         try {
             await documentTypeService.delete(id);
             showAlert('success', 'Deleted!', 'Document type deleted successfully', 2000);
-            fetchDocumentTypes();
+            fetchDocumentTypes(page);
         } catch (error) {
             console.error('Failed to delete document type:', error);
             const errorMessage = getErrorMessage(error, 'Failed to delete document type');
@@ -171,7 +194,7 @@ export default function DocumentTypeList() {
             }
             setIsDialogOpen(false);
             resetForm();
-            fetchDocumentTypes();
+            fetchDocumentTypes(page);
         } catch (error) {
             console.error('Failed to save document type:', error);
             const errorMessage = getErrorMessage(error, 'Failed to save document type');
@@ -181,8 +204,85 @@ export default function DocumentTypeList() {
         }
     };
 
-    const getOwnerTypeLabel = (value: string) => {
-        return OWNER_TYPES.find(type => type.value === value)?.label || value;
+    // Table Columns
+    const columns: TableColumn<DocumentType>[] = [
+        {
+            name: 'Title',
+            selector: (row) => row.title,
+            cell: (row) => <span className="font-medium text-solarized-base02">{row.title}</span>,
+            sortable: true,
+            minWidth: '200px',
+        },
+        {
+            name: 'Notes',
+            selector: (row) => row.notes || '-',
+            cell: (row) => (
+                <span className="max-w-[250px] truncate">{row.notes || '-'}</span>
+            ),
+        },
+        {
+            name: 'Status',
+            cell: (row) => (
+                <Badge
+                    className={
+                        row.is_active
+                            ? 'bg-solarized-green/10 text-solarized-green'
+                            : 'bg-solarized-base01/10 text-solarized-base01'
+                    }
+                >
+                    {row.is_active ? 'Active' : 'Inactive'}
+                </Badge>
+            ),
+        },
+        {
+            name: 'Actions',
+            cell: (row) => (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEdit(row)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={() => handleDelete(row.id)}
+                            className="text-solarized-red"
+                        >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            ),
+            ignoreRowClick: true,
+            width: '80px',
+        },
+    ];
+
+    // Custom Styles for DataTable
+    const customStyles = {
+        headRow: {
+            style: {
+                backgroundColor: '#f9fafb',
+                borderBottomWidth: '1px',
+                borderBottomColor: '#e5e7eb',
+                borderBottomStyle: 'solid' as const,
+                minHeight: '56px',
+            },
+        },
+        headCells: {
+            style: {
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#374151',
+                paddingLeft: '16px',
+                paddingRight: '16px',
+            },
+        },
     };
 
     return (
@@ -274,32 +374,20 @@ export default function DocumentTypeList() {
             </div>
 
             <Card className="border-0 shadow-md">
-                <CardContent className="pt-6">
-                    <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-solarized-base01" />
-                            <Input
-                                placeholder="Search document types..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="pl-10"
-                            />
-                        </div>
-                    </div>
-
-                    {isLoading ? (
-                        <div className="space-y-4">
-                            {[...Array(5)].map((_, i) => (
-                                <div key={i} className="flex items-center gap-4">
-                                    <Skeleton className="h-10 w-10 rounded-full" />
-                                    <div className="space-y-2 flex-1">
-                                        <Skeleton className="h-4 w-48" />
-                                        <Skeleton className="h-3 w-32" />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : documentTypes.length === 0 ? (
+                <CardHeader>
+                    <form onSubmit={handleSearchSubmit} className="flex gap-4">
+                        <Input
+                            placeholder="Search document types..."
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
+                        />
+                        <Button type="submit" variant="outline">
+                            <Search className="mr-2 h-4 w-4" /> Search
+                        </Button>
+                    </form>
+                </CardHeader>
+                <CardContent>
+                    {!isLoading && documentTypes.length === 0 ? (
                         <div className="text-center py-12">
                             <FileText className="h-12 w-12 text-solarized-base01 mx-auto mb-4" />
                             <h3 className="text-lg font-medium text-solarized-base02">No document types found</h3>
@@ -316,83 +404,23 @@ export default function DocumentTypeList() {
                             </Button>
                         </div>
                     ) : (
-                        <>
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Title</TableHead>
-                                            <TableHead>Notes</TableHead>
-                                            <TableHead className="w-[50px]"></TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {documentTypes.map((docType) => (
-                                            <TableRow key={docType.id}>
-                                                <TableCell className="font-medium text-solarized-base02">
-                                                    {docType.title}
-                                                </TableCell>
-                                                <TableCell>{docType.notes || '-'}</TableCell>
-                                                <TableCell>
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" size="icon">
-                                                                <MoreHorizontal className="h-4 w-4" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            <DropdownMenuItem onClick={() => handleEdit(docType)}>
-                                                                <Edit className="mr-2 h-4 w-4" />
-                                                                Edit
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem
-                                                                onClick={() => handleDelete(docType.id)}
-                                                                className="text-solarized-red"
-                                                            >
-                                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                                Delete
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-
-                            {meta && meta.last_page > 1 && (
-                                <div className="flex items-center justify-between mt-6">
-                                    <p className="text-sm text-solarized-base01">
-                                        Showing {(meta.current_page - 1) * meta.per_page + 1} to{' '}
-                                        {Math.min(meta.current_page * meta.per_page, meta.total)} of {meta.total} results
-                                    </p>
-                                    <div className="flex items-center gap-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setPage(page - 1)}
-                                            disabled={page === 1}
-                                        >
-                                            <ChevronLeft className="h-4 w-4" />
-                                            Previous
-                                        </Button>
-                                        <span className="text-sm text-solarized-base01">
-                                            Page {meta.current_page} of {meta.last_page}
-                                        </span>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setPage(page + 1)}
-                                            disabled={page === meta.last_page}
-                                        >
-                                            Next
-                                            <ChevronRight className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
-                        </>
+                        <DataTable
+                            columns={columns}
+                            data={documentTypes}
+                            progressPending={isLoading}
+                            pagination
+                            paginationServer
+                            paginationTotalRows={totalRows}
+                            paginationPerPage={perPage}
+                            paginationDefaultPage={page}
+                            onChangePage={handlePageChange}
+                            onChangeRowsPerPage={handlePerRowsChange}
+                            onSort={handleSort}
+                            customStyles={customStyles}
+                            sortServer
+                            highlightOnHover
+                            responsive
+                        />
                     )}
                 </CardContent>
             </Card>

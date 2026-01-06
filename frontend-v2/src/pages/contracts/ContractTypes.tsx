@@ -1,11 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { contractTypeService } from '../../services/api';
 import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
-import { Card, CardContent } from '../../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Textarea } from '../../components/ui/textarea';
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
@@ -17,13 +21,14 @@ import {
     DropdownMenuTrigger,
 } from '../../components/ui/dropdown-menu';
 import DataTable, { TableColumn } from 'react-data-table-component';
-import { Plus, Edit, Trash2, FileText, MoreHorizontal, Eye } from 'lucide-react';
+import { Plus, Edit, Trash2, FileText, MoreHorizontal, Eye, Search } from 'lucide-react';
 
 interface ContractType {
     id: number;
     title: string;
     description: string | null;
     default_duration_months: number;
+    contracts_count?: number;
     created_at: string;
     updated_at: string;
 }
@@ -31,6 +36,10 @@ interface ContractType {
 export default function ContractTypes() {
     const [contractTypes, setContractTypes] = useState<ContractType[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+
+    // Pagination & Sorting State
+    const [searchInput, setSearchInput] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
     const [page, setPage] = useState(1);
     const [perPage, setPerPage] = useState(10);
     const [totalRows, setTotalRows] = useState(0);
@@ -56,6 +65,7 @@ export default function ContractTypes() {
                 const params: Record<string, unknown> = {
                     page: currentPage,
                     per_page: perPage,
+                    search: searchQuery,
                 };
 
                 if (sortField) {
@@ -82,12 +92,19 @@ export default function ContractTypes() {
                 setIsLoading(false);
             }
         },
-        [perPage, sortField, sortDirection]
+        [perPage, searchQuery, sortField, sortDirection]
     );
 
     useEffect(() => {
         fetchContractTypes(page);
     }, [page, fetchContractTypes]);
+
+    // ================= SEARCH =================
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setSearchQuery(searchInput);
+        setPage(1);
+    };
 
     // ================= PAGINATION =================
     const handlePageChange = (newPage: number) => {
@@ -100,15 +117,13 @@ export default function ContractTypes() {
     };
 
     // ================= SORTING =================
-    const handleSort = (column: any, sortDirection: 'asc' | 'desc') => {
-        const fieldMap: Record<string, string> = {
-            'Title': 'title',
-        };
-
-        const field = fieldMap[column.name] || column.name;
-        setSortField(field);
-        setSortDirection(sortDirection);
-        setPage(1);
+    const handleSort = (column: TableColumn<ContractType>, direction: 'asc' | 'desc') => {
+        const columnId = String(column.id || '');
+        if (columnId === 'title' || column.name === 'Title') {
+            setSortField('title');
+            setSortDirection(direction);
+            setPage(1);
+        }
     };
 
     // ================= CRUD OPERATIONS =================
@@ -137,37 +152,40 @@ export default function ContractTypes() {
     };
 
     const handleCreate = async () => {
+        if (!formData.title) {
+            showAlert('error', 'Error', 'Please enter a title');
+            return;
+        }
+
         try {
             await contractTypeService.create(formData);
-            showAlert('success', 'Success', 'Contract type created successfully');
+            showAlert('success', 'Success', 'Contract type created successfully', 2000);
             setIsAddOpen(false);
             fetchContractTypes(page);
-        } catch (error: any) {
+        } catch (error) {
             console.error('Failed to create contract type:', error);
-            const message = error.response?.data?.message || 'Failed to create contract type';
-            showAlert('error', 'Error', message);
+            showAlert('error', 'Error', getErrorMessage(error, 'Failed to create contract type'));
         }
     };
 
     const handleUpdate = async () => {
-        if (!selectedType) return;
+        if (!selectedType || !formData.title) return;
 
         try {
             await contractTypeService.update(selectedType.id, formData);
-            showAlert('success', 'Success', 'Contract type updated successfully');
+            showAlert('success', 'Success', 'Contract type updated successfully', 2000);
             setIsEditOpen(false);
             fetchContractTypes(page);
-        } catch (error: any) {
+        } catch (error) {
             console.error('Failed to update contract type:', error);
-            const message = error.response?.data?.message || 'Failed to update contract type';
-            showAlert('error', 'Error', message);
+            showAlert('error', 'Error', getErrorMessage(error, 'Failed to update contract type'));
         }
     };
 
     const handleDelete = async (id: number) => {
         const result = await showConfirmDialog(
-            'Are you sure?',
-            'You want to delete this contract type?'
+            'Delete Contract Type',
+            'Are you sure you want to delete this contract type?'
         );
 
         if (!result.isConfirmed) return;
@@ -184,6 +202,7 @@ export default function ContractTypes() {
     // ================= TABLE COLUMNS =================
     const columns: TableColumn<ContractType>[] = [
         {
+            id: 'title',
             name: 'Title',
             selector: (row) => row.title,
             cell: (row) => <span className="font-medium">{row.title}</span>,
@@ -194,17 +213,23 @@ export default function ContractTypes() {
             name: 'Description',
             selector: (row) => row.description || '-',
             cell: (row) => (
-                <span className="text-sm text-muted-foreground">
+                <span className="text-sm text-solarized-base01 line-clamp-2">
                     {row.description || '-'}
                 </span>
             ),
             minWidth: '300px',
         },
         {
-            name: 'Default Duration (Months)',
+            name: 'Duration (Months)',
             selector: (row) => row.default_duration_months,
             cell: (row) => <span>{row.default_duration_months}</span>,
-            width: '200px',
+            width: '150px',
+        },
+        {
+            name: 'Contracts',
+            selector: (row) => row.contracts_count || 0,
+            cell: (row) => <span>{row.contracts_count || 0}</span>,
+            width: '100px',
         },
         {
             name: 'Actions',
@@ -224,7 +249,7 @@ export default function ContractTypes() {
                         </DropdownMenuItem>
                         <DropdownMenuItem
                             onClick={() => handleDelete(row.id)}
-                            className="text-red-600"
+                            className="text-solarized-red"
                         >
                             <Trash2 className="mr-2 h-4 w-4" /> Delete
                         </DropdownMenuItem>
@@ -236,10 +261,32 @@ export default function ContractTypes() {
         },
     ];
 
+    // Custom Styles for DataTable
+    const customStyles = {
+        headRow: {
+            style: {
+                backgroundColor: '#f9fafb',
+                borderBottomWidth: '1px',
+                borderBottomColor: '#e5e7eb',
+                borderBottomStyle: 'solid' as const,
+                minHeight: '56px',
+            },
+        },
+        headCells: {
+            style: {
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#374151',
+                paddingLeft: '16px',
+                paddingRight: '16px',
+            },
+        },
+    };
+
     return (
         <div className="space-y-6">
             {/* HEADER */}
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-solarized-base02">Contract Types</h1>
                     <p className="text-solarized-base01">
@@ -253,12 +300,33 @@ export default function ContractTypes() {
             </div>
 
             {/* TABLE */}
-            <Card>
-                <CardContent className="pt-6">
+            <Card className="border-0 shadow-md">
+                <CardHeader>
+                    <CardTitle>Contract Types List</CardTitle>
+                    <form onSubmit={handleSearchSubmit} className="flex gap-4 mt-4">
+                        <Input
+                            placeholder="Search by title..."
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
+                        />
+                        <Button type="submit" variant="outline">
+                            <Search className="mr-2 h-4 w-4" /> Search
+                        </Button>
+                    </form>
+                </CardHeader>
+                <CardContent>
                     {!isLoading && contractTypes.length === 0 ? (
                         <div className="text-center py-12">
-                            <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                            <p>No contract types found</p>
+                            <FileText className="mx-auto h-12 w-12 text-solarized-base01 mb-4" />
+                            <h3 className="text-lg font-medium text-solarized-base02">No contract types found</h3>
+                            <p className="text-solarized-base01 mt-1">Create your first contract type to get started.</p>
+                            <Button
+                                className="mt-4 bg-solarized-blue hover:bg-solarized-blue/90"
+                                onClick={handleAddClick}
+                            >
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add Contract Type
+                            </Button>
                         </div>
                     ) : (
                         <DataTable
@@ -273,7 +341,10 @@ export default function ContractTypes() {
                             onChangePage={handlePageChange}
                             onChangeRowsPerPage={handlePerRowsChange}
                             onSort={handleSort}
+                            customStyles={customStyles}
                             sortServer
+                            defaultSortFieldId="title"
+                            defaultSortAsc={true}
                             highlightOnHover
                             responsive
                         />
@@ -286,34 +357,41 @@ export default function ContractTypes() {
                 <DialogContent className="max-w-md">
                     <DialogHeader>
                         <DialogTitle>Contract Type Details</DialogTitle>
+                        <DialogDescription>View the details of this contract type</DialogDescription>
                     </DialogHeader>
 
                     {selectedType && (
-                        <div className="space-y-4">
+                        <div className="space-y-4 py-4">
                             <div>
-                                <p className="text-sm text-solarized-base01">Title</p>
+                                <Label className="text-solarized-base01">Title</Label>
                                 <p className="font-medium text-lg">{selectedType.title}</p>
                             </div>
 
                             <div>
-                                <p className="text-sm text-solarized-base01">Description</p>
+                                <Label className="text-solarized-base01">Description</Label>
                                 <p className="text-sm">{selectedType.description || 'No description provided'}</p>
                             </div>
 
-                            <div>
-                                <p className="text-sm text-solarized-base01">Default Duration</p>
-                                <p className="font-medium">{selectedType.default_duration_months} months</p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <Label className="text-solarized-base01">Default Duration</Label>
+                                    <p className="font-medium">{selectedType.default_duration_months} months</p>
+                                </div>
+                                <div>
+                                    <Label className="text-solarized-base01">Contracts Count</Label>
+                                    <p className="font-medium">{selectedType.contracts_count || 0}</p>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4 pt-4 border-t">
                                 <div>
-                                    <p className="text-xs text-solarized-base01">Created At</p>
+                                    <Label className="text-xs text-solarized-base01">Created At</Label>
                                     <p className="text-sm">
                                         {new Date(selectedType.created_at).toLocaleDateString()}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-solarized-base01">Updated At</p>
+                                    <Label className="text-xs text-solarized-base01">Updated At</Label>
                                     <p className="text-sm">
                                         {new Date(selectedType.updated_at).toLocaleDateString()}
                                     </p>
@@ -326,6 +404,18 @@ export default function ContractTypes() {
                         <Button variant="outline" onClick={() => setIsViewOpen(false)}>
                             Close
                         </Button>
+                        <Button
+                            className="bg-solarized-blue hover:bg-solarized-blue/90"
+                            onClick={() => {
+                                if (selectedType) {
+                                    handleEditClick(selectedType);
+                                    setIsViewOpen(false);
+                                }
+                            }}
+                        >
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -335,59 +425,51 @@ export default function ContractTypes() {
                 <DialogContent className="max-w-md">
                     <DialogHeader>
                         <DialogTitle>Add Contract Type</DialogTitle>
+                        <DialogDescription>Create a new contract type</DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-4">
-                        <div>
-                            <label className="text-sm font-medium text-solarized-base02">
-                                Title *
-                            </label>
-                            <input
-                                type="text"
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="addTitle">Title *</Label>
+                            <Input
+                                id="addTitle"
                                 value={formData.title}
                                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-solarized-blue"
                                 placeholder="e.g., Permanent, Fixed-Term"
-                                required
                             />
                         </div>
 
-                        <div>
-                            <label className="text-sm font-medium text-solarized-base02">
-                                Description
-                            </label>
-                            <textarea
+                        <div className="space-y-2">
+                            <Label htmlFor="addDescription">Description</Label>
+                            <Textarea
+                                id="addDescription"
                                 value={formData.description}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-solarized-blue"
                                 rows={3}
                                 placeholder="Enter description..."
                             />
                         </div>
 
-                        <div>
-                            <label className="text-sm font-medium text-solarized-base02">
-                                Default Duration (Months)
-                            </label>
-                            <input
+                        <div className="space-y-2">
+                            <Label htmlFor="addDuration">Default Duration (Months)</Label>
+                            <Input
+                                id="addDuration"
                                 type="number"
                                 value={formData.default_duration_months}
-                                onChange={(e) => setFormData({ ...formData, default_duration_months: parseInt(e.target.value) || 0 })}
-                                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-solarized-blue"
-                                min="1"
+                                onChange={(e) => setFormData({ ...formData, default_duration_months: parseInt(e.target.value) || 1 })}
+                                min={1}
                                 placeholder="e.g., 12"
                             />
                         </div>
                     </div>
 
-                    <DialogFooter className="gap-2">
+                    <DialogFooter>
                         <Button variant="outline" onClick={() => setIsAddOpen(false)}>
                             Cancel
                         </Button>
                         <Button
                             className="bg-solarized-blue hover:bg-solarized-blue/90"
                             onClick={handleCreate}
-                            disabled={!formData.title}
                         >
                             Create
                         </Button>
@@ -400,56 +482,48 @@ export default function ContractTypes() {
                 <DialogContent className="max-w-md">
                     <DialogHeader>
                         <DialogTitle>Edit Contract Type</DialogTitle>
+                        <DialogDescription>Update the contract type details</DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-4">
-                        <div>
-                            <label className="text-sm font-medium text-solarized-base02">
-                                Title *
-                            </label>
-                            <input
-                                type="text"
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="editTitle">Title *</Label>
+                            <Input
+                                id="editTitle"
                                 value={formData.title}
                                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-solarized-blue"
-                                required
                             />
                         </div>
 
-                        <div>
-                            <label className="text-sm font-medium text-solarized-base02">
-                                Description
-                            </label>
-                            <textarea
+                        <div className="space-y-2">
+                            <Label htmlFor="editDescription">Description</Label>
+                            <Textarea
+                                id="editDescription"
                                 value={formData.description}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-solarized-blue"
                                 rows={3}
                             />
                         </div>
 
-                        <div>
-                            <label className="text-sm font-medium text-solarized-base02">
-                                Default Duration (Months)
-                            </label>
-                            <input
+                        <div className="space-y-2">
+                            <Label htmlFor="editDuration">Default Duration (Months)</Label>
+                            <Input
+                                id="editDuration"
                                 type="number"
                                 value={formData.default_duration_months}
-                                onChange={(e) => setFormData({ ...formData, default_duration_months: parseInt(e.target.value) || 0 })}
-                                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-solarized-blue"
-                                min="1"
+                                onChange={(e) => setFormData({ ...formData, default_duration_months: parseInt(e.target.value) || 1 })}
+                                min={1}
                             />
                         </div>
                     </div>
 
-                    <DialogFooter className="gap-2">
+                    <DialogFooter>
                         <Button variant="outline" onClick={() => setIsEditOpen(false)}>
                             Cancel
                         </Button>
                         <Button
                             className="bg-solarized-blue hover:bg-solarized-blue/90"
                             onClick={handleUpdate}
-                            disabled={!formData.title}
                         >
                             Update
                         </Button>

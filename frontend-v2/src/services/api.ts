@@ -123,7 +123,10 @@ export const payrollService = {
     taxable?: boolean;
     paginate?: boolean;
     page?: number;
-    per_page?: number
+    per_page?: number;
+    search?: string;
+    order_by?: string;
+    order?: string;
   }) => api.get('/benefit-types', { params }),
 
   createBenefitType: (data: {
@@ -361,7 +364,7 @@ export const performanceService = {
 };
 
 export const assetService = {
-  getAll: (params?: { type_id?: number; status?: string; page?: number; search?: string }) => api.get('/assets', { params }),
+  getAll: (params?: { type_id?: number; status?: string; page?: number; per_page?: number; search?: string; order_by?: string; order?: string }) => api.get('/assets', { params }),
   getAssetTypes: () => api.get('/asset-types'),
   createAssetType: (data: Record<string, unknown>) => api.post('/asset-types', data),
   getAssets: (params?: { type_id?: number; status?: string; page?: number }) => api.get('/assets', { params }),
@@ -396,7 +399,7 @@ export const trainingService = {
 };
 
 export const contractService = {
-  getAll: (params?: { staff_member_id?: number; status?: string; page?: number }) =>
+  getAll: (params?: { staff_member_id?: number; status?: string; page?: number; per_page?: number; search?: string; order_by?: string; order?: string }) =>
     api.get('/contracts', { params }),
   getById: (id: number) => api.get(`/contracts/${id}`),
   getContracts: (params?: { staff_member_id?: number; status?: string; page?: number }) =>
@@ -410,7 +413,7 @@ export const contractService = {
 };
 
 export const contractTypeService = {
-  getAll: (params?: { page?: number; per_page?: number; search?: string }) =>
+  getAll: (params?: { page?: number; per_page?: number; search?: string; order_by?: string; order?: string }) =>
     api.get('/contract-types', { params }),
   getById: (id: number) => api.get(`/contract-types/${id}`),
   create: (data: Record<string, unknown>) => api.post('/contract-types', data),
@@ -464,7 +467,7 @@ export const settingsService = {
   createOfficeLocation: (data: Record<string, unknown>) => api.post('/office-locations', data),
   updateOfficeLocation: (id: number, data: Record<string, unknown>) => api.put(`/office-locations/${id}`, data),
   deleteOfficeLocation: (id: number) => api.delete(`/office-locations/${id}`),
-  getDivisions: () => api.get('/divisions'),
+  getDivisions: (params?: { page?: number; per_page?: number; search?: string; order_by?: string; order?: string }) => api.get('/divisions', { params }),
   createDivision: (data: Record<string, unknown>) => api.post('/divisions', data),
   updateDivision: (id: number, data: Record<string, unknown>) => api.put(`/divisions/${id}`, data),
   deleteDivision: (id: number) => api.delete(`/divisions/${id}`),
@@ -539,7 +542,7 @@ export const companyService = {
 };
 
 export const assetTypeService = {
-  getAll: (params?: { page?: number; per_page?: number; search?: string }) => api.get('/asset-types', { params }),
+  getAll: (params?: { page?: number; per_page?: number; search?: string; order_by?: string; order?: string }) => api.get('/asset-types', { params }),
   getById: (id: number) => api.get(`/asset-types/${id}`),
   create: (data: Record<string, unknown>) => api.post('/asset-types', data),
   update: (id: number, data: Record<string, unknown>) => api.put(`/asset-types/${id}`, data),
@@ -547,7 +550,7 @@ export const assetTypeService = {
 };
 
 export const documentTypeService = {
-  getAll: (params?: { page?: number; search?: string; per_page?: number }) => api.get('/document-types', { params }),
+  getAll: (params?: { page?: number; search?: string; per_page?: number; order_by?: string; order?: string }) => api.get('/document-types', { params }),
   // getAll: (params?: { page?: number; per_page?: number; search?: string }) => api.get('/document-types', { params }),
   getById: (id: number) => api.get(`/document-types/${id}`),
   create: (data: Record<string, unknown>) => api.post('/document-types', data),

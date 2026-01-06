@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { settingsService } from '../../services/api';
 import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
-import { Card, CardContent } from '../../components/ui/card';
+import { Card, CardContent, CardHeader } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -15,14 +15,6 @@ import {
   SelectValue,
 } from '../../components/ui/select';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../../components/ui/table';
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -31,14 +23,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../../components/ui/dialog';
-import { Skeleton } from '../../components/ui/skeleton';
-import { Plus, Building2, Edit, Trash2, MoreHorizontal } from 'lucide-react';
+import { Plus, Building2, Edit, Trash2, MoreHorizontal, Search } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../../components/ui/dropdown-menu';
+import DataTable, { TableColumn } from 'react-data-table-component';
 
 interface Location {
   id: number;
@@ -57,7 +49,7 @@ interface Division {
 export default function Divisions() {
   const [divisions, setDivisions] = useState<Division[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingDivision, setEditingDivision] = useState<Division | null>(null);
@@ -68,24 +60,93 @@ export default function Divisions() {
     office_location_id: '',
   });
 
+  // Pagination & Sorting State
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [totalRows, setTotalRows] = useState(0);
+  const [sortField, setSortField] = useState<string>('');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Fetch locations on mount
   useEffect(() => {
-    fetchData();
+    const fetchLocations = async () => {
+      try {
+        const locRes = await settingsService.getOfficeLocations();
+        setLocations(locRes.data.data || []);
+      } catch (error) {
+        console.error('Failed to fetch locations:', error);
+      }
+    };
+    fetchLocations();
   }, []);
 
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const [divRes, locRes] = await Promise.all([
-        settingsService.getDivisions(),
-        settingsService.getOfficeLocations(),
-      ]);
-      setDivisions(divRes.data.data || []);
-      setLocations(locRes.data.data || []);
-    } catch (error) {
-      console.error('Failed to fetch data:', error);
-      showAlert('error', 'Error', 'Failed to fetch divisions');
-    } finally {
-      setIsLoading(false);
+  // Fetch divisions with pagination
+  const fetchDivisions = useCallback(
+    async (currentPage: number = 1) => {
+      setIsLoading(true);
+      try {
+        const params: Record<string, unknown> = {
+          page: currentPage,
+          per_page: perPage,
+          search: searchQuery,
+        };
+
+        if (sortField) {
+          params.order_by = sortField;
+          params.order = sortDirection;
+        }
+
+        const response = await settingsService.getDivisions(params);
+        const { data, meta } = response.data;
+
+        if (Array.isArray(data)) {
+          setDivisions(data);
+          setTotalRows(meta?.total ?? 0);
+        } else {
+          setDivisions([]);
+          setTotalRows(0);
+        }
+      } catch (error) {
+        console.error('Failed to fetch divisions:', error);
+        showAlert('error', 'Error', getErrorMessage(error, 'Failed to fetch divisions'));
+        setDivisions([]);
+        setTotalRows(0);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [perPage, searchQuery, sortField, sortDirection]
+  );
+
+  useEffect(() => {
+    fetchDivisions(page);
+  }, [page, fetchDivisions]);
+
+  // Search Handler
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearchQuery(searchInput);
+    setPage(1);
+  };
+
+  // Pagination Handlers
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handlePerRowsChange = (newPerPage: number) => {
+    setPerPage(newPerPage);
+    setPage(1);
+  };
+
+  // Sorting Handler - Only Name column is sortable
+  const handleSort = (column: TableColumn<Division>, sortDirection: 'asc' | 'desc') => {
+    if (column.name === 'Name') {
+      setSortField('title');
+      setSortDirection(sortDirection);
+      setPage(1);
     }
   };
 
@@ -106,7 +167,7 @@ export default function Divisions() {
       setIsDialogOpen(false);
       setEditingDivision(null);
       resetForm();
-      fetchData();
+      fetchDivisions(page);
     } catch (error: unknown) {
       console.error('Failed to save division:', error);
       showAlert('error', 'Error', getErrorMessage(error, 'Failed to save division'));
@@ -139,7 +200,7 @@ export default function Divisions() {
     try {
       await settingsService.deleteDivision(id);
       showAlert('success', 'Deleted!', 'Division deleted successfully', 2000);
-      fetchData();
+      fetchDivisions(page);
     } catch (error: unknown) {
       console.error('Failed to delete division:', error);
       showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete division'));
@@ -148,6 +209,95 @@ export default function Divisions() {
 
   const resetForm = () => {
     setFormData({ title: '', notes: '', office_location_id: '' });
+  };
+
+  // Table Columns
+  const columns: TableColumn<Division>[] = [
+    {
+      name: 'Name',
+      selector: (row) => row.title,
+      cell: (row) => <span className="font-medium">{row.title}</span>,
+      sortable: true,
+      minWidth: '150px',
+    },
+    {
+      name: 'Office Location',
+      selector: (row) => row.office_location?.title || '-',
+    },
+    {
+      name: 'Notes',
+      selector: (row) => row.notes || '-',
+      cell: (row) => (
+        <span className="max-w-[200px] truncate">{row.notes || '-'}</span>
+      ),
+    },
+    {
+      name: 'Status',
+      cell: (row) => (
+        <Badge
+          className={
+            row.is_active
+              ? 'bg-solarized-green/10 text-solarized-green'
+              : 'bg-solarized-base01/10 text-solarized-base01'
+          }
+        >
+          {row.is_active ? 'Active' : 'Inactive'}
+        </Badge>
+      ),
+    },
+    {
+      name: 'Actions',
+      cell: (row) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleView(row)}>
+              <Building2 className="mr-2 h-4 w-4" />
+              View
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleEdit(row)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => handleDelete(row.id)}
+              className="text-solarized-red"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+      ignoreRowClick: true,
+      width: '80px',
+    },
+  ];
+
+  // Custom Styles for DataTable
+  const customStyles = {
+    headRow: {
+      style: {
+        backgroundColor: '#f9fafb',
+        borderBottomWidth: '1px',
+        borderBottomColor: '#e5e7eb',
+        borderBottomStyle: 'solid' as const,
+        minHeight: '56px',
+      },
+    },
+    headCells: {
+      style: {
+        fontSize: '14px',
+        fontWeight: '600',
+        color: '#374151',
+        paddingLeft: '16px',
+        paddingRight: '16px',
+      },
+    },
   };
 
   return (
@@ -232,77 +382,43 @@ export default function Divisions() {
       </div>
 
       <Card className="border-0 shadow-md">
-        <CardContent className="pt-6">
-          {isLoading ? (
-            <div className="space-y-4">
-              {[...Array(3)].map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : divisions.length === 0 ? (
+        <CardHeader>
+          <form onSubmit={handleSearchSubmit} className="flex gap-4">
+            <Input
+              placeholder="Search departments..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+            <Button type="submit" variant="outline" >
+              <Search className="mr-2 h-4 w-4 " /> Search
+            </Button>
+          </form>
+        </CardHeader>
+        <CardContent>
+          {!isLoading && divisions.length === 0 ? (
             <div className="text-center py-12">
               <Building2 className="h-12 w-12 text-solarized-base01 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-solarized-base02">No divisions configured</h3>
               <p className="text-solarized-base01 mt-1">Add your first division.</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Office Location</TableHead>
-                  <TableHead>Notes</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {divisions.map((division) => (
-                  <TableRow key={division.id}>
-                    <TableCell className="font-medium">{division.title}</TableCell>
-                    <TableCell>{division.office_location?.title || '-'}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">{division.notes || '-'}</TableCell>
-                    <TableCell>
-                      <Badge
-                        className={
-                          division.is_active
-                            ? 'bg-solarized-green/10 text-solarized-green'
-                            : 'bg-solarized-base01/10 text-solarized-base01'
-                        }
-                      >
-                        {division.is_active ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleView(division)}>
-                            <Building2 className="mr-2 h-4 w-4" />
-                            View
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEdit(division)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(division.id)}
-                            className="text-solarized-red"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <DataTable
+              columns={columns}
+              data={divisions}
+              progressPending={isLoading}
+              pagination
+              paginationServer
+              paginationTotalRows={totalRows}
+              paginationPerPage={perPage}
+              paginationDefaultPage={page}
+              onChangePage={handlePageChange}
+              onChangeRowsPerPage={handlePerRowsChange}
+              onSort={handleSort}
+              customStyles={customStyles}
+              sortServer
+              highlightOnHover
+              responsive
+            />
           )}
         </CardContent>
       </Card>

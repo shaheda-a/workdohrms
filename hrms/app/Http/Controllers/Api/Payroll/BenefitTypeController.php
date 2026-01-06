@@ -22,9 +22,23 @@ class BenefitTypeController extends Controller
             $query->where('is_taxable', $request->boolean('taxable'));
         }
 
+        // Search support
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where('title', 'like', "%{$search}%");
+        }
+
+        // Sorting support
+        if ($request->filled('order_by')) {
+            $direction = $request->input('order', 'asc');
+            $query->orderBy($request->input('order_by'), $direction);
+        } else {
+            $query->latest();
+        }
+
         $types = $request->boolean('paginate', true)
-            ? $query->latest()->paginate($request->input('per_page', 15))
-            : $query->latest()->get();
+            ? $query->paginate($request->input('per_page', 15))
+            : $query->get();
 
         return $this->success($types);
     }

@@ -16,6 +16,11 @@ class ContractTypeController extends Controller
     {
         $query = ContractType::withCount('contracts');
 
+        // Search support
+        if ($request->search) {
+            $query->where('title', 'like', "%{$request->search}%");
+        }
+
         // Sorting
         $orderBy = $request->order_by ?? 'id';
         $order = $request->order ?? 'asc';

@@ -1,17 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { payrollService } from '../../services/api';
 import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -21,19 +14,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../../components/ui/dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../../components/ui/table';
 import { Badge } from '../../components/ui/badge';
-import { Skeleton } from '../../components/ui/skeleton';
-import { Plus, Pencil, Trash2, DollarSign, CheckCircle, XCircle } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu';
+import { Plus, Edit, Trash2, DollarSign, CheckCircle, Search, MoreHorizontal, Eye } from 'lucide-react';
 import { Textarea } from '../../components/ui/textarea';
 import { Switch } from '../../components/ui/switch';
+import DataTable, { TableColumn } from 'react-data-table-component';
 
 interface BenefitType {
   id: number;
@@ -62,28 +53,84 @@ export default function BenefitTypes() {
     is_active: true,
   });
 
-  const fetchBenefitTypes = async () => {
-    setIsLoading(true);
-    try {
-      const response = await payrollService.getBenefitTypes({ 
-        paginate: false 
-      });
-      console.log('Benefit types response:', response.data);
-      
-      if (response.data && response.data.data) {
-        setBenefitTypes(response.data.data);
-      } else if (Array.isArray(response.data)) {
-        setBenefitTypes(response.data);
-      } else {
-        console.error('Unexpected response format:', response);
+  // View modal state
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [viewingBenefitType, setViewingBenefitType] = useState<BenefitType | null>(null);
+
+  // Pagination & Sorting State
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [totalRows, setTotalRows] = useState(0);
+  const [sortField, setSortField] = useState<string>('');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Fetch benefit types with pagination
+  const fetchBenefitTypes = useCallback(
+    async (currentPage: number = 1) => {
+      setIsLoading(true);
+      try {
+        const params: Record<string, unknown> = {
+          page: currentPage,
+          per_page: perPage,
+          search: searchQuery,
+        };
+
+        if (sortField) {
+          params.order_by = sortField;
+          params.order = sortDirection;
+        }
+
+        const response = await payrollService.getBenefitTypes(params);
+        const { data, meta } = response.data;
+
+        if (Array.isArray(data)) {
+          setBenefitTypes(data);
+          setTotalRows(meta?.total ?? 0);
+        } else {
+          setBenefitTypes([]);
+          setTotalRows(0);
+        }
+      } catch (error) {
+        console.error('Failed to fetch benefit types:', error);
+        showAlert('error', 'Error', 'Failed to fetch benefit types');
         setBenefitTypes([]);
+        setTotalRows(0);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to fetch benefit types:', error);
-      showAlert('error', 'Error', 'Failed to fetch benefit types');
-      setBenefitTypes([]);
-    } finally {
-      setIsLoading(false);
+    },
+    [perPage, searchQuery, sortField, sortDirection]
+  );
+
+  useEffect(() => {
+    fetchBenefitTypes(page);
+  }, [page, fetchBenefitTypes]);
+
+  // Search Handler
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearchQuery(searchInput);
+    setPage(1);
+  };
+
+  // Pagination Handlers
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handlePerRowsChange = (newPerPage: number) => {
+    setPerPage(newPerPage);
+    setPage(1);
+  };
+
+  // Sorting Handler - Only Title column is sortable
+  const handleSort = (column: TableColumn<BenefitType>, sortDirection: 'asc' | 'desc') => {
+    if (column.name === 'Title') {
+      setSortField('title');
+      setSortDirection(sortDirection);
+      setPage(1);
     }
   };
 
@@ -93,10 +140,9 @@ export default function BenefitTypes() {
       if (isEditMode && editingId) {
         await payrollService.updateBenefitType(editingId, formData);
       } else {
-        // Create new benefit type
         await payrollService.createBenefitType(formData);
       }
-      
+
       showAlert(
         'success',
         'Success!',
@@ -105,7 +151,7 @@ export default function BenefitTypes() {
       );
       setIsDialogOpen(false);
       resetForm();
-      fetchBenefitTypes();
+      fetchBenefitTypes(page);
     } catch (error: unknown) {
       console.error('Failed to save benefit type:', error);
       showAlert('error', 'Error', getErrorMessage(error, 'Failed to save benefit type'));
@@ -124,6 +170,11 @@ export default function BenefitTypes() {
     setIsDialogOpen(true);
   };
 
+  const handleView = (benefitType: BenefitType) => {
+    setViewingBenefitType(benefitType);
+    setIsViewDialogOpen(true);
+  };
+
   const handleDelete = async (id: number) => {
     const result = await showConfirmDialog(
       'Are you sure?',
@@ -135,7 +186,7 @@ export default function BenefitTypes() {
     try {
       await payrollService.deleteBenefitType(id);
       showAlert('success', 'Deleted!', 'Benefit type deleted successfully', 2000);
-      fetchBenefitTypes();
+      fetchBenefitTypes(page);
     } catch (error: unknown) {
       console.error('Failed to delete benefit type:', error);
       showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete benefit type'));
@@ -153,10 +204,6 @@ export default function BenefitTypes() {
     });
   };
 
-  useEffect(() => {
-    fetchBenefitTypes();
-  }, []);
-
   const formatDate = (dateString: string) => {
     try {
       return new Date(dateString).toLocaleDateString('en-US', {
@@ -167,6 +214,111 @@ export default function BenefitTypes() {
     } catch (error) {
       return 'Invalid Date';
     }
+  };
+
+  // Table Columns
+  const columns: TableColumn<BenefitType>[] = [
+    {
+      name: 'Title',
+      selector: (row) => row.title,
+      cell: (row) => <span className="font-medium">{row.title}</span>,
+      sortable: true,
+      minWidth: '150px',
+    },
+    {
+      name: 'Notes',
+      selector: (row) => row.notes || 'No notes',
+      cell: (row) => (
+        <span className="max-w-[200px] truncate">{row.notes || 'No notes'}</span>
+      ),
+    },
+    {
+      name: 'Taxable',
+      cell: (row) => (
+        <Badge
+          className={
+            row.is_taxable
+              ? 'bg-solarized-yellow/10 text-solarized-yellow'
+              : 'bg-solarized-green/10 text-solarized-green'
+          }
+        >
+          {row.is_taxable ? 'Yes' : 'No'}
+        </Badge>
+      ),
+    },
+    {
+      name: 'Status',
+      cell: (row) => (
+        <Badge
+          className={
+            row.is_active
+              ? 'bg-solarized-green/10 text-solarized-green'
+              : 'bg-solarized-red/10 text-solarized-red'
+          }
+        >
+          {row.is_active ? 'Active' : 'Inactive'}
+        </Badge>
+      ),
+    },
+    {
+      name: 'Created',
+      selector: (row) => row.created_at,
+      cell: (row) => <span className="text-sm">{formatDate(row.created_at)}</span>,
+    },
+    {
+      name: 'Actions',
+      cell: (row) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleView(row)}>
+              <Eye className="mr-2 h-4 w-4" />
+              View
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleEdit(row)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => handleDelete(row.id)}
+              className="text-solarized-red"
+              disabled={row.staffBenefits && row.staffBenefits.length > 0}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+      ignoreRowClick: true,
+      width: '80px',
+    },
+  ];
+
+  // Custom Styles for DataTable
+  const customStyles = {
+    headRow: {
+      style: {
+        backgroundColor: '#f9fafb',
+        borderBottomWidth: '1px',
+        borderBottomColor: '#e5e7eb',
+        borderBottomStyle: 'solid' as const,
+        minHeight: '56px',
+      },
+    },
+    headCells: {
+      style: {
+        fontSize: '14px',
+        fontWeight: '600',
+        color: '#374151',
+        paddingLeft: '16px',
+        paddingRight: '16px',
+      },
+    },
   };
 
   const activeCount = benefitTypes.filter(type => type.is_active).length;
@@ -203,8 +355,8 @@ export default function BenefitTypes() {
                 {isEditMode ? 'Edit Benefit Type' : 'Add Benefit Type'}
               </DialogTitle>
               <DialogDescription>
-                {isEditMode 
-                  ? 'Update the details of this benefit type' 
+                {isEditMode
+                  ? 'Update the details of this benefit type'
                   : 'Add a new benefit type to the system'}
               </DialogDescription>
             </DialogHeader>
@@ -220,7 +372,7 @@ export default function BenefitTypes() {
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="notes">Notes</Label>
                   <Textarea
@@ -231,7 +383,7 @@ export default function BenefitTypes() {
                     rows={3}
                   />
                 </div>
-                
+
                 <div className="flex items-center justify-between space-x-2">
                   <div className="space-y-0.5">
                     <Label htmlFor="is_taxable">Taxable</Label>
@@ -245,7 +397,7 @@ export default function BenefitTypes() {
                     onCheckedChange={(checked) => setFormData({ ...formData, is_taxable: checked })}
                   />
                 </div>
-                
+
                 <div className="flex items-center justify-between space-x-2">
                   <div className="space-y-0.5">
                     <Label htmlFor="is_active">Active</Label>
@@ -261,9 +413,9 @@ export default function BenefitTypes() {
                 </div>
               </div>
               <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={() => {
                     resetForm();
                     setIsDialogOpen(false);
@@ -271,8 +423,8 @@ export default function BenefitTypes() {
                 >
                   Cancel
                 </Button>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="bg-solarized-blue hover:bg-solarized-blue/90"
                 >
                   {isEditMode ? 'Update' : 'Create'} Benefit Type
@@ -293,13 +445,13 @@ export default function BenefitTypes() {
               <div>
                 <p className="text-sm text-solarized-base01">Total Types</p>
                 <p className="text-2xl font-bold text-solarized-base02">
-                  {benefitTypes.length}
+                  {totalRows || benefitTypes.length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="border-0 shadow-md">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
@@ -313,7 +465,7 @@ export default function BenefitTypes() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="border-0 shadow-md">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
@@ -334,109 +486,126 @@ export default function BenefitTypes() {
       <Card className="border-0 shadow-md">
         <CardHeader>
           <CardTitle>Benefit Types List</CardTitle>
+          <form onSubmit={handleSearchSubmit} className="flex gap-4 mt-4">
+            <Input
+              placeholder="Search benefit types..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+            <Button type="submit" variant="outline">
+              <Search className="mr-2 h-4 w-4" /> Search
+            </Button>
+          </form>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
+          {!isLoading && benefitTypes.length === 0 ? (
+            <div className="text-center py-12">
+              <DollarSign className="h-12 w-12 text-solarized-base01 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-solarized-base02">
+                No benefit types found
+              </h3>
+              <p className="text-solarized-base01 mt-1">
+                Create your first benefit type to get started.
+              </p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Notes</TableHead>
-                  <TableHead>Taxable</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Updated</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {benefitTypes.length > 0 ? (
-                  benefitTypes.map((type) => (
-                    <TableRow key={type.id}>
-                      <TableCell className="font-medium">{type.title}</TableCell>
-                      <TableCell className="max-w-xs truncate">
-                        {type.notes || 'No notes'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={
-                            type.is_taxable
-                              ? 'bg-solarized-yellow/10 text-solarized-yellow'
-                              : 'bg-solarized-green/10 text-solarized-green'
-                          }
-                        >
-                          {type.is_taxable ? 'Yes' : 'No'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={
-                            type.is_active
-                              ? 'bg-solarized-green/10 text-solarized-green'
-                              : 'bg-solarized-red/10 text-solarized-red'
-                          }
-                        >
-                          {type.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {formatDate(type.created_at)}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {formatDate(type.updated_at)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEdit(type)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDelete(type.id)}
-                            disabled={type.staffBenefits && type.staffBenefits.length > 0}
-                            title={
-                              type.staffBenefits && type.staffBenefits.length > 0
-                                ? 'Cannot delete: Benefit type is in use'
-                                : 'Delete benefit type'
-                            }
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
-                      <div className="flex flex-col items-center justify-center">
-                        <DollarSign className="h-12 w-12 text-solarized-base01 mb-4" />
-                        <h3 className="text-lg font-medium text-solarized-base02">
-                          No benefit types found
-                        </h3>
-                        <p className="text-solarized-base01 mt-1">
-                          Create your first benefit type to get started.
-                        </p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+            <DataTable
+              columns={columns}
+              data={benefitTypes}
+              progressPending={isLoading}
+              pagination
+              paginationServer
+              paginationTotalRows={totalRows}
+              paginationPerPage={perPage}
+              paginationDefaultPage={page}
+              onChangePage={handlePageChange}
+              onChangeRowsPerPage={handlePerRowsChange}
+              onSort={handleSort}
+              customStyles={customStyles}
+              sortServer
+              highlightOnHover
+              responsive
+            />
           )}
         </CardContent>
       </Card>
+
+      {/* View Modal */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Benefit Type Details</DialogTitle>
+            <DialogDescription>
+              View the details of this benefit type
+            </DialogDescription>
+          </DialogHeader>
+          {viewingBenefitType && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-solarized-base01">Title</Label>
+                  <p className="font-medium text-solarized-base02">{viewingBenefitType.title}</p>
+                </div>
+                <div>
+                  <Label className="text-solarized-base01">Status</Label>
+                  <div className="mt-1">
+                    <Badge
+                      className={
+                        viewingBenefitType.is_active
+                          ? 'bg-solarized-green/10 text-solarized-green'
+                          : 'bg-solarized-red/10 text-solarized-red'
+                      }
+                    >
+                      {viewingBenefitType.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <Label className="text-solarized-base01">Notes</Label>
+                <p className="text-solarized-base02">{viewingBenefitType.notes || 'No notes'}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-solarized-base01">Taxable</Label>
+                  <div className="mt-1">
+                    <Badge
+                      className={
+                        viewingBenefitType.is_taxable
+                          ? 'bg-solarized-yellow/10 text-solarized-yellow'
+                          : 'bg-solarized-green/10 text-solarized-green'
+                      }
+                    >
+                      {viewingBenefitType.is_taxable ? 'Yes' : 'No'}
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-solarized-base01">Created</Label>
+                  <p className="text-solarized-base02">{formatDate(viewingBenefitType.created_at)}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+              Close
+            </Button>
+            <Button
+              className="bg-solarized-blue hover:bg-solarized-blue/90"
+              onClick={() => {
+                if (viewingBenefitType) {
+                  handleEdit(viewingBenefitType);
+                  setIsViewDialogOpen(false);
+                }
+              }}
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
