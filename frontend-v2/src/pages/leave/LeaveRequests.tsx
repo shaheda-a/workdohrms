@@ -205,7 +205,7 @@ export default function LeaveRequests() {
       <Card>
         <CardHeader className="pb-4">
           <div className="flex justify-between">
-            <CardTitle className="text-lg">My Requests</CardTitle>
+            <CardTitle className="text-lg">Leave Requests</CardTitle>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Filter by status" />
