@@ -1,15 +1,11 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { trainingService, staffService } from '../../services/api';
+import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
+import { trainingService } from '../../services/api';
 import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
+import { Card, CardContent, CardHeader } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
-import { Textarea } from '../../components/ui/textarea';
 import { Badge } from '../../components/ui/badge';
-import { Skeleton } from '../../components/ui/skeleton';
-import { Checkbox } from '../../components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -18,7 +14,18 @@ import {
     DialogFooter,
 } from '../../components/ui/dialog';
 
-import { Plus, User, GraduationCap, Calendar, ChevronLeft, ChevronRight, MoreHorizontal, Eye, Edit, Trash2, Trophy, ClipboardCheck } from 'lucide-react';
+import {
+    Plus,
+    User,
+    GraduationCap,
+    MoreHorizontal,
+    Eye,
+    Edit,
+    Trash2,
+    Trophy,
+    ClipboardCheck,
+    Search,
+} from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -26,6 +33,7 @@ import {
     DropdownMenuTrigger,
 } from '../../components/ui/dropdown-menu';
 import { useAuth } from '../../context/AuthContext';
+import DataTable, { TableColumn } from 'react-data-table-component';
 
 interface Session {
     id: number;
@@ -60,59 +68,57 @@ interface Participant {
     training_program?: TrainingProgram;
 }
 
-interface PaginationMeta {
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-}
-
 export default function Participants() {
-    const navigate = useNavigate();
     const { hasPermission } = useAuth();
     const [participants, setParticipants] = useState<Participant[]>([]);
-    const [meta, setMeta] = useState<PaginationMeta | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
+    const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
+    const [totalRows, setTotalRows] = useState(0);
     const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
     const [viewingParticipant, setViewingParticipant] = useState<Participant | null>(null);
 
     const canManage = hasPermission('manage_staff_training');
 
-    const fetchParticipants = async () => {
-        setIsLoading(true);
-        try {
-            const response = await trainingService.getParticipants({ page });
-            const data = response.data.data;
-            if (Array.isArray(data)) {
-                setParticipants(data);
-                setMeta(response.data.meta || null);
-            } else if (data && Array.isArray(data.data)) {
-                setParticipants(data.data);
-                setMeta({
-                    current_page: data.current_page,
-                    last_page: data.last_page,
-                    per_page: data.per_page,
-                    total: data.total,
-                });
-            } else {
+    const fetchParticipants = useCallback(
+        async (currentPage: number = 1) => {
+            setIsLoading(true);
+            try {
+                const params: Record<string, unknown> = {
+                    page: currentPage,
+                    per_page: perPage,
+                    search,
+                };
+
+                const response = await trainingService.getParticipants(params);
+                const payload = response.data.data;
+
+                if (Array.isArray(payload)) {
+                    setParticipants(payload);
+                    setTotalRows(response.data.meta?.total ?? payload.length);
+                } else if (payload && Array.isArray(payload.data)) {
+                    setParticipants(payload.data);
+                    setTotalRows(payload.total);
+                } else {
+                    setParticipants([]);
+                    setTotalRows(0);
+                }
+            } catch (error) {
+                console.error('Failed to fetch participants:', error);
+                showAlert('error', 'Error', 'Failed to fetch participants');
                 setParticipants([]);
-                setMeta(null);
+                setTotalRows(0);
+            } finally {
+                setIsLoading(false);
             }
-        } catch (error) {
-            console.error('Failed to fetch participants:', error);
-            showAlert('error', 'Error', 'Failed to fetch participants');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-
+        },
+        [perPage, search]
+    );
 
     useEffect(() => {
-        fetchParticipants();
-        fetchParticipants();
-    }, [page]);
+        fetchParticipants(page);
+    }, [page, fetchParticipants]);
 
 
 
@@ -128,7 +134,7 @@ export default function Participants() {
         if (!result.isConfirmed) return;
         try {
             await trainingService.deleteParticipant(id);
-            fetchParticipants();
+            fetchParticipants(page);
             showAlert('success', 'Removed!', 'Participant removed successfully', 2000);
         } catch (error) {
             console.error('Failed to remove participant:', error);
@@ -139,12 +145,162 @@ export default function Participants() {
 
     const getStatusBadge = (status: string) => {
         const variants: Record<string, string> = {
-            enrolled: 'bg-solarized-blue/10 text-solarized-blue',
-            completed: 'bg-solarized-green/10 text-solarized-green',
-            failed: 'bg-solarized-red/10 text-solarized-red',
-            withdrawn: 'bg-solarized-base01/10 text-solarized-base01',
+            enrolled: 'bg-blue-100 text-blue-700 hover:bg-blue-100',
+            completed: 'bg-green-100 text-green-700 hover:bg-green-100',
+            failed: 'bg-red-100 text-red-700 hover:bg-red-100',
+            withdrawn: 'bg-gray-100 text-gray-700 hover:bg-gray-100',
         };
         return variants[status] || variants.enrolled;
+    };
+
+    // ================= SEARCH =================
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setPage(1);
+    };
+
+    // ================= PAGINATION =================
+    const handlePageChange = (newPage: number) => {
+        setPage(newPage);
+    };
+
+    const handlePerRowsChange = (newPerPage: number) => {
+        setPerPage(newPerPage);
+        setPage(1);
+    };
+
+    // ================= TABLE COLUMNS =================
+    const columns: TableColumn<Participant>[] = [
+        {
+            name: 'Employee',
+            selector: (row) => row.staff_member?.full_name || '',
+            cell: (row) => (
+                <div className="flex items-center gap-3 py-2">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-700 text-xs text-center shrink-0">
+                        {row.staff_member?.full_name.charAt(0)}
+                    </div>
+                    <div className="min-w-0">
+                        <p className="font-medium truncate">{row.staff_member?.full_name}</p>
+                        {/* <p className="text-xs text-muted-foreground">ID: {row.staff_member_id}</p> */}
+                    </div>
+                </div>
+            ),
+            sortable: true,
+            minWidth: '200px',
+        },
+        {
+            name: 'Training Program',
+            selector: (row) => row.training_program?.title || '',
+            cell: (row) => (
+                <span className="text-sm font-medium">
+                    {row.training_program?.title || '-'}
+                </span>
+            ),
+            sortable: true,
+            minWidth: '180px',
+        },
+        {
+            name: 'Session',
+            selector: (row) => row.session?.session_name || '',
+            cell: (row) => (
+                <span className="text-sm">
+                    {row.session?.session_name || '-'}
+                </span>
+            ),
+            sortable: true,
+            minWidth: '180px',
+        },
+        {
+            name: 'Status',
+            cell: (row) => (
+                <Badge className={getStatusBadge(row.status)}>
+                    {row.status}
+                </Badge>
+            ),
+            width: '120px',
+        },
+        {
+            name: 'Score',
+            selector: (row) => row.score || '',
+            cell: (row) => (
+                <div className="flex items-center gap-1 font-medium">
+                    {row.score ? (
+                        <>
+                            <Trophy className={`h-3 w-3 ${Number(row.score) >= 70 ? 'text-yellow-500' : 'text-muted-foreground'}`} />
+                            {row.score}
+                        </>
+                    ) : '-'}
+                </div>
+            ),
+            width: '100px',
+        },
+        {
+            name: 'Certificate',
+            cell: (row) => (
+                row.certificate_issued ? (
+                    <div className="flex items-center gap-1 text-green-600">
+                        <ClipboardCheck className="h-4 w-4" />
+                        <span className="text-xs font-medium">Issued</span>
+                    </div>
+                ) : '-'
+            ),
+            width: '120px',
+        },
+        {
+            name: 'Actions',
+            cell: (row) => (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleView(row)}>
+                            <Eye className="mr-2 h-4 w-4" /> View Details
+                        </DropdownMenuItem>
+                        {canManage && (
+                            <>
+                                <Link to={`/training/participants/${row.id}/edit`}>
+                                    <DropdownMenuItem>
+                                        <Edit className="mr-2 h-4 w-4" /> Update
+                                    </DropdownMenuItem>
+                                </Link>
+                                <DropdownMenuItem
+                                    onClick={() => handleDelete(row.id)}
+                                    className="text-red-600"
+                                >
+                                    <Trash2 className="mr-2 h-4 w-4" /> Remove
+                                </DropdownMenuItem>
+                            </>
+                        )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            ),
+            ignoreRowClick: true,
+            width: '80px',
+        },
+    ];
+
+    const customStyles = {
+        headRow: {
+            style: {
+                backgroundColor: '#f9fafb',
+                borderBottomWidth: '1px',
+                borderBottomColor: '#e5e7eb',
+                borderBottomStyle: 'solid' as const,
+                minHeight: '56px',
+            },
+        },
+        headCells: {
+            style: {
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#374151',
+                paddingLeft: '16px',
+                paddingRight: '16px',
+            },
+        },
     };
 
     return (
@@ -239,81 +395,45 @@ export default function Participants() {
                 </DialogContent>
             </Dialog>
 
-            {isLoading ? (
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    {[...Array(6)].map((_, i) => (
-                        <Card key={i} className="border-0 shadow-md"><CardContent className="pt-6"><Skeleton className="h-40 w-full" /></CardContent></Card>
-                    ))}
-                </div>
-            ) : participants.length === 0 ? (
-                <Card className="border-0 shadow-md text-center py-12">
-                    <CardContent>
-                        <User className="h-12 w-12 text-solarized-base01 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium">No participants found</h3>
-                        <p className="text-solarized-base01 mt-1">Enroll employees in training sessions to track their progress.</p>
-                        {canManage && (
-                            <Link to="/training/participants/create">
-                                <Button className="mt-4 bg-solarized-blue hover:bg-solarized-blue/90">
-                                    <Plus className="mr-2 h-4 w-4" /> Enroll Employee
-                                </Button>
-                            </Link>
-                        )}
-                    </CardContent>
-                </Card>
-            ) : (
-                <>
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                        {participants.map((p) => (
-                            <Card key={p.id} className="border-0 shadow-md hover:shadow-lg transition-all">
-                                <CardHeader className="pb-2">
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-solarized-blue/10 flex items-center justify-center font-bold text-solarized-blue">
-                                                {p.staff_member?.full_name.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <CardTitle className="text-base">{p.staff_member?.full_name}</CardTitle>
-                                                <CardDescription className="text-xs">{p.session?.session_name}</CardDescription>
-                                            </div>
-                                        </div>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => handleView(p)}><Eye className="mr-2 h-4 w-4" /> View</DropdownMenuItem>
-                                                {canManage && (
-                                                    <>
-                                                        <Link to={`/training/participants/${p.id}/edit`}>
-                                                            <DropdownMenuItem><Edit className="mr-2 h-4 w-4" /> Update</DropdownMenuItem>
-                                                        </Link>
-                                                        <DropdownMenuItem className="text-solarized-red" onClick={() => handleDelete(p.id)}><Trash2 className="mr-2 h-4 w-4" /> Remove</DropdownMenuItem>
-                                                    </>
-                                                )}
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <Badge className={getStatusBadge(p.status)}>{p.status}</Badge>
-                                        {p.score && <span className="text-sm font-bold text-solarized-base02">Score: {p.score}</span>}
-                                    </div>
-                                    <div className="text-xs text-solarized-base01 flex gap-4">
-                                        <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {new Date().toLocaleDateString()}</span>
-                                        {p.certificate_issued && <span className="text-solarized-green font-medium flex items-center gap-1"><ClipboardCheck className="h-3 w-3" /> Certified</span>}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                    {meta && meta.last_page > 1 && (
-                        <div className="flex items-center justify-center gap-2 mt-8">
-                            <Button variant="outline" size="sm" onClick={() => setPage(page - 1)} disabled={page === 1}><ChevronLeft className="h-4 w-4" /> Previous</Button>
-                            <span className="text-sm text-solarized-base01">Page {meta.current_page} of {meta.last_page}</span>
-                            <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={page === meta.last_page}>Next <ChevronRight className="h-4 w-4" /></Button>
+            <Card>
+                <CardHeader>
+                    <form onSubmit={handleSearchSubmit} className="flex gap-4">
+                        <Input
+                            placeholder="Search participants..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                        <Button type="submit" variant="outline">
+                            <Search className="mr-2 h-4 w-4" /> Search
+                        </Button>
+                    </form>
+                </CardHeader>
+
+                <CardContent>
+                    {!isLoading && participants.length === 0 ? (
+                        <div className="text-center py-12">
+                            <User className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                            <p>No participants found</p>
                         </div>
+                    ) : (
+                        <DataTable
+                            columns={columns}
+                            data={participants}
+                            progressPending={isLoading}
+                            pagination
+                            paginationServer
+                            paginationTotalRows={totalRows}
+                            paginationPerPage={perPage}
+                            paginationDefaultPage={page}
+                            onChangePage={handlePageChange}
+                            onChangeRowsPerPage={handlePerRowsChange}
+                            customStyles={customStyles}
+                            highlightOnHover
+                            responsive
+                        />
                     )}
-                </>
-            )}
+                </CardContent>
+            </Card>
         </div>
     );
 }

@@ -1,12 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { trainingService, staffService } from '../../services/api';
 import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
+import { Card, CardContent, CardHeader } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Skeleton } from '../../components/ui/skeleton';
 import {
     Dialog,
     DialogContent,
@@ -23,7 +22,18 @@ import {
     SelectTrigger,
     SelectValue,
 } from '../../components/ui/select';
-import { Plus, Calendar, Clock, MapPin, User, ChevronLeft, ChevronRight, MoreHorizontal, Eye, Edit, Trash2 } from 'lucide-react';
+import {
+    Plus,
+    Calendar,
+    Clock,
+    MapPin,
+    User,
+    Search,
+    MoreHorizontal,
+    Eye,
+    Edit,
+    Trash2,
+} from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -31,6 +41,7 @@ import {
     DropdownMenuTrigger,
 } from '../../components/ui/dropdown-menu';
 import { useAuth } from '../../context/AuthContext';
+import DataTable, { TableColumn } from 'react-data-table-component';
 
 interface Program {
     id: number;
@@ -58,21 +69,17 @@ interface Session {
     trainer?: Staff;
 }
 
-interface PaginationMeta {
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-}
-
 export default function Sessions() {
     const { hasPermission } = useAuth();
     const [sessions, setSessions] = useState<Session[]>([]);
     const [programs, setPrograms] = useState<Program[]>([]);
     const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
-    const [meta, setMeta] = useState<PaginationMeta | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
+    const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
+    const [totalRows, setTotalRows] = useState(0);
+
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
     const [editingSession, setEditingSession] = useState<Session | null>(null);
@@ -90,33 +97,40 @@ export default function Sessions() {
 
     const canManage = hasPermission('manage_staff_training');
 
-    const fetchSessions = async () => {
-        setIsLoading(true);
-        try {
-            const response = await trainingService.getSessions({ page });
-            const data = response.data.data;
-            if (Array.isArray(data)) {
-                setSessions(data);
-                setMeta(response.data.meta || null);
-            } else if (data && Array.isArray(data.data)) {
-                setSessions(data.data);
-                setMeta({
-                    current_page: data.current_page,
-                    last_page: data.last_page,
-                    per_page: data.per_page,
-                    total: data.total,
-                });
-            } else {
+    const fetchSessions = useCallback(
+        async (currentPage: number = 1) => {
+            setIsLoading(true);
+            try {
+                const params: Record<string, unknown> = {
+                    page: currentPage,
+                    per_page: perPage,
+                    search,
+                };
+
+                const response = await trainingService.getSessions(params);
+                const payload = response.data.data;
+
+                if (Array.isArray(payload)) {
+                    setSessions(payload);
+                    setTotalRows(response.data.meta?.total ?? payload.length);
+                } else if (payload && Array.isArray(payload.data)) {
+                    setSessions(payload.data);
+                    setTotalRows(payload.total);
+                } else {
+                    setSessions([]);
+                    setTotalRows(0);
+                }
+            } catch (error) {
+                console.error('Failed to fetch sessions:', error);
+                showAlert('error', 'Error', 'Failed to fetch training sessions');
                 setSessions([]);
-                setMeta(null);
+                setTotalRows(0);
+            } finally {
+                setIsLoading(false);
             }
-        } catch (error) {
-            console.error('Failed to fetch sessions:', error);
-            showAlert('error', 'Error', 'Failed to fetch training sessions');
-        } finally {
-            setIsLoading(false);
-        }
-    };
+        },
+        [perPage, search]
+    );
 
     const fetchPrograms = async () => {
         try {
@@ -139,10 +153,13 @@ export default function Sessions() {
     };
 
     useEffect(() => {
-        fetchSessions();
+        fetchSessions(page);
+    }, [page, fetchSessions]);
+
+    useEffect(() => {
         fetchPrograms();
         fetchStaff();
-    }, [page]);
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -166,7 +183,7 @@ export default function Sessions() {
             setIsDialogOpen(false);
             setEditingSession(null);
             resetForm();
-            fetchSessions();
+            fetchSessions(page);
             showAlert('success', 'Success', editingSession ? 'Session updated successfully' : 'Session created successfully', 2000);
         } catch (error) {
             console.error('Failed to save session:', error);
@@ -200,7 +217,7 @@ export default function Sessions() {
         if (!result.isConfirmed) return;
         try {
             await trainingService.deleteSession(id);
-            fetchSessions();
+            fetchSessions(page);
             showAlert('success', 'Deleted!', 'Session deleted successfully', 2000);
         } catch (error) {
             console.error('Failed to delete session:', error);
@@ -224,12 +241,153 @@ export default function Sessions() {
 
     const getStatusBadge = (status: string) => {
         const variants: Record<string, string> = {
-            scheduled: 'bg-solarized-blue/10 text-solarized-blue',
-            in_progress: 'bg-solarized-green/10 text-solarized-green',
-            completed: 'bg-solarized-base01/10 text-solarized-base01',
-            cancelled: 'bg-solarized-red/10 text-solarized-red',
+            scheduled: 'bg-blue-100 text-blue-700 hover:bg-blue-100',
+            in_progress: 'bg-green-100 text-green-700 hover:bg-green-100',
+            completed: 'bg-gray-100 text-gray-700 hover:bg-gray-100',
+            cancelled: 'bg-red-100 text-red-700 hover:bg-red-100',
         };
         return variants[status] || variants.scheduled;
+    };
+
+    // ================= SEARCH =================
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setPage(1);
+    };
+
+    // ================= PAGINATION =================
+    const handlePageChange = (newPage: number) => {
+        setPage(newPage);
+    };
+
+    const handlePerRowsChange = (newPerPage: number) => {
+        setPerPage(newPerPage);
+        setPage(1);
+    };
+
+    // ================= TABLE COLUMNS =================
+    const columns: TableColumn<Session>[] = [
+        {
+            name: 'Session Name',
+            selector: (row) => row.session_name,
+            cell: (row) => (
+                <div className="py-2">
+                    <p className="font-medium">{row.session_name}</p>
+                </div>
+            ),
+            sortable: true,
+            minWidth: '200px',
+        },
+        {
+            name: 'Training Program',
+            selector: (row) => row.program?.title || '',
+            cell: (row) => (
+                <span className="text-sm">
+                    {row.program?.title || '-'}
+                </span>
+            ),
+            sortable: true,
+            width: '200px',
+        },
+        {
+            name: 'Date & Time',
+            selector: (row) => row.date,
+            cell: (row) => (
+                <div className="text-sm">
+                    <p className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" /> {row.date}
+                    </p>
+                    {row.time && (
+                        <p className="flex items-center gap-1 text-muted-foreground">
+                            <Clock className="h-3 w-3" /> {row.time}
+                        </p>
+                    )}
+                </div>
+            ),
+            width: '150px',
+        },
+        {
+            name: 'Location',
+            selector: (row) => row.location || '',
+            cell: (row) => (
+                <p className="truncate text-sm">
+                    {row.location || '-'}
+                </p>
+            ),
+            width: '150px',
+        },
+        {
+            name: 'Trainer',
+            selector: (row) => row.trainer?.first_name || '',
+            cell: (row) => (
+                <p className="text-sm">
+                    {row.trainer ? `${row.trainer.first_name} ${row.trainer.last_name}` : 'TBD'}
+                </p>
+            ),
+            width: '150px',
+        },
+        {
+            name: 'Status',
+            cell: (row) => (
+                <Badge className={getStatusBadge(row.status)}>
+                    {row.status.replace('_', ' ')}
+                </Badge>
+            ),
+            width: '120px',
+        },
+        {
+            name: 'Actions',
+            cell: (row) => (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleView(row)}>
+                            <Eye className="mr-2 h-4 w-4" /> View
+                        </DropdownMenuItem>
+                        {canManage && (
+                            <>
+                                <DropdownMenuItem onClick={() => handleEdit(row)}>
+                                    <Edit className="mr-2 h-4 w-4" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => handleDelete(row.id)}
+                                    className="text-red-600"
+                                >
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                </DropdownMenuItem>
+                            </>
+                        )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            ),
+            ignoreRowClick: true,
+            width: '80px',
+        },
+    ];
+
+    const customStyles = {
+        headRow: {
+            style: {
+                backgroundColor: '#f9fafb',
+                borderBottomWidth: '1px',
+                borderBottomColor: '#e5e7eb',
+                borderBottomStyle: 'solid' as const,
+                minHeight: '56px',
+            },
+        },
+        headCells: {
+            style: {
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#374151',
+                paddingLeft: '16px',
+                paddingRight: '16px',
+            },
+        },
     };
 
     return (
@@ -445,123 +603,45 @@ export default function Sessions() {
                 </DialogContent>
             </Dialog>
 
-            {isLoading ? (
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    {[...Array(6)].map((_, i) => (
-                        <Card key={i} className="border-0 shadow-md">
-                            <CardContent className="pt-6">
-                                <Skeleton className="h-40 w-full" />
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            ) : sessions.length === 0 ? (
-                <Card className="border-0 shadow-md">
-                    <CardContent className="py-12 text-center">
-                        <Calendar className="h-12 w-12 text-solarized-base01 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-solarized-base02">No training sessions</h3>
-                        <p className="text-solarized-base01 mt-1">Schedule training sessions for your programs.</p>
-                        {canManage && (
-                            <Button className="mt-4 bg-solarized-blue hover:bg-solarized-blue/90" onClick={() => setIsDialogOpen(true)}>
-                                <Plus className="mr-2 h-4 w-4" />
-                                Add Session
-                            </Button>
-                        )}
-                    </CardContent>
-                </Card>
-            ) : (
-                <>
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                        {sessions.map((session) => (
-                            <Card key={session.id} className="border-0 shadow-md hover:shadow-lg transition-shadow">
-                                <CardHeader className="pb-2">
-                                    <div className="flex items-start justify-between">
-                                        <div className="space-y-1">
-                                            <CardTitle className="text-lg line-clamp-1">{session.session_name}</CardTitle>
-                                            <CardDescription className="line-clamp-1">{session.program?.title || 'Unknown Program'}</CardDescription>
-                                        </div>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon">
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => handleView(session)}>
-                                                    <Eye className="mr-2 h-4 w-4" />
-                                                    View
-                                                </DropdownMenuItem>
-                                                {canManage && (
-                                                    <>
-                                                        <DropdownMenuItem onClick={() => handleEdit(session)}>
-                                                            <Edit className="mr-2 h-4 w-4" />
-                                                            Edit
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem className="text-solarized-red" onClick={() => handleDelete(session.id)}>
-                                                            <Trash2 className="mr-2 h-4 w-4" />
-                                                            Delete
-                                                        </DropdownMenuItem>
-                                                    </>
-                                                )}
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="space-y-2 text-sm text-solarized-base01">
-                                        <div className="flex items-center gap-2">
-                                            <Calendar className="h-4 w-4" />
-                                            <span>{session.date} {session.time ? `@ ${session.time}` : ''}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <User className="h-4 w-4" />
-                                            <span>{session.trainer ? `${session.trainer.first_name} ${session.trainer.last_name}` : 'TBD'}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <MapPin className="h-4 w-4" />
-                                            <span className="truncate">{session.location || 'No location set'}</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center justify-between pt-2">
-                                        <Badge className={getStatusBadge(session.status)}>
-                                            {session.status.replace('_', ' ')}
-                                        </Badge>
-                                        <span className="text-xs text-solarized-base01 font-medium">
-                                            {session.participants_count || 0} / {session.max_participants} Enrolled
-                                        </span>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
+            <Card>
+                <CardHeader>
+                    <form onSubmit={handleSearchSubmit} className="flex gap-4">
+                        <Input
+                            placeholder="Search sessions..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                        <Button type="submit" variant="outline">
+                            <Search className="mr-2 h-4 w-4" /> Search
+                        </Button>
+                    </form>
+                </CardHeader>
 
-                    {meta && meta.last_page > 1 && (
-                        <div className="flex items-center justify-center gap-2 mt-8">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setPage(page - 1)}
-                                disabled={page === 1}
-                            >
-                                <ChevronLeft className="h-4 w-4" />
-                                Previous
-                            </Button>
-                            <span className="text-sm text-solarized-base01">
-                                Page {meta.current_page} of {meta.last_page}
-                            </span>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setPage(page + 1)}
-                                disabled={page === meta.last_page}
-                            >
-                                Next
-                                <ChevronRight className="h-4 w-4" />
-                            </Button>
+                <CardContent>
+                    {!isLoading && sessions.length === 0 ? (
+                        <div className="text-center py-12">
+                            <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                            <p>No training sessions found</p>
                         </div>
+                    ) : (
+                        <DataTable
+                            columns={columns}
+                            data={sessions}
+                            progressPending={isLoading}
+                            pagination
+                            paginationServer
+                            paginationTotalRows={totalRows}
+                            paginationPerPage={perPage}
+                            paginationDefaultPage={page}
+                            onChangePage={handlePageChange}
+                            onChangeRowsPerPage={handlePerRowsChange}
+                            customStyles={customStyles}
+                            highlightOnHover
+                            responsive
+                        />
                     )}
-                </>
-            )}
+                </CardContent>
+            </Card>
         </div>
     );
 }

@@ -1,16 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { meetingService } from '../../services/api';
-import { showAlert } from '../../lib/sweetalert';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle,
-  CardDescription,
 } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { Skeleton } from '../../components/ui/skeleton';
 import {
   Plus,
   Calendar,
@@ -18,13 +15,11 @@ import {
   Users,
   Video,
   MapPin,
-  ChevronLeft,
-  ChevronRight,
+  Search,
   MoreHorizontal,
   Eye,
   Edit,
   Trash2,
-  X,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -50,8 +45,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../components/ui/select';
-import { performanceService } from '../../services/api';
-import { getErrorMessage } from '../../lib/sweetalert';
+import DataTable, { TableColumn } from 'react-data-table-component';
 
 /* =========================
    TYPES (MATCH API)
@@ -78,27 +72,24 @@ interface Meeting {
 
 }
 
-interface PaginationMeta {
-  current_page: number;
-  last_page: number;
-  per_page: number;
-  total: number;
-}
-
 /* =========================
    COMPONENT
 ========================= */
 export default function Meetings() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [meta, setMeta] = useState<PaginationMeta | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [totalRows, setTotalRows] = useState(0);
+  const [sortField, setSortField] = useState<string>('');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Creation State
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [meetingTypes, setMeetingTypes] = useState<{ id: number; title: string }[]>([]);
   const [rooms, setRooms] = useState<{ id: number; name: string }[]>([]);
-  const [staffMembers, setStaffMembers] = useState<{ id: number; full_name: string }[]>([]);
+
 
   const [formData, setFormData] = useState({
     title: '',
@@ -112,71 +103,70 @@ export default function Meetings() {
     attendee_ids: [] as number[],
   });
 
-  useEffect(() => {
-    fetchMeetings();
-  }, [page]);
-
-  useEffect(() => {
-    fetchMeetingData();
-  }, []);
-
-  const fetchMeetingData = async () => {
+  // ================= FETCH FUNCTIONS =================
+  const fetchMeetingData = useCallback(async () => {
     try {
-      const [typesRes, roomsRes, staffRes] = await Promise.all([
+      const [typesRes, roomsRes] = await Promise.all([
         meetingService.getTypes(),
         meetingService.getAvailableRooms(),
-        performanceService.getStaffMembers(),
       ]);
 
       if (typesRes.data.success) setMeetingTypes(typesRes.data.data || []);
       if (roomsRes.data.success) setRooms(roomsRes.data.data || []);
-      if (staffRes.data.success) setStaffMembers(staffRes.data.data || []);
     } catch (error) {
       console.error('Failed to fetch meeting metadata:', error);
     }
-  };
+  }, []);
 
-  /* =========================
-     FETCH MEETINGS (FIXED)
-  ========================= */
-  const fetchMeetings = async () => {
-    setIsLoading(true);
-    try {
-      const response = await meetingService.getAll({ page });
+  const fetchMeetings = useCallback(
+    async (currentPage: number = 1) => {
+      setIsLoading(true);
+      try {
+        const params: Record<string, unknown> = {
+          page: currentPage,
+          per_page: perPage,
+          search,
+        };
 
-      const payload = response.data.data;
+        if (sortField) {
+          params.order_by = sortField;
+          params.order = sortDirection;
+        }
 
-      // ✅ CASE 1: data is DIRECT ARRAY (your current API)
-      if (Array.isArray(payload)) {
-        setMeetings(payload);
-        setMeta(response.data.meta || null);
-      }
+        const response = await meetingService.getAll(params);
+        const payload = response.data.data;
 
-      // ✅ CASE 2: data is PAGINATED OBJECT
-      else if (payload && Array.isArray(payload.data)) {
-        setMeetings(payload.data);
-        setMeta({
-          current_page: payload.current_page,
-          last_page: payload.last_page,
-          per_page: payload.per_page,
-          total: payload.total,
-        });
-      }
-
-      // ❌ Fallback
-      else {
+        if (Array.isArray(payload)) {
+          setMeetings(payload);
+          setTotalRows(response.data.meta?.total ?? payload.length);
+        } else if (payload && Array.isArray(payload.data)) {
+          setMeetings(payload.data);
+          setTotalRows(payload.total);
+        } else {
+          setMeetings([]);
+          setTotalRows(0);
+        }
+      } catch (error) {
+        console.error('Failed to fetch meetings:', error);
+        showAlert('error', 'Error', 'Failed to fetch meetings');
         setMeetings([]);
-        setMeta(null);
+        setTotalRows(0);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to fetch meetings:', error);
-      setMeetings([]);
-      setMeta(null);
-      showAlert('error', 'Error', 'Failed to fetch meetings');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    [perPage, search, sortField, sortDirection]
+  );
+
+  useEffect(() => {
+    fetchMeetings(page);
+  }, [page, fetchMeetings]);
+
+  useEffect(() => {
+    fetchMeetingData();
+  }, [fetchMeetingData]);
+
+
 
   const handleCreateMeeting = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -201,7 +191,7 @@ export default function Meetings() {
         meeting_link: '',
         attendee_ids: [],
       });
-      fetchMeetings();
+      fetchMeetings(page);
     } catch (error) {
       console.error('Failed to create meeting:', error);
       showAlert('error', 'Error', getErrorMessage(error, 'Failed to create meeting'));
@@ -222,19 +212,168 @@ export default function Meetings() {
     return variants[status] || variants.scheduled;
   };
 
-  const getTypeIcon = (type?: string) =>
-    type?.toLowerCase().includes('virtual') ? (
-      <Video className="h-4 w-4 text-solarized-blue" />
-    ) : (
-      <MapPin className="h-4 w-4 text-solarized-green" />
-    );
-
   const formatDate = (date: string) =>
     new Date(date).toLocaleDateString();
 
-  /* =========================
-     RENDER
-  ========================= */
+  // ================= SEARCH =================
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPage(1);
+  };
+
+  // ================= PAGINATION =================
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handlePerRowsChange = (newPerPage: number) => {
+    setPerPage(newPerPage);
+    setPage(1);
+  };
+
+  // ================= SORTING =================
+  const handleSort = (column: any, sortDirection: 'asc' | 'desc') => {
+    const fieldMap: Record<string, string> = {
+      'Title': 'title',
+      'Date': 'date',
+    };
+    const field = fieldMap[column.name] || column.name;
+    setSortField(field);
+    setSortDirection(sortDirection);
+    setPage(1);
+  };
+
+  // ================= DELETE =================
+  const handleDelete = async (id: number) => {
+    const result = await showConfirmDialog(
+      'Are you sure?',
+      'You want to cancel this meeting?'
+    );
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await meetingService.deleteMeeting(id);
+      showAlert('success', 'Cancelled!', 'Meeting cancelled successfully', 2000);
+      fetchMeetings(page);
+    } catch (error) {
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to cancel meeting'));
+    }
+  };
+
+  // ================= TABLE COLUMNS =================
+  const columns: TableColumn<Meeting>[] = [
+    {
+      name: 'Meeting Title',
+      selector: (row) => row.title,
+      cell: (row) => (
+        <div className="py-2">
+          <p className="font-medium">{row.title}</p>
+        </div>
+      ),
+      sortable: true,
+      minWidth: '200px',
+    },
+    {
+      name: 'Meeting Type',
+      selector: (row) => row.meeting_type?.title || '',
+      cell: (row) => (
+        <span className="text-sm">
+          {row.meeting_type?.title || '-'}
+        </span>
+      ),
+      sortable: true,
+      width: '160px',
+    },
+    {
+      name: 'Date & Time',
+      selector: (row) => row.date,
+      cell: (row) => (
+        <div className="text-sm">
+          <div className="flex items-center gap-1.5">
+            <Calendar className="h-3 w-3 text-muted-foreground" />
+            {formatDate(row.date)}
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <Clock className="h-3 w-3 text-muted-foreground" />
+            {row.start_time} - {row.end_time}
+          </div>
+        </div>
+      ),
+      sortable: true,
+      width: '180px',
+    },
+    {
+      name: 'Meeting Room',
+      selector: (row) => row.meeting_room?.name || '',
+      cell: (row) => (
+        <div className="flex items-center gap-1.5 text-sm">
+          <MapPin className="h-3 w-3 text-muted-foreground" />
+          <span className="truncate">{row.meeting_room?.name || 'N/A'}</span>
+        </div>
+      ),
+      sortable: true,
+      width: '160px',
+    },
+    {
+      name: 'Status',
+      cell: (row) => (
+        <Badge className={getStatusBadge(row.status)}>
+          {row.status.replace('_', ' ')}
+        </Badge>
+      ),
+      width: '120px',
+    },
+    {
+      name: 'Actions',
+      cell: (row) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem>
+              <Eye className="mr-2 h-4 w-4" /> View
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Edit className="mr-2 h-4 w-4" /> Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => handleDelete(row.id)}
+              className="text-red-600"
+            >
+              <Trash2 className="mr-2 h-4 w-4" /> Cancel
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+      ignoreRowClick: true,
+      width: '80px',
+    },
+  ];
+
+  const customStyles = {
+    headRow: {
+      style: {
+        backgroundColor: '#f9fafb',
+        borderBottomWidth: '1px',
+        borderBottomColor: '#e5e7eb',
+        borderBottomStyle: 'solid' as const,
+        minHeight: '56px',
+      },
+    },
+    headCells: {
+      style: {
+        fontSize: '14px',
+        fontWeight: '600',
+        color: '#374151',
+        paddingLeft: '16px',
+        paddingRight: '16px',
+      },
+    },
+  };
   return (
     <div className="space-y-6">
       {/* HEADER */}
@@ -253,14 +392,14 @@ export default function Meetings() {
       </div>
 
       {/* SUMMARY CARDS */}
-      <div className="grid gap-6 sm:grid-cols-4">
+      <div className="grid gap-6 sm:grid-cols-3">
         <Card className="border-0 shadow-md">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
               <Calendar className="h-5 w-5 text-solarized-blue" />
               <div>
                 <p className="text-sm">Total Meetings</p>
-                <p className="text-xl font-bold">{meta?.total || 0}</p>
+                <p className="text-xl font-bold">{totalRows}</p>
               </div>
             </div>
           </CardContent>
@@ -295,104 +434,48 @@ export default function Meetings() {
         </Card>
       </div>
 
-      {/* MEETING CARDS */}
-      {isLoading ? (
-        <Skeleton className="h-32 w-full" />
-      ) : meetings.length === 0 ? (
-        <Card className="border-0 shadow-md">
-          <CardContent className="py-12 text-center">
-            <Calendar className="h-12 w-12 mx-auto mb-4 text-solarized-base01" />
-            <h3 className="text-lg font-medium">No meetings scheduled</h3>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {meetings.map(meeting => (
-            <Card key={meeting.id} className="border-0 shadow-md">
-              <CardHeader className="pb-2">
-                <div className="flex justify-between">
-                  <div>
-                    <CardTitle>{meeting.title}</CardTitle>
-                    <CardDescription>
-                      {meeting.meeting_type?.title || 'Meeting'}
-                    </CardDescription>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
-                        <Eye className="mr-2 h-4 w-4" /> View
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Edit className="mr-2 h-4 w-4" /> Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600">
-                        <Trash2 className="mr-2 h-4 w-4" /> Cancel
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardHeader>
+      {/* UPDATED: List UI aligned with StaffList */}
+      <Card>
+        <CardHeader>
+          <form onSubmit={handleSearchSubmit} className="flex gap-4">
+            <Input
+              placeholder="Search meetings..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <Button type="submit" variant="outline">
+              <Search className="mr-2 h-4 w-4" /> Search
+            </Button>
+          </form>
+        </CardHeader>
 
-              <CardContent className="space-y-3">
-                <p className="text-sm text-solarized-base01 line-clamp-2">
-                  {meeting.description}
-                </p>
-
-                <div className="text-sm space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    {formatDate(meeting.date)}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    {meeting.start_time} - {meeting.end_time}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {getTypeIcon(meeting.meeting_type?.title)}
-                    {meeting.meeting_room?.name}
-                  </div>
-                </div>
-
-                <Badge className={getStatusBadge(meeting.status)}>
-                  {meeting.status.replace('_', ' ')}
-                </Badge>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* PAGINATION */}
-      {meta && meta.last_page > 1 && (
-        <div className="flex justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage(page - 1)}
-            disabled={page === 1}
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Previous
-          </Button>
-          <span className="text-sm">
-            Page {meta.current_page} of {meta.last_page}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage(page + 1)}
-            disabled={page === meta.last_page}
-          >
-            Next
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
+        <CardContent>
+          {!isLoading && meetings.length === 0 ? (
+            <div className="text-center py-12">
+              <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <p>No meetings found</p>
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={meetings}
+              progressPending={isLoading}
+              pagination
+              paginationServer
+              paginationTotalRows={totalRows}
+              paginationPerPage={perPage}
+              paginationDefaultPage={page}
+              onChangePage={handlePageChange}
+              onChangeRowsPerPage={handlePerRowsChange}
+              onSort={handleSort}
+              customStyles={customStyles}
+              sortServer
+              highlightOnHover
+              responsive
+            />
+          )}
+        </CardContent>
+      </Card>
 
       {/* CREATE MEETING DIALOG */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -510,7 +593,7 @@ export default function Meetings() {
                 />
               </div>
 
-           
+
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>

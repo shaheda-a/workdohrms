@@ -401,19 +401,19 @@ export const trainingService = {
   updateType: (id: number, data: Record<string, unknown>) => api.put(`/training-types/${id}`, data),
   deleteType: (id: number) => api.delete(`/training-types/${id}`),
   // Training Programs
-  getPrograms: (params?: { page?: number }) => api.get('/training-programs', { params }),
+  getPrograms: (params?: { page?: number; per_page?: number; search?: string; order_by?: string; order?: string }) => api.get('/training-programs', { params }),
   createProgram: (data: Record<string, unknown>) => api.post('/training-programs', data),
   updateProgram: (id: number, data: Record<string, unknown>) => api.put(`/training-programs/${id}`, data),
   deleteProgram: (id: number) => api.delete(`/training-programs/${id}`),
   // Training Sessions
-  getSessions: (params?: { page?: number; training_program_id?: number | string; status?: string; paginate?: string }) => api.get('/training-sessions', { params }),
+  getSessions: (params?: { page?: number; per_page?: number; search?: string; training_program_id?: number | string; status?: string; paginate?: string }) => api.get('/training-sessions', { params }),
   getSessionById: (id: number | string) => api.get(`/training-sessions/${id}`),
   createSession: (data: Record<string, unknown>) => api.post('/training-sessions', data),
   updateSession: (id: number | string, data: Record<string, unknown>) => api.put(`/training-sessions/${id}`, data),
   deleteSession: (id: number | string) => api.delete(`/training-sessions/${id}`),
   enrollInSession: (sessionId: number, data: Record<string, unknown>) => api.post(`/training-sessions/${sessionId}/enroll`, data),
   completeSession: (sessionId: number, data: Record<string, unknown>) => api.post(`/training-sessions/${sessionId}/complete`, data),
-  getParticipants: (params?: { page?: number; training_session_id?: number | string; staff_member_id?: number | string; paginate?: string }) => api.get('/training-participants', { params }),
+  getParticipants: (params?: { page?: number; per_page?: number; search?: string; training_session_id?: number | string; staff_member_id?: number | string; paginate?: string }) => api.get('/training-participants', { params }),
   updateParticipant: (id: number | string, data: Record<string, unknown>) => api.put(`/training-participants/${id}`, data),
   deleteParticipant: (id: number | string) => api.delete(`/training-participants/${id}`),
   getEmployeeTraining: (staffMemberId: number) => api.get(`/training/employee/${staffMemberId}`),
@@ -443,14 +443,14 @@ export const contractTypeService = {
 };
 
 export const meetingTypeService = {
-  getAll: () => api.get('/meeting-types'),
+  getAll: (params?: { page?: number; per_page?: number; search?: string }) => api.get('/meeting-types', { params }),
   create: (data: Record<string, unknown>) => api.post('/meeting-types', data),
   update: (id: number, data: Record<string, unknown>) => api.put(`/meeting-types/${id}`, data),
   delete: (id: number) => api.delete(`/meeting-types/${id}`),
 };
 
 export const meetingRoomService = {
-  getAll: () => api.get('/meeting-rooms'),
+  getAll: (params?: { page?: number; per_page?: number; search?: string }) => api.get('/meeting-rooms', { params }),
   getAvailable: () => api.get('/meeting-rooms-available'),
   create: (data: Record<string, unknown>) => api.post('/meeting-rooms', data),
   update: (id: number, data: Record<string, unknown>) => api.put(`/meeting-rooms/${id}`, data),
@@ -466,7 +466,7 @@ export const meetingService = {
   createRoom: (data: Record<string, unknown>) => api.post('/meeting-rooms', data),
   updateRoom: (id: number, data: Record<string, unknown>) => api.put(`/meeting-rooms/${id}`, data),
   deleteRoom: (id: number) => api.delete(`/meeting-rooms/${id}`),
-  getAll: (params?: { page?: number }) => api.get('/meetings', { params }),
+  getAll: (params?: { page?: number; per_page?: number; search?: string; order_by?: string; order?: string }) => api.get('/meetings', { params }),
   getMeetings: (params?: { page?: number }) => api.get('/meetings', { params }),
   getById: (id: number | string) => api.get(`/meetings/${id}`),
   createMeeting: (data: Record<string, unknown>) => api.post('/meetings', data),
