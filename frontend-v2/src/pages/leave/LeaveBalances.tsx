@@ -51,8 +51,7 @@ export default function LeaveBalances() {
   const [isLoadingStaff, setIsLoadingStaff] = useState(true);
   const [currentUser, setCurrentUser] = useState<UserData | null>(null);
   const [isAdminUser, setIsAdminUser] = useState(false);
-
-  // Load user data from localStorage on component mount
+  // Load user data from localStorage on mount
   useEffect(() => {
     const loadUserData = () => {
       try {

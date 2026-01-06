@@ -837,7 +837,7 @@ export default function AllLeaveRequests() {
         </DialogContent>
       </Dialog>
 
-      {/* EDIT DIALOG */}
+      {/* EDIT DIALOGS */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>

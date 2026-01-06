@@ -51,7 +51,6 @@ export default function MyLeaveBalances() {
     loadUserData();
   }, []);
 
-  // Fetch balances on component mount
   useEffect(() => {
     if (currentUser) {
       fetchBalances();

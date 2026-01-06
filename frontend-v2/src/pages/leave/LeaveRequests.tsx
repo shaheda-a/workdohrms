@@ -100,7 +100,6 @@ export default function LeaveRequests() {
   const [editingRequest, setEditingRequest] = useState<LeaveRequest | null>(null);
   const [actionRequest, setActionRequest] = useState<LeaveRequest | null>(null);
   
-  // Form state
   const [editReason, setEditReason] = useState('');
   const [editStartDate, setEditStartDate] = useState('');
   const [editEndDate, setEditEndDate] = useState('');

@@ -126,7 +126,6 @@ export const payrollService = {
   }>) => api.put(`/staff-benefits/${id}`, data),
   deleteBenefit: (id: number) => api.delete(`/staff-benefits/${id}`),
 
-  // Benefit Types CRUD methods
   getBenefitTypes: (params?: {
     active?: boolean;
     taxable?: boolean;

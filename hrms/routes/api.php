@@ -10,7 +10,6 @@ use App\Http\Controllers\Api\Attendance\AttendanceRegularizationController;
 use App\Http\Controllers\Api\Attendance\ExtraHoursRecordController;
 use App\Http\Controllers\Api\Attendance\ShiftController;
 use App\Http\Controllers\Api\Attendance\TimesheetController;
-// Auth Controllers
 use App\Http\Controllers\Api\Attendance\TimesheetProjectController;
 // Attendance Controllers
 use App\Http\Controllers\Api\Attendance\WorkLogController;
