@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { meetingRoomService } from '../../services/api';
-import { showAlert, getErrorMessage } from '../../lib/sweetalert';
+import { showAlert, getErrorMessage, showConfirmDialog } from '../../lib/sweetalert';
 import {
     Card,
     CardContent,
@@ -22,7 +22,10 @@ import {
     Monitor,
     Wifi,
     Cast,
-    Wind
+    Wind,
+    Eye,
+    Clock,
+    FileText
 } from 'lucide-react';
 import {
     Dialog,
@@ -49,6 +52,7 @@ interface MeetingRoom {
     capacity: number;
     equipment: string[];
     status: 'available' | 'occupied' | 'maintenance';
+    created_at?: string;
 }
 
 export default function MeetingRooms() {
@@ -56,6 +60,9 @@ export default function MeetingRooms() {
     const [isLoading, setIsLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingRoom, setEditingRoom] = useState<MeetingRoom | null>(null);
+    // ADDED: View meeting room state
+    const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+    const [viewingRoom, setViewingRoom] = useState<MeetingRoom | null>(null);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -110,15 +117,22 @@ export default function MeetingRooms() {
         }
     };
 
+    // ADDED: Delete meeting room
     const handleDelete = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this meeting room?')) return;
+        const result = await showConfirmDialog(
+            'Are you sure?',
+            'You want to delete this meeting room?'
+        );
+
+        if (!result.isConfirmed) return;
+
         try {
             await meetingRoomService.delete(id);
-            showAlert('success', 'Deleted', 'Meeting room deleted successfully');
+            showAlert('success', 'Deleted!', 'Meeting room deleted successfully', 2000);
             fetchRooms();
         } catch (error) {
             console.error('Failed to delete meeting room:', error);
-            showAlert('error', 'Error', 'Failed to delete meeting room');
+            showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete meeting room'));
         }
     };
 
@@ -224,11 +238,23 @@ export default function MeetingRooms() {
                                     </div>
                                 </div>
 
-                                <div className="flex items-center justify-end gap-2 pt-4 border-t border-solarized-base3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="flex items-center justify-end gap-2 pt-4 border-t border-solarized-base3">
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8 text-solarized-blue hover:text-solarized-blue hover:bg-solarized-blue/10"
+                                        className="h-8 w-8 text-solarized-blue"
+                                        onClick={() => {
+                                            setViewingRoom(room);
+                                            setIsViewDialogOpen(true);
+                                        }}
+                                        title="View Room"
+                                    >
+                                        <Eye className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-solarized-yellow "
                                         onClick={() => {
                                             setEditingRoom(room);
                                             setFormData({
@@ -240,14 +266,16 @@ export default function MeetingRooms() {
                                             });
                                             setIsDialogOpen(true);
                                         }}
+                                        title="Edit Room"
                                     >
                                         <Edit className="h-4 w-4" />
                                     </Button>
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8 text-solarized-red hover:text-solarized-red hover:bg-solarized-red/10"
+                                        className="h-8 w-8 text-solarized-red"
                                         onClick={() => handleDelete(room.id)}
+                                        title="Delete Room"
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
@@ -356,6 +384,80 @@ export default function MeetingRooms() {
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* ADDED: View meeting room modal */}
+            <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+                <DialogContent className="max-w-md border-0 shadow-2xl rounded-2xl p-0 overflow-hidden text-solarized-base02">
+                    {viewingRoom && (
+                        <>
+                            <DialogHeader className="p-6 bg-gradient-to-r from-solarized-blue/5 to-transparent border-b border-solarized-base2/30">
+                                <div className="space-y-1">
+                                    <DialogTitle className="text-2xl font-bold text-solarized-base02">{viewingRoom.name}</DialogTitle>
+                                    <div className="flex items-center gap-2">
+                                        {getStatusBadge(viewingRoom.status)}
+                                    </div>
+                                </div>
+                            </DialogHeader>
+                            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] uppercase font-bold text-solarized-base1 tracking-wider">Location</Label>
+                                        <div className="flex items-center gap-2 text-sm font-medium">
+                                            <MapPin className="h-4 w-4 text-solarized-blue" />
+                                            {viewingRoom.location || 'N/A'}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] uppercase font-bold text-solarized-base1 tracking-wider">Capacity</Label>
+                                        <div className="flex items-center gap-2 text-sm font-medium">
+                                            <Users className="h-4 w-4 text-solarized-green" />
+                                            {viewingRoom.capacity} people
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <Label className="text-[10px] uppercase font-bold text-solarized-base1 tracking-wider">Equipment & Facilities</Label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {viewingRoom.equipment && viewingRoom.equipment.length > 0 ? (
+                                            viewingRoom.equipment.map((eqId) => {
+                                                const eq = availableEquipment.find(ae => ae.id === eqId);
+                                                if (!eq) return null;
+                                                const EqIcon = eq.icon;
+                                                return (
+                                                    <Badge key={eqId} variant="outline" className="bg-solarized-base3/50 text-solarized-base01 border-solarized-base2/50 px-3 py-1 flex items-center gap-2 h-8">
+                                                        <EqIcon className="h-3.5 w-3.5" />
+                                                        {eq.name}
+                                                    </Badge>
+                                                );
+                                            })
+                                        ) : (
+                                            <p className="text-sm text-solarized-base2 italic">No equipment listed</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="pt-4 border-t border-solarized-base3">
+                                    <div className="flex items-center justify-between p-3 bg-solarized-base3/30 rounded-xl border border-solarized-base2/20">
+                                        <div className="space-y-0.5">
+                                            <Label className="text-[10px] uppercase font-bold text-solarized-base1 tracking-wider">Created Date</Label>
+                                            <p className="text-xs text-solarized-base01">
+                                                {viewingRoom.created_at ? new Date(viewingRoom.created_at).toLocaleString() : 'N/A'}
+                                            </p>
+                                        </div>
+                                        <Clock className="h-4 w-4 text-solarized-base1" />
+                                    </div>
+                                </div>
+                            </div>
+                            <DialogFooter className="p-4 bg-solarized-base3/50 border-t flex items-center justify-end px-6">
+                                <Button type="button" variant="outline" onClick={() => setIsViewDialogOpen(false)} className="text-[11px] h-8 font-bold">
+                                    Close
+                                </Button>
+                            </DialogFooter>
+                        </>
+                    )}
                 </DialogContent>
             </Dialog>
         </div>
