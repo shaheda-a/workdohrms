@@ -80,6 +80,7 @@ export default function Programs() {
     cost: '',
     trainer_name: '',
     trainer_type: 'internal',
+    status: 'active',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -93,6 +94,7 @@ export default function Programs() {
         cost: formData.cost ? Number(formData.cost) : null,
         trainer_name: formData.trainer_name || null,
         trainer_type: formData.trainer_type || null,
+        status: formData.status,
       };
 
       if (editingProgram) {
@@ -122,6 +124,7 @@ export default function Programs() {
       cost: program.cost ? String(program.cost) : '',
       trainer_name: program.trainer_name || '',
       trainer_type: program.trainer_type || 'internal',
+      status: program.status,
     });
     setIsDialogOpen(true);
   };
@@ -154,6 +157,7 @@ export default function Programs() {
       cost: '',
       trainer_name: '',
       trainer_type: 'internal',
+      status: 'active',
     });
   };
 
@@ -324,6 +328,24 @@ export default function Programs() {
                     </SelectContent>
                   </Select>
                 </div>
+                {editingProgram && (
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Status</Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value) => setFormData({ ...formData, status: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -449,119 +471,121 @@ export default function Programs() {
         </Card>
       </div>
 
-      {isLoading ? (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {[...Array(6)].map((_, i) => (
-            <Card key={i} className="border-0 shadow-md">
-              <CardContent className="pt-6">
-                <Skeleton className="h-40 w-full" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : programs.length === 0 ? (
-        <Card className="border-0 shadow-md">
-          <CardContent className="py-12 text-center">
-            <GraduationCap className="h-12 w-12 text-solarized-base01 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-solarized-base02">No training programs</h3>
-            <p className="text-solarized-base01 mt-1">Create training programs for employees.</p>
-            <Button className="mt-4 bg-solarized-blue hover:bg-solarized-blue/90">
-              <Plus className="mr-2 h-4 w-4" />
-              Create Program
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
+      {
+        isLoading ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {programs.map((program) => (
-              <Card key={program.id} className="border-0 shadow-md">
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <CardTitle className="text-lg">{program.title}</CardTitle>
-                      <CardDescription>{program.training_type?.title || 'Unknown Type'}</CardDescription>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleView(program)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEdit(program)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-solarized-red" onClick={() => handleDelete(program.id)}>
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-solarized-base01 line-clamp-2">{program.description}</p>
-                  <div className="flex items-center gap-4 text-sm text-solarized-base01">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      {program.start_date}
-                    </div>
-                    <span>-</span>
-                    <span>{program.end_date}</span>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-solarized-base01">Enrollment</span>
-                      <span className="font-medium">
-                        {program.enrolled_count || 0} / {program.max_participants}
-                      </span>
-                    </div>
-                    <Progress
-                      value={((program.enrolled_count || 0) / program.max_participants) * 100}
-                      className="h-2"
-                    />
-                  </div>
-                  <Badge className={getStatusBadge(program.status)}>
-                    {program.status}
-                  </Badge>
+            {[...Array(6)].map((_, i) => (
+              <Card key={i} className="border-0 shadow-md">
+                <CardContent className="pt-6">
+                  <Skeleton className="h-40 w-full" />
                 </CardContent>
               </Card>
             ))}
           </div>
-
-          {meta && meta.last_page > 1 && (
-            <div className="flex items-center justify-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(page - 1)}
-                disabled={page === 1}
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Previous
+        ) : programs.length === 0 ? (
+          <Card className="border-0 shadow-md">
+            <CardContent className="py-12 text-center">
+              <GraduationCap className="h-12 w-12 text-solarized-base01 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-solarized-base02">No training programs</h3>
+              <p className="text-solarized-base01 mt-1">Create training programs for employees.</p>
+              <Button className="mt-4 bg-solarized-blue hover:bg-solarized-blue/90">
+                <Plus className="mr-2 h-4 w-4" />
+                Create Program
               </Button>
-              <span className="text-sm text-solarized-base01">
-                Page {meta.current_page} of {meta.last_page}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(page + 1)}
-                disabled={page === meta.last_page}
-              >
-                Next
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {programs.map((program) => (
+                <Card key={program.id} className="border-0 shadow-md">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <CardTitle className="text-lg">{program.title}</CardTitle>
+                        <CardDescription>{program.training_type?.title || 'Unknown Type'}</CardDescription>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleView(program)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEdit(program)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-solarized-red" onClick={() => handleDelete(program.id)}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-solarized-base01 line-clamp-2">{program.description}</p>
+                    <div className="flex items-center gap-4 text-sm text-solarized-base01">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        {program.start_date}
+                      </div>
+                      <span>-</span>
+                      <span>{program.end_date}</span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-solarized-base01">Enrollment</span>
+                        <span className="font-medium">
+                          {program.enrolled_count || 0} / {program.max_participants}
+                        </span>
+                      </div>
+                      <Progress
+                        value={((program.enrolled_count || 0) / program.max_participants) * 100}
+                        className="h-2"
+                      />
+                    </div>
+                    <Badge className={getStatusBadge(program.status)}>
+                      {program.status}
+                    </Badge>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          )}
-        </>
-      )}
-    </div>
+
+            {meta && meta.last_page > 1 && (
+              <div className="flex items-center justify-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(page - 1)}
+                  disabled={page === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <span className="text-sm text-solarized-base01">
+                  Page {meta.current_page} of {meta.last_page}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(page + 1)}
+                  disabled={page === meta.last_page}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </>
+        )
+      }
+    </div >
   );
 }

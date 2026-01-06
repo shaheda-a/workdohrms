@@ -56,7 +56,7 @@ class TrainingSessionController extends Controller
 
         $session = TrainingSession::create($request->all());
 
-        return $this->created($session->load('program'), 'Training session created successfully');
+        return $this->created($session->load(['program.trainingType', 'trainer']), 'Training session created successfully');
     }
 
     public function show(TrainingSession $trainingSession)
@@ -71,6 +71,10 @@ class TrainingSessionController extends Controller
         $validator = Validator::make($request->all(), [
             'session_name' => 'sometimes|required|string|max:255',
             'date' => 'sometimes|required|date',
+            'time' => 'nullable|date_format:H:i',
+            'location' => 'nullable|string|max:255',
+            'trainer_id' => 'nullable|exists:staff_members,id',
+            'max_participants' => 'nullable|integer|min:1',
             'status' => 'nullable|in:scheduled,in_progress,completed,cancelled',
         ]);
 
@@ -80,7 +84,7 @@ class TrainingSessionController extends Controller
 
         $trainingSession->update($request->all());
 
-        return $this->success($trainingSession->load('program'), 'Training session updated successfully');
+        return $this->success($trainingSession->load(['program.trainingType', 'trainer']), 'Training session updated successfully');
     }
 
     public function destroy(TrainingSession $trainingSession)
@@ -94,6 +98,11 @@ class TrainingSessionController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'staff_member_id' => 'required|exists:staff_members,id',
+            'status' => 'nullable|in:enrolled,withdrawn,completed',
+            'attendance_status' => 'nullable|in:pending,present,absent',
+            'score' => 'nullable|numeric|min:0|max:100',
+            'feedback' => 'nullable|string',
+            'certificate_issued' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -115,11 +124,23 @@ class TrainingSessionController extends Controller
             return $this->error('Session is at full capacity', 400);
         }
 
-        $participant = TrainingParticipant::create([
-            'training_session_id' => $trainingSession->id,
-            'staff_member_id' => $request->staff_member_id,
-            'status' => 'enrolled',
+        $data = $request->only([
+            'staff_member_id',
+            'status',
+            'attendance_status',
+            'score',
+            'feedback',
+            'certificate_issued'
         ]);
+        
+        $data['training_session_id'] = $trainingSession->id;
+        
+        // Handle certificate timestamp
+        if (!empty($data['certificate_issued'])) {
+            $data['certificate_issued_at'] = now();
+        }
+
+        $participant = TrainingParticipant::create($data);
 
         return $this->success($participant->load('staffMember'), 'Employee enrolled successfully');
     }
@@ -138,5 +159,60 @@ class TrainingSessionController extends Controller
             ->get();
 
         return $this->success($trainings);
+    }
+
+    public function allParticipants(Request $request)
+    {
+        $query = TrainingParticipant::with(['session.program', 'staffMember']);
+
+        if ($request->training_session_id) {
+            $query->where('training_session_id', $request->training_session_id);
+        }
+        if ($request->staff_member_id) {
+            $query->where('staff_member_id', $request->staff_member_id);
+        }
+
+        $participants = $request->paginate === 'false'
+            ? $query->get()
+            : $query->paginate($request->per_page ?? 15);
+
+        return $this->success($participants);
+    }
+
+    public function updateParticipant(Request $request, TrainingParticipant $trainingParticipant)
+    {
+        $validator = Validator::make($request->all(), [
+            'status' => 'nullable|in:enrolled,withdrawn,completed',
+            'attendance_status' => 'nullable|in:pending,present,absent',
+            'score' => 'nullable|numeric|min:0|max:100',
+            'feedback' => 'nullable|string',
+            'certificate_issued' => 'nullable|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationError($validator->errors());
+        }
+
+        $data = $request->all();
+
+        // Handle certificate_issued_at timestamp
+        if (isset($data['certificate_issued'])) {
+            if ($data['certificate_issued'] && !$trainingParticipant->certificate_issued) {
+                $data['certificate_issued_at'] = now();
+            } elseif (!$data['certificate_issued']) {
+                $data['certificate_issued_at'] = null;
+            }
+        }
+
+        $trainingParticipant->update($data);
+
+        return $this->success($trainingParticipant->load(['session', 'staffMember']), 'Participant updated successfully');
+    }
+
+    public function deleteParticipant(TrainingParticipant $trainingParticipant)
+    {
+        $trainingParticipant->delete();
+
+        return $this->noContent('Participant removed successfully');
     }
 }

@@ -388,10 +388,16 @@ export const trainingService = {
   updateProgram: (id: number, data: Record<string, unknown>) => api.put(`/training-programs/${id}`, data),
   deleteProgram: (id: number) => api.delete(`/training-programs/${id}`),
   // Training Sessions
-  getSessions: (params?: { page?: number }) => api.get('/training-sessions', { params }),
+  getSessions: (params?: { page?: number; training_program_id?: number | string; status?: string; paginate?: string }) => api.get('/training-sessions', { params }),
+  getSessionById: (id: number | string) => api.get(`/training-sessions/${id}`),
   createSession: (data: Record<string, unknown>) => api.post('/training-sessions', data),
+  updateSession: (id: number | string, data: Record<string, unknown>) => api.put(`/training-sessions/${id}`, data),
+  deleteSession: (id: number | string) => api.delete(`/training-sessions/${id}`),
   enrollInSession: (sessionId: number, data: Record<string, unknown>) => api.post(`/training-sessions/${sessionId}/enroll`, data),
   completeSession: (sessionId: number, data: Record<string, unknown>) => api.post(`/training-sessions/${sessionId}/complete`, data),
+  getParticipants: (params?: { page?: number; training_session_id?: number | string; staff_member_id?: number | string; paginate?: string }) => api.get('/training-participants', { params }),
+  updateParticipant: (id: number | string, data: Record<string, unknown>) => api.put(`/training-participants/${id}`, data),
+  deleteParticipant: (id: number | string) => api.delete(`/training-participants/${id}`),
   getEmployeeTraining: (staffMemberId: number) => api.get(`/training/employee/${staffMemberId}`),
 };
 
@@ -407,26 +413,33 @@ export const contractService = {
   terminateContract: (id: number, data: Record<string, unknown>) => api.post(`/contracts/${id}/terminate`, data),
 };
 
+export const meetingTypeService = {
+  getAll: () => api.get('/meeting-types'),
+  create: (data: Record<string, unknown>) => api.post('/meeting-types', data),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/meeting-types/${id}`, data),
+  delete: (id: number) => api.delete(`/meeting-types/${id}`),
+};
+
+export const meetingRoomService = {
+  getAll: () => api.get('/meeting-rooms'),
+  getAvailable: () => api.get('/meeting-rooms-available'),
+  create: (data: Record<string, unknown>) => api.post('/meeting-rooms', data),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/meeting-rooms/${id}`, data),
+  delete: (id: number) => api.delete(`/meeting-rooms/${id}`),
+};
+
 export const meetingService = {
-  getTypes: () => api.get('/meeting-types'),
-  createType: (data: Record<string, unknown>) => api.post('/meeting-types', data),
-  updateType: (id: number, data: Record<string, unknown>) => api.put(`/meeting-types/${id}`, data),
-  deleteType: (id: number) => api.delete(`/meeting-types/${id}`),
-  getRooms: () => api.get('/meeting-rooms'),
-  getAvailableRooms: () => api.get('/meeting-rooms-available'),
-  createRoom: (data: Record<string, unknown>) => api.post('/meeting-rooms', data),
-  updateRoom: (id: number, data: Record<string, unknown>) => api.put(`/meeting-rooms/${id}`, data),
-  deleteRoom: (id: number) => api.delete(`/meeting-rooms/${id}`),
   getAll: (params?: { page?: number }) => api.get('/meetings', { params }),
-  getMeetings: (params?: { page?: number }) => api.get('/meetings', { params }),
-  createMeeting: (data: Record<string, unknown>) => api.post('/meetings', data),
-  updateMeeting: (id: number, data: Record<string, unknown>) => api.put(`/meetings/${id}`, data),
-  deleteMeeting: (id: number) => api.delete(`/meetings/${id}`),
+  create: (data: Record<string, unknown>) => api.post('/meetings', data),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/meetings/${id}`, data),
+  delete: (id: number) => api.delete(`/meetings/${id}`),
+  getById: (id: number) => api.get(`/meetings/${id}`),
   addAttendees: (meetingId: number, data: Record<string, unknown>) => api.post(`/meetings/${meetingId}/attendees`, data),
   startMeeting: (meetingId: number) => api.post(`/meetings/${meetingId}/start`),
   completeMeeting: (meetingId: number) => api.post(`/meetings/${meetingId}/complete`),
   addMinutes: (meetingId: number, data: Record<string, unknown>) => api.post(`/meetings/${meetingId}/minutes`, data),
   addActionItem: (meetingId: number, data: Record<string, unknown>) => api.post(`/meetings/${meetingId}/action-items`, data),
+  completeActionItem: (actionItemId: number) => api.post(`/meeting-action-items/${actionItemId}/complete`),
   getCalendar: () => api.get('/meetings-calendar'),
   getMyMeetings: () => api.get('/my-meetings'),
 };

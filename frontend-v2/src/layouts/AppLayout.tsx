@@ -161,7 +161,8 @@ const navigation: NavItem[] = [
     children: [
       { name: 'Programs', href: '/training/programs', permission: 'view_staff_training' },
       { name: 'Training Types', href: '/training/types', permission: 'view_staff_training' },
-      { name: 'Enrollments', href: '/training/enrollments', permission: 'manage_staff_training' },
+      { name: 'Sessions', href: '/training/sessions', permission: 'view_staff_training' },
+      { name: 'Participants', href: '/training/participants', permission: 'manage_staff_training' },
     ]
   },
   {
@@ -175,6 +176,7 @@ const navigation: NavItem[] = [
     href: '/meetings',
     icon: Video,
     children: [
+      { name: 'My Meetings', href: '/meetings/my' },
       { name: 'All Meetings', href: '/meetings' },
       { name: 'Meeting Types', href: '/meetings/types' },
       { name: 'Meeting Rooms', href: '/meetings/rooms' },
@@ -341,7 +343,7 @@ export default function AppLayout() {
               // Also filter children based on permissions
               const filteredItem = item.children ? {
                 ...item,
-                children: item.children.filter(child => 
+                children: item.children.filter(child =>
                   !child.permission || hasPermission(child.permission)
                 )
               } : item;

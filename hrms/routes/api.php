@@ -375,6 +375,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/training-sessions/{trainingSession}/enroll', [TrainingSessionController::class, 'enroll']);
     Route::post('/training-sessions/{trainingSession}/complete', [TrainingSessionController::class, 'complete']);
     Route::get('/training/employee/{staffMemberId}', [TrainingSessionController::class, 'employeeTraining']);
+    Route::get('/training-participants', [TrainingSessionController::class, 'allParticipants']);
+    Route::put('/training-participants/{trainingParticipant}', [TrainingSessionController::class, 'updateParticipant']);
+    Route::delete('/training-participants/{trainingParticipant}', [TrainingSessionController::class, 'deleteParticipant']);
 
     // ============================================
     // PROMPT SET 25: Recruitment - Jobs
