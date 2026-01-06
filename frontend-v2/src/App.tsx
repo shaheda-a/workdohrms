@@ -114,6 +114,8 @@ import JobApplications from './pages/recruitment/JobApplications';
 // Error Pages
 import Unauthorized from './pages/Unauthorized';
 import CompanyNotices from './pages/settings/CompanyNotices';
+import AllLeaveRequests from './pages/leave/AllLeaveRequests';
+import MyLeaveBalances from './pages/leave/MyLeaveBalances';
 
 function App() {
   return (
@@ -168,9 +170,11 @@ function App() {
             {/* Leave Management */}
             <Route path="/leave" element={<LeaveRequests />} />
             <Route path="/leave/requests" element={<LeaveRequests />} />
+            <Route path="/leave/all-requests" element={<AllLeaveRequests />} />
             <Route path="/leave/apply" element={<LeaveApply />} />
             <Route path="/leave/approvals" element={<LeaveApprovals />} />
             <Route path="/leave/balances" element={<LeaveBalances />} />
+            <Route path="/leave/my-balances" element={<MyLeaveBalances />} />
             <Route path="/leave/categories" element={<LeaveCategories />} />
 
             {/* Payroll */}

@@ -95,8 +95,10 @@ const navigation: NavItem[] = [
     permission: 'view_time_off',
     children: [
       { name: 'My Requests', href: '/leave/requests' },
+      { name: 'All Requests', href: '/leave/all-requests', permission: 'view_time_off' },
       { name: 'Apply Leave', href: '/leave/apply', permission: 'create_time_off' },
       { name: 'Approvals', href: '/leave/approvals', permission: 'approve_time_off' },
+      { name: 'My Balances', href: '/leave/my-balances', permission: 'view_time_off' },
       { name: 'Balances', href: '/leave/balances', permission: 'view_time_off' },
       { name: 'Categories', href: '/leave/categories', permission: 'edit_time_off' },
     ]

@@ -44,6 +44,60 @@ class TimeOffRequestController extends Controller
     }
 
     /**
+     * Display a listing of leave requests (for My Leave Requests page).
+     * This should return ONLY the logged-in user's leaves, regardless of role.
+     */
+    public function myRequests(Request $request): JsonResponse
+    {
+        try {
+            $params = $request->only([
+                'category_id',
+                'status',
+                'start_date',
+                'end_date',
+                'month',
+                'year',
+                'search',
+                'paginate',
+                'per_page',
+                'page',
+            ]);
+
+            $user = $request->user();
+            
+            // Get the staff member ID for the logged-in user
+            $staffMemberId = $this->getStaffMemberId($user);
+            
+            if (!$staffMemberId) {
+                // If admin doesn't have a staff member record, they won't see any leaves
+                // You might want to create a staff member record for admin users
+                return $this->success([
+                    'data' => [],
+                    'meta' => [
+                        'current_page' => 1,
+                        'from' => null,
+                        'last_page' => 1,
+                        'links' => [],
+                        'path' => $request->url(),
+                        'per_page' => $params['per_page'] ?? 10,
+                        'to' => null,
+                        'total' => 0,
+                    ]
+                ], 'Leave requests retrieved successfully');
+            }
+            
+            // ALWAYS filter by the logged-in user's staff_member_id
+            $params['staff_member_id'] = $staffMemberId;
+
+            $result = $this->service->getAllRequests($params);
+
+            return $this->success($result, 'Leave requests retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to retrieve leave requests: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Display a listing of leave requests.
      */
     public function index(Request $request): JsonResponse
@@ -449,4 +503,30 @@ class TimeOffRequestController extends Controller
             return $this->serverError('Failed to retrieve leave balance: ' . $e->getMessage());
         }
     }
+
+    /**
+ * Get leave balance for the current user.
+ */
+public function myBalance(Request $request): JsonResponse
+{
+    try {
+        $user = $request->user();
+        $year = $request->input('year', now()->year);
+
+        // Get the staff member ID for the logged-in user
+        $staffMemberId = $this->getStaffMemberId($user);
+        
+        if (!$staffMemberId) {
+            // Return empty balances if user doesn't have a staff record
+            return $this->success([], 'No leave balances found');
+        }
+
+        $balance = $this->service->getLeaveBalance($staffMemberId, $year);
+
+        return $this->success($balance, 'Leave balance retrieved successfully');
+    } catch (\Exception $e) {
+        return $this->serverError('Failed to retrieve leave balance: ' . $e->getMessage());
+    }
+}
+
 }

@@ -68,12 +68,14 @@ export const staffService = {
 };
 
 export const attendanceService = {
-  clockIn: () => api.post('/clock-in'),
-  clockOut: () => api.post('/clock-out'),
+  clockIn: (data: Record<string, unknown>) => api.post('/attendance/clock-in', data),
+  
+  clockOut: (data: Record<string, unknown>) => api.post('/attendance/clock-out', data),
+  
+  getCurrentStatus: () => api.get('/attendance/current-status'),
   getWorkLogs: (params?: { staff_member_id?: number; start_date?: string; end_date?: string; page?: number }) =>
     api.get('/work-logs', { params }),
-  getSummary: (params: { staff_member_id: number; start_date: string; end_date: string }) =>
-    api.get('/attendance-summary', { params }),
+  getSummary: (params?: Record<string, unknown>) => api.get('/attendance/summary', { params }),
   getShifts: () => api.get('/shifts'),
   createShift: (data: Record<string, unknown>) => api.post('/shifts', data),
   updateShift: (id: number, data: Record<string, unknown>) => api.put(`/shifts/${id}`, data),
@@ -84,12 +86,14 @@ export const leaveService = {
   getCategories: () => api.get('/time-off-categories'),
   createCategory: (data: Record<string, unknown>) => api.post('/time-off-categories', data),
   updateCategory: (id: number, data: Record<string, unknown>) => api.put(`/time-off-categories/${id}`, data),
+    getMyRequests: (params?: { page?: number; per_page?: number }) => api.get('/leave/my-requests', { params }),
   deleteCategory: (id: number) => api.delete(`/time-off-categories/${id}`),
   getRequests: (params?: { status?: string; page?: number }) => api.get('/time-off-requests', { params }),
   createRequest: (data: Record<string, unknown>) => api.post('/time-off-requests', data),
   processRequest: (id: number, data: { action: 'approve' | 'decline'; remarks?: string }) =>
     api.post(`/time-off-requests/${id}/process`, data),
   getBalances: (staffMemberId: number) => api.get(`/time-off-balance`, { params: { staff_member_id: staffMemberId } }),
+  getMyBalances: () => api.get('/leave/my-balances'),
 };
 
 export const payrollService = {
