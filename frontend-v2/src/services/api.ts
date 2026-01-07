@@ -74,9 +74,25 @@ export const attendanceService = {
   clockOut: (data: Record<string, unknown>) => api.post('/attendance/clock-out', data),
 
   getCurrentStatus: () => api.get('/attendance/current-status'),
-  getWorkLogs: (params?: { staff_member_id?: number; start_date?: string; end_date?: string; page?: number }) =>
-    api.get('/work-logs', { params }),
-  getSummary: (params?: Record<string, unknown>) => api.get('/attendance/summary', { params }),
+  
+  getWorkLogs: (params?: { 
+    staff_member_id?: number; 
+    start_date?: string; 
+    end_date?: string; 
+    page?: number 
+  }) => api.get('/work-logs', { params }),
+  
+  getMyWorkLogs: (params?: { 
+    start_date?: string; 
+    end_date?: string; 
+    page?: number 
+  }) => api.get('/my-logs', { params }),
+  
+  getMySummary: (params?: Record<string, unknown>) => 
+    api.get('/my-summary', { params }),
+  
+  getMyMonthlyAttendance: (params?: Record<string, unknown>) => 
+    api.get('/my-monthly-attendance', { params }),
   getShifts: () => api.get('/shifts'),
   createShift: (data: Record<string, unknown>) => api.post('/shifts', data),
   updateShift: (id: number, data: Record<string, unknown>) => api.put(`/shifts/${id}`, data),
