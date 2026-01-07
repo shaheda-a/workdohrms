@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { documentTypeService } from '../../services/api';
 import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent, CardHeader } from '../../components/ui/card';
@@ -39,6 +38,8 @@ import {
     Trash2,
     FileText,
     Eye,
+    Calendar,
+    User,
 } from 'lucide-react';
 import DataTable, { TableColumn } from 'react-data-table-component';
 
@@ -48,6 +49,8 @@ interface DocumentType {
     notes: string;
     owner_type: string;
     is_active: boolean;
+    created_at?: string;
+    updated_at?: string;
 }
 
 const OWNER_TYPES = [
@@ -57,7 +60,6 @@ const OWNER_TYPES = [
 ];
 
 export default function DocumentTypeList() {
-    const navigate = useNavigate();
     const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -80,6 +82,10 @@ export default function DocumentTypeList() {
         is_active: true,
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // View dialog state
+    const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+    const [viewingDocumentType, setViewingDocumentType] = useState<DocumentType | null>(null);
 
     // Fetch document types with pagination
     const fetchDocumentTypes = useCallback(
@@ -149,16 +155,21 @@ export default function DocumentTypeList() {
         }
     };
 
-    const handleEdit = (documentType: DocumentType) => {
-        setEditingDocumentType(documentType);
-        setFormData({
-            title: documentType.title,
-            notes: documentType.notes || '',
-            owner_type: documentType.owner_type,
-            is_active: documentType.is_active,
-        });
-        setIsDialogOpen(true);
-    };
+        const handleView = (documentType: DocumentType) => {
+            setViewingDocumentType(documentType);
+            setIsViewDialogOpen(true);
+        };
+
+        const handleEdit = (documentType: DocumentType) => {
+            setEditingDocumentType(documentType);
+            setFormData({
+                title: documentType.title,
+                notes: documentType.notes || '',
+                owner_type: documentType.owner_type,
+                is_active: documentType.is_active,
+            });
+            setIsDialogOpen(true);
+        };
 
     const handleDelete = async (id: number) => {
         const result = await showConfirmDialog('Delete Document Type', 'Are you sure you want to delete this document type?');
@@ -246,23 +257,23 @@ export default function DocumentTypeList() {
                             <MoreHorizontal className="h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => navigate(`/documents/types/${row.id}`)}>
-                                                <Eye className="mr-2 h-4 w-4" />
-                                                View
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleEdit(row)}>
-                                                <Edit className="mr-2 h-4 w-4" />
-                                                Edit
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                onClick={() => handleDelete(row.id)}
-                                                className="text-solarized-red"
-                                            >
-                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                Delete
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
+                                                                                <DropdownMenuContent align="end">
+                                                                <DropdownMenuItem onClick={() => handleView(row)}>
+                                                                    <Eye className="mr-2 h-4 w-4" />
+                                                                    View
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => handleEdit(row)}>
+                                                                    <Edit className="mr-2 h-4 w-4" />
+                                                                    Edit
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem
+                                                                    onClick={() => handleDelete(row.id)}
+                                                                    className="text-solarized-red"
+                                                                >
+                                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                                    Delete
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
                 </DropdownMenu>
             ),
             ignoreRowClick: true,
@@ -376,15 +387,67 @@ export default function DocumentTypeList() {
                                 </Button>
                             </DialogFooter>
                         </form>
-                    </DialogContent>
-                </Dialog>
-            </div>
+                                </DialogContent>
+                            </Dialog>
 
-            <Card className="border-0 shadow-md">
-                <CardHeader>
-                    <form onSubmit={handleSearchSubmit} className="flex gap-4">
-                        <Input
-                            placeholder="Search document types..."
+                            {/* View Document Type Dialog */}
+                            <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+                                <DialogContent className="sm:max-w-[500px]">
+                                    <DialogHeader>
+                                        <DialogTitle className="flex items-center gap-2">
+                                            <FileText className="h-5 w-5 text-solarized-blue" />
+                                            Document Type Details
+                                        </DialogTitle>
+                                        <DialogDescription>
+                                            View document type information
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                                                        {viewingDocumentType && (
+                                                                            <div className="space-y-4 py-4">
+                                                                                <div className="space-y-2">
+                                                                                    <Label className="text-sm text-muted-foreground">Title</Label>
+                                                                                    <p className="text-lg font-semibold">{viewingDocumentType.title}</p>
+                                                                                </div>
+                                                                                <div className="space-y-2">
+                                                                                    <Label className="text-sm text-muted-foreground flex items-center gap-1">
+                                                                                        <User className="h-4 w-4" /> Owner Type
+                                                                                    </Label>
+                                                                                    <Badge variant="secondary">
+                                                                                        {OWNER_TYPES.find(t => t.value === viewingDocumentType.owner_type)?.label || viewingDocumentType.owner_type}
+                                                                                    </Badge>
+                                                                                </div>
+                                                                                <div className="space-y-2">
+                                                                                    <Label className="text-sm text-muted-foreground">Notes</Label>
+                                                                                    <p className="text-base">{viewingDocumentType.notes || 'No notes provided'}</p>
+                                                                                </div>
+                                                                                <div className="space-y-2">
+                                                                                    <Label className="text-sm text-muted-foreground">Status</Label>
+                                                                                    <Badge
+                                                                                        className={
+                                                                                            viewingDocumentType.is_active
+                                                                                                ? 'bg-solarized-green/10 text-solarized-green'
+                                                                                                : 'bg-solarized-base01/10 text-solarized-base01'
+                                                                                        }
+                                                                                    >
+                                                                                        {viewingDocumentType.is_active ? 'Active' : 'Inactive'}
+                                                                                    </Badge>
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                        <DialogFooter>
+                                                                            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+                                                                                Close
+                                                                            </Button>
+                                                                        </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+
+                        <Card className="border-0 shadow-md">
+                            <CardHeader>
+                                <form onSubmit={handleSearchSubmit} className="flex gap-4">
+                                    <Input
+                                        placeholder="Search document types..."
                             value={searchInput}
                             onChange={(e) => setSearchInput(e.target.value)}
                         />

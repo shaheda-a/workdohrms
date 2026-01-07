@@ -22,16 +22,13 @@ import StaffEdit from './pages/staff/StaffEdit';
 
 // Organization
 import OrganizationList from './pages/organization/OrganizationList';
-import OrganizationView from './pages/organization/OrganizationView';
 import CompanyList from './pages/company/CompanyList';
-import CompanyView from './pages/company/CompanyView';
 
 // Assets
 import AssetsList from './pages/assets/AssetsList';
 import AssetAssignmentList from './pages/assets/AssetAssignmentList';
 // Documents
 import DocumentTypeList from './pages/documents/DocumentTypeList';
-import DocumentTypeView from './pages/documents/DocumentTypeView';
 import DocumentLocationList from './pages/documents/DocumentLocationList';
 
 // Attendance
@@ -160,20 +157,17 @@ function App() {
             <Route path="/staff/:id" element={<StaffProfile />} />
             <Route path="/staff/:id/edit" element={<StaffEdit />} />
 
-            {/* Organization */}
-            <Route path="/organizations" element={<OrganizationList />} />
-            <Route path="/organizations/:id" element={<OrganizationView />} />
-            <Route path="/companies" element={<CompanyList />} />
-            <Route path="/companies/:id" element={<CompanyView />} />
+                        {/* Organization */}
+                        <Route path="/organizations" element={<OrganizationList />} />
+                        <Route path="/companies" element={<CompanyList />} />
 
            {/* Assets */}
             <Route path="/assets" element={<AssetsList />} />
             <Route path="/assets/assignments" element={<AssetAssignmentList />} />
 
-            {/* Documents */}
-            <Route path="/documents/types" element={<DocumentTypeList />} />
-            <Route path="/documents/types/:id" element={<DocumentTypeView />} />
-            <Route path="/documents/locations" element={<DocumentLocationList />} />
+                        {/* Documents */}
+                        <Route path="/documents/types" element={<DocumentTypeList />} />
+                        <Route path="/documents/locations" element={<DocumentLocationList />} />
 
             {/* Attendance */}
             <Route path="/attendance" element={<ClockInOut />} />

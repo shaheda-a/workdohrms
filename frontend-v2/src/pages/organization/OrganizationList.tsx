@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { organizationService } from '../../services/api';
 import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent } from '../../components/ui/card';
@@ -31,12 +30,16 @@ import {
     Trash2,
     Building2,
     Eye,
+    MapPin,
+    Calendar,
 } from 'lucide-react';
 
 interface Organization {
     id: number;
     name: string;
     address: string;
+    created_at?: string;
+    updated_at?: string;
 }
 // export interface OrganizationListParams {
 //   page?: number;
@@ -46,7 +49,6 @@ interface Organization {
 
 
 export default function OrganizationList() {
-    const navigate = useNavigate();
     const [organizations, setOrganizations] = useState<Organization[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [searchInput, setSearchInput] = useState(''); // What user types
@@ -58,6 +60,10 @@ export default function OrganizationList() {
     // Dialog state
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingOrganization, setEditingOrganization] = useState<Organization | null>(null);
+
+    // View dialog state
+    const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+    const [viewingOrganization, setViewingOrganization] = useState<Organization | null>(null);
     const [formData, setFormData] = useState({
         name: '',
         address: '',
@@ -120,18 +126,23 @@ export default function OrganizationList() {
         setPage(1); // Reset to first page when changing rows per page
     };
 
-    // ================= DIALOG HANDLERS =================
-    const handleEdit = (org: Organization) => {
-        setEditingOrganization(org);
-        setFormData({
-            name: org.name,
-            address: org.address || '',
-            user_name: '',
-            email: '',
-            password: '',
-        });
-        setIsDialogOpen(true);
-    };
+        // ================= DIALOG HANDLERS =================
+        const handleView = (org: Organization) => {
+            setViewingOrganization(org);
+            setIsViewDialogOpen(true);
+        };
+
+        const handleEdit = (org: Organization) => {
+            setEditingOrganization(org);
+            setFormData({
+                name: org.name,
+                address: org.address || '',
+                user_name: '',
+                email: '',
+                password: '',
+            });
+            setIsDialogOpen(true);
+        };
 
     const handleDelete = async (id: number) => {
         const result = await showConfirmDialog('Delete Organization', 'Are you sure you want to delete this organization?');
@@ -212,20 +223,20 @@ export default function OrganizationList() {
                             <MoreHorizontal className="h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => navigate(`/organizations/${row.id}`)}>
-                                                <Eye className="mr-2 h-4 w-4" /> View
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleEdit(row)}>
-                                                <Edit className="mr-2 h-4 w-4" /> Edit
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                onClick={() => handleDelete(row.id)}
-                                                className="text-red-600"
-                                            >
-                                                <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
+                                                                                <DropdownMenuContent align="end">
+                                                                <DropdownMenuItem onClick={() => handleView(row)}>
+                                                                    <Eye className="mr-2 h-4 w-4" /> View
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => handleEdit(row)}>
+                                                                    <Edit className="mr-2 h-4 w-4" /> Edit
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem
+                                                                    onClick={() => handleDelete(row.id)}
+                                                                    className="text-red-600"
+                                                                >
+                                                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
                 </DropdownMenu>
             ),
             ignoreRowClick: true,
@@ -323,11 +334,45 @@ export default function OrganizationList() {
                                 </Button>
                             </DialogFooter>
                         </form>
-                    </DialogContent>
-                </Dialog>
-            </div>
+                                </DialogContent>
+                            </Dialog>
 
-            <Card>
+                            {/* View Organization Dialog */}
+                            <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+                                <DialogContent className="sm:max-w-[500px]">
+                                    <DialogHeader>
+                                        <DialogTitle className="flex items-center gap-2">
+                                            <Building2 className="h-5 w-5 text-solarized-blue" />
+                                            Organization Details
+                                        </DialogTitle>
+                                        <DialogDescription>
+                                            View organization information
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                                                        {viewingOrganization && (
+                                                                            <div className="space-y-4 py-4">
+                                                                                <div className="space-y-2">
+                                                                                    <Label className="text-sm text-muted-foreground">Organization Name</Label>
+                                                                                    <p className="text-lg font-semibold">{viewingOrganization.name}</p>
+                                                                                </div>
+                                                                                <div className="space-y-2">
+                                                                                    <Label className="text-sm text-muted-foreground flex items-center gap-1">
+                                                                                        <MapPin className="h-4 w-4" /> Address
+                                                                                    </Label>
+                                                                                    <p className="text-base">{viewingOrganization.address || 'No address provided'}</p>
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                        <DialogFooter>
+                                                                            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+                                                                                Close
+                                                                            </Button>
+                                                                        </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+
+                        <Card>
                 <CardContent className="pt-6">
                     <form onSubmit={handleSearchSubmit} className="flex gap-4 mb-4">
                         <Input
