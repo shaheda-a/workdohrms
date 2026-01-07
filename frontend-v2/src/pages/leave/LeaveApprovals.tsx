@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { leaveService } from '../../services/api';
+import { showAlert, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
@@ -25,7 +26,7 @@ import { CheckCircle, XCircle, Clock, Calendar, ChevronLeft, ChevronRight } from
 interface LeaveRequest {
   id: number;
   staff_member?: { full_name: string };
-  time_off_category?: { name: string };
+  category?: { title: string };
   start_date: string;
   end_date: string;
   total_days: number;
@@ -63,6 +64,7 @@ export default function LeaveApprovals() {
       setMeta(response.data.meta);
     } catch (error) {
       console.error('Failed to fetch leave requests:', error);
+      showAlert('error', 'Error', 'Failed to fetch leave requests');
     } finally {
       setIsLoading(false);
     }
@@ -74,12 +76,19 @@ export default function LeaveApprovals() {
     setIsProcessing(true);
     try {
       await leaveService.processRequest(selectedRequest.id, { action, remarks });
+      showAlert(
+        'success',
+        'Success!',
+        action === 'approve' ? 'Leave request approved successfully' : 'Leave request declined successfully',
+        2000
+      );
       setSelectedRequest(null);
       setAction(null);
       setRemarks('');
       fetchRequests();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to process request:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to process leave request'));
     } finally {
       setIsProcessing(false);
     }
@@ -177,7 +186,7 @@ export default function LeaveApprovals() {
                         <TableCell className="font-medium">
                           {request.staff_member?.full_name || 'Unknown'}
                         </TableCell>
-                        <TableCell>{request.time_off_category?.name || 'Unknown'}</TableCell>
+                        <TableCell>{request.category?.title || 'Unknown'}</TableCell>
                         <TableCell>
                           {request.start_date} - {request.end_date}
                         </TableCell>
@@ -258,7 +267,7 @@ export default function LeaveApprovals() {
             <div className="space-y-4">
               <div className="bg-solarized-base3 p-4 rounded-lg space-y-2">
                 <p><strong>Employee:</strong> {selectedRequest.staff_member?.full_name}</p>
-                <p><strong>Type:</strong> {selectedRequest.time_off_category?.name}</p>
+                <p><strong>Type:</strong> {selectedRequest.category?.title}</p>
                 <p><strong>Dates:</strong> {selectedRequest.start_date} to {selectedRequest.end_date}</p>
                 <p><strong>Days:</strong> {selectedRequest.total_days}</p>
                 {selectedRequest.reason && <p><strong>Reason:</strong> {selectedRequest.reason}</p>}

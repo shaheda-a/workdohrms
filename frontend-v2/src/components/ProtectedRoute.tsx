@@ -3,10 +3,18 @@ import { useAuth } from '../context/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  requiredPermission?: string;
+  requiredPermissions?: string[];
+  requireAll?: boolean;
 }
 
-export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+export default function ProtectedRoute({ 
+  children, 
+  requiredPermission,
+  requiredPermissions,
+  requireAll = false 
+}: ProtectedRouteProps) {
+  const { isAuthenticated, isLoading, hasPermission } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -22,6 +30,22 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Check single permission
+  if (requiredPermission && !hasPermission(requiredPermission)) {
+    return <Navigate to="/unauthorized" state={{ from: location }} replace />;
+  }
+
+  // Check multiple permissions
+  if (requiredPermissions && requiredPermissions.length > 0) {
+    const hasRequiredPermissions = requireAll
+      ? requiredPermissions.every(p => hasPermission(p))
+      : requiredPermissions.some(p => hasPermission(p));
+    
+    if (!hasRequiredPermissions) {
+      return <Navigate to="/unauthorized" state={{ from: location }} replace />;
+    }
   }
 
   return <>{children}</>;

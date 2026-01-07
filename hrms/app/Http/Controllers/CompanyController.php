@@ -18,18 +18,28 @@ class CompanyController extends Controller
     }
 
     /**
-     * List all Companies
+     * List all Companies with pagination
      */
     public function index(Request $request)
     {
         try {
-            // Optional filter by org_id via query param ?org_id=1
-            $orgId = $request->query('org_id');
-            $companies = $this->orgService->getAllCompanies($orgId);
+            $perPage = $request->input('per_page', 10);
+            $search = $request->input('search', null);
+            $orgId = $request->input('org_id', null);
+            
+            $companies = $this->orgService->getPaginatedCompanies($perPage, $search, $orgId);
             
             return response()->json([
                 'success' => true,
-                'data' => $companies
+                'data' => $companies->items(),
+                'meta' => [
+                    'current_page' => $companies->currentPage(),
+                    'total' => $companies->total(),
+                    'per_page' => $companies->perPage(),
+                    'last_page' => $companies->lastPage(),
+                    'from' => $companies->firstItem(),
+                    'to' => $companies->lastItem(),
+                ]
             ]);
         } catch (Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);

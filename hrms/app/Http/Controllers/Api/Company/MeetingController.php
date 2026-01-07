@@ -31,6 +31,17 @@ class MeetingController extends Controller
         return $this->success($meetings);
     }
 
+    public function show(Meeting $meeting)
+    {
+        return $this->success($meeting->load([
+            'meetingType',
+            'meetingRoom',
+            'attendees.staffMember',
+            'minutes.creator',
+            'actionItems.assignedEmployee'
+        ]));
+    }
+
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -42,6 +53,8 @@ class MeetingController extends Controller
             'end_time' => 'required|date_format:H:i|after:start_time',
             'description' => 'nullable|string',
             'meeting_link' => 'nullable|url',
+            'is_recurring' => 'nullable|boolean',
+            'recurrence_pattern' => 'nullable|array',
             'attendee_ids' => 'nullable|array',
             'attendee_ids.*' => 'exists:staff_members,id',
         ]);
@@ -59,6 +72,8 @@ class MeetingController extends Controller
             'end_time' => $request->end_time,
             'description' => $request->description,
             'meeting_link' => $request->meeting_link,
+            'is_recurring' => $request->is_recurring ?? false,
+            'recurrence_pattern' => $request->recurrence_pattern,
             'created_by' => auth()->id(),
             'status' => 'scheduled',
         ]);
@@ -79,9 +94,27 @@ class MeetingController extends Controller
 
     public function update(Request $request, Meeting $meeting)
     {
+        $validator = Validator::make($request->all(), [
+            'title' => 'sometimes|required|string|max:255',
+            'meeting_type_id' => 'nullable|exists:meeting_types,id',
+            'meeting_room_id' => 'nullable|exists:meeting_rooms,id',
+            'date' => 'sometimes|required|date',
+            'start_time' => 'sometimes|required|date_format:H:i',
+            'end_time' => 'sometimes|required|date_format:H:i|after:start_time',
+            'description' => 'nullable|string',
+            'meeting_link' => 'nullable|url',
+            'status' => 'sometimes|required|in:scheduled,in_progress,completed,cancelled',
+            'is_recurring' => 'nullable|boolean',
+            'recurrence_pattern' => 'nullable|array',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationError($validator->errors());
+        }
+
         $meeting->update($request->all());
 
-        return $this->success($meeting, 'Updated');
+        return $this->success($meeting->load(['meetingType', 'meetingRoom', 'attendees.staffMember']), 'Updated');
     }
 
     public function destroy(Meeting $meeting)
@@ -142,7 +175,7 @@ class MeetingController extends Controller
             'created_by' => auth()->id(),
         ]);
 
-        return $this->success($minutes, 'Minutes added');
+        return $this->success($minutes->load('creator'), 'Minutes added');
     }
 
     public function addActionItem(Request $request, Meeting $meeting)
@@ -164,7 +197,7 @@ class MeetingController extends Controller
             'due_date' => $request->due_date,
         ]);
 
-        return $this->success($item, 'Action item added');
+        return $this->success($item->load('assignedEmployee'), 'Action item added');
     }
 
     public function completeActionItem(MeetingActionItem $meetingActionItem)

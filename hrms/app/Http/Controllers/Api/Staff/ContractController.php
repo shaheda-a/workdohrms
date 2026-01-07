@@ -25,6 +25,34 @@ class ContractController extends Controller
             $query->where('staff_member_id', $request->staff_member_id);
         }
 
+        // Search support
+        if ($request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('reference_number', 'like', "%{$search}%")
+                    ->orWhereHas('staffMember', function ($q2) use ($search) {
+                        $q2->where('full_name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        // Sorting support
+        if ($request->filled('order_by')) {
+            $direction = $request->input('order', 'asc');
+            $orderBy = $request->input('order_by');
+            
+            // Handle sorting by staff member name
+            if ($orderBy === 'staff_member_id') {
+                $query->join('staff_members', 'contracts.staff_member_id', '=', 'staff_members.id')
+                    ->orderBy('staff_members.full_name', $direction)
+                    ->select('contracts.*');
+            } else {
+                $query->orderBy($orderBy, $direction);
+            }
+        } else {
+            $query->latest();
+        }
+
         $contracts = $query->paginate($request->per_page ?? 15);
 
         return $this->success($contracts);
@@ -58,9 +86,27 @@ class ContractController extends Controller
 
     public function update(Request $request, Contract $contract)
     {
-        $contract->update($request->all());
+        $validator = Validator::make($request->all(), [
+            'salary' => 'nullable|numeric|min:0',
+            'status' => 'nullable|in:draft,active,expired,terminated',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after:start_date',
+            'terms' => 'nullable|string',
+        ]);
 
-        return $this->success($contract, 'Updated');
+        if ($validator->fails()) {
+            return $this->validationError($validator->errors());
+        }
+
+        $contract->update($request->only([
+            'salary',
+            'status',
+            'start_date',
+            'end_date',
+            'terms',
+        ]));
+
+        return $this->success($contract->load(['staffMember', 'contractType']), 'Contract updated successfully');
     }
 
     public function destroy(Contract $contract)

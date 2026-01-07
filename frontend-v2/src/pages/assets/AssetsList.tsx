@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import { assetService, assetTypeService } from "../../services/api";
 import { Card, CardContent } from "../../components/ui/card";
+import { useState, useEffect, useCallback } from "react";
+import { assetService, assetTypeService } from "../../services/api";
+import { showAlert, showConfirmDialog, getErrorMessage } from "../../lib/sweetalert";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -47,6 +51,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu";
+import {
+  Plus,
+  Search,
+  Package,
+  MoreHorizontal,
+  Eye,
+  Edit,
+  Trash2,
+} from "lucide-react";
+import DataTable, { TableColumn } from "react-data-table-component";
 
 interface Asset {
   id: number;
@@ -74,13 +88,6 @@ interface AssetType {
   title: string;
 }
 
-interface PaginationMeta {
-  current_page: number;
-  last_page: number;
-  per_page: number;
-  total: number;
-}
-
 export default function AssetsList() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
@@ -88,10 +95,13 @@ export default function AssetsList() {
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [viewingAsset, setViewingAsset] = useState<Asset | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     asset_type_id: "",
@@ -101,6 +111,101 @@ export default function AssetsList() {
     condition: "",
     location: "",
   });
+
+  // Pagination & Sorting State
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [totalRows, setTotalRows] = useState(0);
+  const [sortField, setSortField] = useState<string>("");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+  // Fetch assets with pagination
+  const fetchAssets = useCallback(
+    async (currentPage: number = 1) => {
+      setIsLoading(true);
+      try {
+        const params: Record<string, unknown> = {
+          page: currentPage,
+          per_page: perPage,
+          search: searchQuery,
+        };
+
+        if (sortField) {
+          params.order_by = sortField;
+          params.order = sortDirection;
+        }
+
+        const response = await assetService.getAll(params);
+        const { data, meta } = response.data;
+
+        if (Array.isArray(data)) {
+          setAssets(data);
+          setTotalRows(meta?.total ?? 0);
+        } else {
+          setAssets([]);
+          setTotalRows(0);
+        }
+      } catch (error) {
+        console.error("Failed to fetch assets:", error);
+        showAlert("error", "Error", "Failed to fetch assets");
+        setAssets([]);
+        setTotalRows(0);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [perPage, searchQuery, sortField, sortDirection]
+  );
+
+  const fetchAssetTypes = async () => {
+    try {
+      const response = await assetTypeService.getAll({});
+      const payload = response.data.data;
+      if (Array.isArray(payload)) {
+        setAssetTypes(payload);
+      } else if (payload && Array.isArray(payload.data)) {
+        setAssetTypes(payload.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch asset types:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchAssets(page);
+  }, [page, fetchAssets]);
+
+  useEffect(() => {
+    fetchAssetTypes();
+  }, []);
+
+  // Search Handler
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearchQuery(searchInput);
+    setPage(1);
+  };
+
+  // Pagination Handlers
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handlePerRowsChange = (newPerPage: number) => {
+    setPerPage(newPerPage);
+    setPage(1);
+  };
+
+  // Sorting Handler - Name column is sortable
+  const handleSort = (column: TableColumn<Asset>, sortDirection: "asc" | "desc") => {
+    if (column.name === "Name") {
+      setSortField("name");
+      setSortDirection(sortDirection);
+      setPage(1);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,16 +224,24 @@ export default function AssetsList() {
 
       if (editingAsset) {
         await assetService.update(editingAsset.id, payload);
+        showAlert("success", "Success", "Asset updated successfully", 2000);
       } else {
         await assetService.create(payload);
+        showAlert("success", "Success", "Asset created successfully", 2000);
       }
       setIsDialogOpen(false);
       setEditingAsset(null);
       resetForm();
-      fetchAssets();
+      fetchAssets(page);
     } catch (error) {
       console.error("Failed to save asset:", error);
+      showAlert("error", "Error", getErrorMessage(error, "Failed to save asset"));
     }
+  };
+
+  const handleView = (asset: Asset) => {
+    setViewingAsset(asset);
+    setIsViewDialogOpen(true);
   };
 
   const handleEdit = (asset: Asset) => {
@@ -138,6 +251,9 @@ export default function AssetsList() {
       ? new Date(asset.purchase_date).toISOString().slice(0, 10)
       : "";
 
+    const formattedPurchaseDate = asset.purchase_date
+      ? new Date(asset.purchase_date).toISOString().slice(0, 10)
+      : "";
     setFormData({
       name: asset.name,
       asset_type_id: String(asset.asset_type_id),
@@ -150,18 +266,17 @@ export default function AssetsList() {
     setIsDialogOpen(true);
   };
 
-  const handleView = (asset: Asset) => {
-    setViewingAsset(asset);
-    setIsViewDialogOpen(true);
-  };
-
   const handleDelete = async (id: number) => {
     if (!confirm("Are you sure you want to delete this asset?")) return;
+    const result = await showConfirmDialog("Delete Asset", "Are you sure you want to delete this asset?");
+    if (!result.isConfirmed) return;
     try {
       await assetService.delete(id);
-      fetchAssets();
+      showAlert("success", "Deleted!", "Asset deleted successfully", 2000);
+      fetchAssets(page);
     } catch (error) {
       console.error("Failed to delete asset:", error);
+      showAlert("error", "Error", getErrorMessage(error, "Failed to delete asset"));
     }
   };
 
@@ -265,6 +380,97 @@ export default function AssetsList() {
       .format(amount || 0)
       .replace("USD", "")
       .trim();
+  };
+
+  // Table Columns
+  const columns: TableColumn<Asset>[] = [
+    {
+      name: "Asset Code",
+      selector: (row) => row.asset_code,
+      cell: (row) => <span className="font-mono text-sm">{row.asset_code}</span>,
+      minWidth: "120px",
+    },
+    {
+      name: "Name",
+      selector: (row) => row.name,
+      cell: (row) => <span className="font-medium">{row.name}</span>,
+      sortable: true,
+      minWidth: "150px",
+    },
+    {
+      name: "Type",
+      selector: (row) => row.asset_type?.title || "-",
+    },
+    {
+      name: "Assigned To",
+      selector: (row) => row.assigned_employee?.full_name || "-",
+    },
+    {
+      name: "Purchase Cost",
+      selector: (row) => row.purchase_cost || 0,
+      cell: (row) => formatCurrency(row.purchase_cost || 0),
+    },
+    {
+      name: "Status",
+      cell: (row) => (
+        <Badge className={getStatusBadge(row.status)}>
+          {row.status}
+        </Badge>
+      ),
+    },
+    {
+      name: "Actions",
+      cell: (row) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleView(row)}>
+              <Eye className="mr-2 h-4 w-4" />
+              View
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleEdit(row)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => handleDelete(row.id)}
+              className="text-solarized-red"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+      ignoreRowClick: true,
+      width: "80px",
+    },
+  ];
+
+  // Custom Styles for DataTable
+  const customStyles = {
+    headRow: {
+      style: {
+        backgroundColor: "#f9fafb",
+        borderBottomWidth: "1px",
+        borderBottomColor: "#e5e7eb",
+        borderBottomStyle: "solid" as const,
+        minHeight: "56px",
+      },
+    },
+    headCells: {
+      style: {
+        fontSize: "14px",
+        fontWeight: "600",
+        color: "#374151",
+        paddingLeft: "16px",
+        paddingRight: "16px",
+      },
+    },
   };
 
   return (
@@ -439,29 +645,33 @@ export default function AssetsList() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Asset Details</DialogTitle>
+            <DialogDescription>View the details of this asset</DialogDescription>
           </DialogHeader>
           {viewingAsset && (
-            <div className="space-y-4">
+            <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-solarized-base01">Asset Code</p>
+                  <Label className="text-solarized-base01">Asset Code</Label>
                   <p className="font-mono">{viewingAsset.asset_code}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-solarized-base01">Name</p>
+                  <Label className="text-solarized-base01">Name</Label>
                   <p className="font-medium">{viewingAsset.name}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-solarized-base01">Type</p>
+                  <Label className="text-solarized-base01">Type</Label>
                   <p>{viewingAsset.asset_type?.title || "-"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-solarized-base01">Status</p>
-                  <Badge className={getStatusBadge(viewingAsset.status)}>
-                    {viewingAsset.status}
-                  </Badge>
+                  <Label className="text-solarized-base01">Status</Label>
+                  <div className="mt-1">
+                    <Badge className={getStatusBadge(viewingAsset.status)}>
+                      {viewingAsset.status}
+                    </Badge>
+                  </div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -475,16 +685,26 @@ export default function AssetsList() {
                           .split("-")
                           .reverse()
                           .join("-")
+                  <Label className="text-solarized-base01">Purchase Date</Label>
+                  <p>
+                    {viewingAsset.purchase_date
+                      ? new Date(viewingAsset.purchase_date)
+                        .toISOString()
+                        .slice(0, 10)
+                        .split("-")
+                        .reverse()
+                        .join("-")
                       : "-"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-solarized-base01">Purchase Cost</p>
+                  <Label className="text-solarized-base01">Purchase Cost</Label>
                   <p>{formatCurrency(viewingAsset.purchase_cost || 0)}</p>
                 </div>
               </div>
               <div>
                 <p className="text-sm text-solarized-base01">Assigned To</p>
+                <Label className="text-solarized-base01">Assigned To</Label>
                 <p>{viewingAsset.assigned_employee?.full_name || "Not assigned"}</p>
               </div>
             </div>
@@ -495,6 +715,18 @@ export default function AssetsList() {
               onClick={() => setIsViewDialogOpen(false)}
             >
               Close
+            </Button>
+            <Button
+              className="bg-solarized-blue hover:bg-solarized-blue/90"
+              onClick={() => {
+                if (viewingAsset) {
+                  handleEdit(viewingAsset);
+                  setIsViewDialogOpen(false);
+                }
+              }}
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -511,6 +743,7 @@ export default function AssetsList() {
                 <p className="text-sm text-solarized-base01">Total Assets</p>
                 <p className="text-xl font-bold text-solarized-base02">
                   {meta?.total || 0}
+                  {totalRows || assets.length}
                 </p>
               </div>
             </div>
@@ -581,16 +814,21 @@ export default function AssetsList() {
               className="bg-solarized-blue hover:bg-solarized-blue/90"
             >
               Search
+        <CardHeader>
+          <CardTitle>Assets List</CardTitle>
+          <form onSubmit={handleSearchSubmit} className="flex gap-4 mt-4">
+            <Input
+              placeholder="Search assets..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+            <Button type="submit" variant="outline">
+              <Search className="mr-2 h-4 w-4" /> Search
             </Button>
-          </div>
-
-          {isLoading ? (
-            <div className="space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : assets.length === 0 ? (
+          </form>
+        </CardHeader>
+        <CardContent>
+          {!isLoading && assets.length === 0 ? (
             <div className="text-center py-12">
               <Package className="h-12 w-12 text-solarized-base01 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-solarized-base02">
@@ -600,6 +838,13 @@ export default function AssetsList() {
                 Add assets to track company equipment.
               </p>
               <Button className="mt-4 bg-solarized-blue hover:bg-solarized-blue/90">
+              <Button
+                className="mt-4 bg-solarized-blue hover:bg-solarized-blue/90"
+                onClick={() => {
+                  resetForm();
+                  setIsDialogOpen(true);
+                }}
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Add Asset
               </Button>
@@ -706,6 +951,23 @@ export default function AssetsList() {
                 </div>
               )}
             </>
+            <DataTable
+              columns={columns}
+              data={assets}
+              progressPending={isLoading}
+              pagination
+              paginationServer
+              paginationTotalRows={totalRows}
+              paginationPerPage={perPage}
+              paginationDefaultPage={page}
+              onChangePage={handlePageChange}
+              onChangeRowsPerPage={handlePerRowsChange}
+              onSort={handleSort}
+              customStyles={customStyles}
+              sortServer
+              highlightOnHover
+              responsive
+            />
           )}
         </CardContent>
       </Card>

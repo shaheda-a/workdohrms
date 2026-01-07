@@ -24,6 +24,23 @@ class OrganizationService
     }
 
     /**
+     * Get paginated Organizations with search
+     */
+    public function getPaginatedOrganizations(int $perPage = 10, ?string $search = null): LengthAwarePaginator
+    {
+        $query = Organization::withCount('companies');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('address', 'like', "%{$search}%");
+            });
+        }
+
+        return $query->latest()->paginate($perPage);
+    }
+
+    /**
      * Create a new Organization
      */
     public function createOrganization(array $data): Organization
@@ -84,6 +101,27 @@ class OrganizationService
         }
 
         return $query->latest()->get();
+    }
+
+    /**
+     * Get paginated Companies with search and optional org filter
+     */
+    public function getPaginatedCompanies(int $perPage = 10, ?string $search = null, ?int $orgId = null): LengthAwarePaginator
+    {
+        $query = Company::with('organization');
+
+        if ($orgId) {
+            $query->where('org_id', $orgId);
+        }
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('company_name', 'like', "%{$search}%")
+                  ->orWhere('address', 'like', "%{$search}%");
+            });
+        }
+
+        return $query->latest()->paginate($perPage);
     }
 
     /**

@@ -9,8 +9,9 @@ use App\Models\StaffMember;
 use App\Services\Core\BaseService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 
-/**
+/**     
  * Payroll Service
  *
  * Handles all business logic for payroll processing.
@@ -266,4 +267,23 @@ class PayrollService extends BaseService
             ],
         ];
     }
+
+    // App\Services\Payroll\PayrollService.php
+public function generateSalarySlipPdf($salarySlip)
+{
+    // Make sure you have a view at resources/views/pdf/salary-slip.blade.php
+    $pdf = PDF::loadView('pdf.salary-slip', [
+        'slip' => $salarySlip,
+        'company' => \App\Models\Company::first(),
+    ]);
+    
+    // Customize PDF settings
+    $pdf->setPaper('A4', 'portrait');
+    $pdf->setOptions([
+        'isHtml5ParserEnabled' => true,
+        'isRemoteEnabled' => true,
+    ]);
+    
+    return $pdf->output();
+}
 }

@@ -137,12 +137,20 @@ class OrganizationService
             $query->where('title', 'like', "%{$params['search']}%");
         }
 
+        // Apply sorting
+        if (! empty($params['order_by'])) {
+            $direction = $params['order'] ?? 'asc';
+            $query->orderBy($params['order_by'], $direction);
+        } else {
+            $query->latest();
+        }
+
         $paginate = $params['paginate'] ?? true;
         $perPage = $params['per_page'] ?? 15;
 
         return $paginate
-            ? $query->latest()->paginate($perPage)
-            : $query->latest()->get();
+            ? $query->paginate($perPage)
+            : $query->get();
     }
 
     /**

@@ -10,9 +10,11 @@ class TrainingParticipant extends Model
 {
     use HasFactory, HasOrgAndCompany;
 
+    // ADDED: training_program_id support
     protected $fillable = [
         'training_session_id',
         'staff_member_id',
+        'training_program_id',
         'status',
         'attendance_status',
         'score',
@@ -35,5 +37,11 @@ class TrainingParticipant extends Model
     public function staffMember()
     {
         return $this->belongsTo(StaffMember::class);
+    }
+
+    // ADDED: training_program_id support
+    public function trainingProgram()
+    {
+        return $this->belongsTo(TrainingProgram::class);
     }
 }

@@ -55,20 +55,24 @@ return [
             'bucket' => env('AWS_BUCKET'),
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
-            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => false,
-            'report' => false,
+            'http' => [
+                'verify' => false,
+            ],
         ],
 
         'wasabi' => [
-    'driver' => 's3',
-    'key' => env('WASABI_KEY'),
-    'secret' => env('WASABI_SECRET'),
-    'region' => env('WASABI_REGION', 'ap-southeast-1'),
-    'bucket' => env('WASABI_BUCKET'),
-    'endpoint' => 'https://s3.' . env('WASABI_REGION', 'ap-southeast-1') . '.wasabisys.com',
-    'use_path_style_endpoint' => true,
-],
+            'driver' => 's3',
+            'key' => env('WASABI_KEY'),
+            'secret' => env('WASABI_SECRET'),
+            'region' => env('WASABI_REGION', 'ap-southeast-1'),
+            'bucket' => env('WASABI_BUCKET'),
+            'endpoint' => 'https://s3.' . env('WASABI_REGION', 'ap-southeast-1') . '.wasabisys.com',
+            'use_path_style_endpoint' => true,
+            'throw' => false,
+            'http' => [
+                'verify' => false, // Disable SSL verification for local dev to fix cURL error 60
+            ],
+        ],
 
 
     ],

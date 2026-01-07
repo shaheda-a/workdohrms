@@ -173,11 +173,49 @@ class DocumentConfigController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
-    
-    // ... existing show() method ...
+    // ==========================================
+    // SHOW METHODS
+    // ==========================================
+
     /**
-     * Get Configuration for a specific Location
+     * Show Local Config by Location ID
      */
+    public function showLocal($locationId)
+    {
+        try {
+            $config = DocumentLocalConfig::where('location_id', $locationId)->first();
+            return response()->json(['success' => true, 'data' => $config]);
+        } catch (Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Show Wasabi Config by Location ID
+     */
+    public function showWasabi($locationId)
+    {
+        try {
+            $config = DocumentWasabiConfig::where('location_id', $locationId)->first();
+            return response()->json(['success' => true, 'data' => $config]);
+        } catch (Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Show AWS Config by Location ID
+     */
+    public function showAws($locationId)
+    {
+        try {
+            $config = DocumentAwsConfig::where('location_id', $locationId)->first();
+            return response()->json(['success' => true, 'data' => $config]);
+        } catch (Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
     public function show($locationId)
     {
         try {

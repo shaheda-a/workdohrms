@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { leaveService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { showAlert, getErrorMessage } from '../../lib/sweetalert';
 import {
   Card,
   CardContent,
@@ -22,7 +23,6 @@ import {
 } from '../../components/ui/select';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { ArrowLeft, Loader2, AlertCircle, Calendar } from 'lucide-react';
-import { toast } from '../../hooks/use-toast';
 
 /* =========================
    TYPES (MATCH API)
@@ -62,9 +62,10 @@ export default function LeaveApply() {
         const response = await leaveService.getCategories();
 
         // paginated response → data.data
+        debugger;
         const paginated = response.data.data;
-        const categoriesArray = Array.isArray(paginated?.data)
-          ? paginated.data
+        const categoriesArray = Array.isArray(paginated)
+          ? paginated
           : [];
 
         const mapped: LeaveCategory[] = categoriesArray.map((cat: any) => ({
@@ -77,6 +78,7 @@ export default function LeaveApply() {
         setCategories(mapped);
       } catch (error) {
         console.error('Failed to fetch categories:', error);
+        showAlert('error', 'Error', 'Failed to fetch leave categories');
         setCategories([]);
       }
     };
@@ -113,11 +115,7 @@ export default function LeaveApply() {
     setFieldErrors(errors);
 
     if (Object.keys(errors).length > 0) {
-      toast({
-        variant: 'destructive',
-        title: 'Validation Error',
-        description: 'Please fix the errors in the form',
-      });
+      showAlert('warning', 'Validation Error', 'Please fix the errors in the form');
       return false;
     }
 
@@ -148,22 +146,14 @@ export default function LeaveApply() {
         total_days: calculateDays(),
       });
 
-      toast({
-        title: 'Success',
-        description: 'Leave request submitted successfully',
-      });
+      showAlert('success', 'Success!', 'Leave request submitted successfully', 2000);
 
       navigate('/leave/requests');
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message || 'Failed to submit leave request';
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, 'Failed to submit leave request');
       setError(message);
 
-      toast({
-        variant: 'destructive',
-        title: 'Submission Failed',
-        description: message,
-      });
+      showAlert('error', 'Submission Failed', message);
     } finally {
       setIsLoading(false);
     }
@@ -276,7 +266,7 @@ export default function LeaveApply() {
                   <Button type="button" variant="outline" onClick={() => navigate(-1)}>
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isLoading}>
+                  <Button type="submit"  className="bg-solarized-blue hover:bg-solarized-blue/90" disabled={isLoading}> 
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />

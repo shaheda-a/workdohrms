@@ -10,11 +10,28 @@ use Illuminate\Database\Eloquent\Collection;
 class DocumentTypeService
 {
     /**
-     * Get all active document types
+     * Get all document types with pagination, search, and ordering
      */
-    public function getAllDocumentTypes(): Collection
+    public function getAllDocumentTypes(array $params = [])
     {
-        return DocumentType::latest()->get();
+        $query = DocumentType::query();
+
+        // Search support
+        if (!empty($params['search'])) {
+            $search = $params['search'];
+            $query->where('title', 'like', "%{$search}%");
+        }
+
+        // Sorting support
+        if (!empty($params['order_by'])) {
+            $direction = $params['order'] ?? 'asc';
+            $query->orderBy($params['order_by'], $direction);
+        } else {
+            $query->latest();
+        }
+
+        $perPage = $params['per_page'] ?? 15;
+        return $query->paginate($perPage);
     }
 
     /**

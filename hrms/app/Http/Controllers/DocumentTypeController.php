@@ -20,13 +20,18 @@ class DocumentTypeController extends Controller
     }
 
     /**
-     * List all Document Types
+     * List all Document Types with pagination, search, and ordering
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $types = $this->documentTypeService->getAllDocumentTypes();
-            return response()->json(['success' => true, 'data' => $types]);
+            $types = $this->documentTypeService->getAllDocumentTypes($request->all());
+            return response()->json(['success' => true, 'data' => $types->items(), 'meta' => [
+                'current_page' => $types->currentPage(),
+                'per_page' => $types->perPage(),
+                'total' => $types->total(),
+                'total_pages' => $types->lastPage(),
+            ]]);
         } catch (Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }

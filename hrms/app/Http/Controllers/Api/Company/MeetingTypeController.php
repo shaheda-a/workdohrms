@@ -21,10 +21,12 @@ class MeetingTypeController extends Controller
 
     public function store(Request $request)
     {
+        // ADDED: meeting type status support
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
             'default_duration' => 'nullable|integer|min:15',
             'color' => 'nullable|string|max:20',
+            'status' => 'nullable|in:active,inactive',
         ]);
 
         if ($validator->fails()) {
@@ -43,6 +45,18 @@ class MeetingTypeController extends Controller
 
     public function update(Request $request, MeetingType $meetingType)
     {
+        // ADDED: meeting type status support
+        $validator = Validator::make($request->all(), [
+            'title' => 'sometimes|required|string|max:255',
+            'default_duration' => 'nullable|integer|min:15',
+            'color' => 'nullable|string|max:20',
+            'status' => 'nullable|in:active,inactive',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationError($validator->errors());
+        }
+
         $meetingType->update($request->all());
 
         return $this->success($meetingType, 'Updated');

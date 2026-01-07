@@ -38,6 +38,8 @@ class DivisionController extends Controller
                 'paginate',
                 'per_page',
                 'page',
+                'order_by',
+                'order',
             ]);
 
             $result = $this->service->getAllDivisions($params);

@@ -20,6 +20,14 @@ class AssetTypeController extends Controller
             $query->where('title', 'like', "%{$request->search}%");
         }
 
+        // Sorting support
+        if ($request->filled('order_by')) {
+            $direction = $request->input('order', 'asc');
+            $query->orderBy($request->input('order_by'), $direction);
+        } else {
+            $query->latest();
+        }
+
         $assetTypes = $request->paginate === 'false'
             ? $query->get()
             : $query->paginate($request->per_page ?? 15);

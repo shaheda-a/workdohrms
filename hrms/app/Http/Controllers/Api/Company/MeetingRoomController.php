@@ -29,7 +29,9 @@ class MeetingRoomController extends Controller
             'name' => 'required|string|max:255',
             'location' => 'nullable|string|max:255',
             'capacity' => 'nullable|integer|min:1',
+            'description' => 'nullable|string',
             'equipment' => 'nullable|array',
+            'equipment.*' => 'string',
         ]);
 
         if ($validator->fails()) {
@@ -48,6 +50,19 @@ class MeetingRoomController extends Controller
 
     public function update(Request $request, MeetingRoom $meetingRoom)
     {
+        $validator = Validator::make($request->all(), [
+            'name' => 'sometimes|required|string|max:255',
+            'location' => 'nullable|string|max:255',
+            'capacity' => 'nullable|integer|min:1',
+            'description' => 'nullable|string',
+            'equipment' => 'nullable|array',
+            'equipment.*' => 'string',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationError($validator->errors());
+        }
+
         $meetingRoom->update($request->all());
 
         return $this->success($meetingRoom, 'Updated');

@@ -10,7 +10,6 @@ use App\Http\Controllers\Api\Attendance\AttendanceRegularizationController;
 use App\Http\Controllers\Api\Attendance\ExtraHoursRecordController;
 use App\Http\Controllers\Api\Attendance\ShiftController;
 use App\Http\Controllers\Api\Attendance\TimesheetController;
-// Auth Controllers
 use App\Http\Controllers\Api\Attendance\TimesheetProjectController;
 // Attendance Controllers
 use App\Http\Controllers\Api\Attendance\WorkLogController;
@@ -22,6 +21,9 @@ use App\Http\Controllers\Api\Company\MeetingController;
 // Leave Controllers
 use App\Http\Controllers\Api\Company\MeetingRoomController;
 use App\Http\Controllers\Api\Company\MeetingTypeController;
+use App\Http\Controllers\Api\Company\MeetingAttendeeController;
+use App\Http\Controllers\Api\Company\MeetingMinutesController;
+use App\Http\Controllers\Api\Company\MeetingActionItemController;
 // Payroll Controllers
 use App\Http\Controllers\Api\Documents\DocumentCategoryController;
 use App\Http\Controllers\Api\Documents\DocumentLocationController;
@@ -156,8 +158,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // ============================================
     // PROMPT SET 3: Staff Member Management
     // ============================================
-    Route::apiResource('staff-members', StaffMemberController::class);
-    Route::get('/staff-members-dropdown', [StaffMemberController::class, 'dropdown']);
+    Route::get('/staff-members', [StaffMemberController::class, 'index'])->middleware('permission:view_staff');
+    Route::post('/staff-members', [StaffMemberController::class, 'store'])->middleware('permission:create_staff');
+    Route::get('/staff-members/{staff_member}', [StaffMemberController::class, 'show'])->middleware('permission:view_staff');
+    Route::put('/staff-members/{staff_member}', [StaffMemberController::class, 'update'])->middleware('permission:edit_staff');
+    Route::delete('/staff-members/{staff_member}', [StaffMemberController::class, 'destroy'])->middleware('permission:delete_staff');
+    Route::get('/staff-members-dropdown', [StaffMemberController::class, 'dropdown'])->middleware('permission:view_staff');
 
     // Staff Files (nested resource)
     Route::get('/staff-members/{staffMember}/files', [StaffFileController::class, 'index']);
@@ -201,9 +207,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // PROMPT SET 7: Leave Management
     // ============================================
     Route::apiResource('time-off-categories', TimeOffCategoryController::class);
+    Route::get('/leave/my-requests', [TimeOffRequestController::class, 'myRequests']);
     Route::apiResource('time-off-requests', TimeOffRequestController::class);
+    Route::post('/time-off-requests/{timeOffRequest}/cancel', [TimeOffRequestController::class, 'cancel']);
     Route::post('/time-off-requests/{timeOffRequest}/process', [TimeOffRequestController::class, 'processApproval']);
     Route::get('/time-off-balance', [TimeOffRequestController::class, 'getBalance']);
+    Route::get('/leave/my-balance', [TimeOffRequestController::class, 'myBalance']);
 
     // ============================================
     // PROMPT SET 8: Attendance Management
@@ -245,6 +254,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/salary-slips/generate', [SalarySlipController::class, 'generate']);
     Route::post('/salary-slips/bulk-generate', [SalarySlipController::class, 'bulkGenerate']);
     Route::post('/salary-slips/{salarySlip}/mark-paid', [SalarySlipController::class, 'markPaid']);
+    Route::get('payroll/salary-slips/{id}/download', [SalarySlipController::class, 'download']);
 
     // ============================================
     // PROMPT SET 13: Tax Management
@@ -370,6 +380,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/training-sessions/{trainingSession}/enroll', [TrainingSessionController::class, 'enroll']);
     Route::post('/training-sessions/{trainingSession}/complete', [TrainingSessionController::class, 'complete']);
     Route::get('/training/employee/{staffMemberId}', [TrainingSessionController::class, 'employeeTraining']);
+    Route::get('/training-participants', [TrainingSessionController::class, 'allParticipants']);
+    Route::put('/training-participants/{trainingParticipant}', [TrainingSessionController::class, 'updateParticipant']);
+    Route::delete('/training-participants/{trainingParticipant}', [TrainingSessionController::class, 'deleteParticipant']);
 
     // ============================================
     // PROMPT SET 25: Recruitment - Jobs
@@ -435,6 +448,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('meeting-rooms', MeetingRoomController::class);
     Route::get('/meeting-rooms-available', [MeetingRoomController::class, 'available']);
     Route::apiResource('meetings', MeetingController::class);
+    Route::apiResource('meeting-attendees', MeetingAttendeeController::class);
+    Route::apiResource('meeting-minutes', MeetingMinutesController::class);
+    Route::apiResource('meeting-action-items', MeetingActionItemController::class);
     Route::post('/meetings/{meeting}/attendees', [MeetingController::class, 'addAttendees']);
     Route::post('/meetings/{meeting}/start', [MeetingController::class, 'start']);
     Route::post('/meetings/{meeting}/complete', [MeetingController::class, 'complete']);
@@ -541,18 +557,18 @@ Route::middleware('auth:sanctum')->group(function () {
     // ORGANIZATIONS & COMPANIES
     // ============================================
     // Organizations
-    Route::get('/organizations', [OrganizationController::class, 'index']);
-    Route::post('/organizations', [OrganizationController::class, 'store']);
-    Route::get('/organizations/{organization}', [OrganizationController::class, 'show']);
-    Route::put('/organizations/{organization}', [OrganizationController::class, 'update']);
-    Route::delete('/organizations/{organization}', [OrganizationController::class, 'destroy']);
+    Route::get('/organizations', [OrganizationController::class, 'index'])->middleware('permission:manage_settings');
+    Route::post('/organizations', [OrganizationController::class, 'store'])->middleware('permission:manage_settings');
+    Route::get('/organizations/{organization}', [OrganizationController::class, 'show'])->middleware('permission:manage_settings');
+    Route::put('/organizations/{organization}', [OrganizationController::class, 'update'])->middleware('permission:manage_settings');
+    Route::delete('/organizations/{organization}', [OrganizationController::class, 'destroy'])->middleware('permission:manage_settings');
 
     // Companies
-    Route::get('/companies', [CompanyController::class, 'index']);
-    Route::post('/companies', [CompanyController::class, 'store']);
-    Route::get('/companies/{company}', [CompanyController::class, 'show']);
-    Route::put('/companies/{company}', [CompanyController::class, 'update']);
-    Route::delete('/companies/{company}', [CompanyController::class, 'destroy']);
+    Route::get('/companies', [CompanyController::class, 'index'])->middleware('permission:manage_settings');
+    Route::post('/companies', [CompanyController::class, 'store'])->middleware('permission:manage_settings');
+    Route::get('/companies/{company}', [CompanyController::class, 'show'])->middleware('permission:manage_settings');
+    Route::put('/companies/{company}', [CompanyController::class, 'update'])->middleware('permission:manage_settings');
+    Route::delete('/companies/{company}', [CompanyController::class, 'destroy'])->middleware('permission:manage_settings');
 
     // Document Locations
     Route::get('/document-locations', [DocumentLocationController::class, 'index']);
@@ -577,39 +593,45 @@ Route::middleware('auth:sanctum')->group(function () {
     // AWS
     Route::post('/document-configs/aws', [DocumentConfigController::class, 'storeAws']);
     Route::put('/document-configs/aws/{id}', [DocumentConfigController::class, 'updateAws']);
+    
+    // Show Config
+    Route::get('/document-configs/local/{locationId}', [DocumentConfigController::class, 'showLocal']);
+    Route::get('/document-configs/wasabi/{locationId}', [DocumentConfigController::class, 'showWasabi']);
+    Route::get('/document-configs/aws/{locationId}', [DocumentConfigController::class, 'showAws']);
+    Route::get('/document-configs/{locationId}', [DocumentConfigController::class, 'show']);
 
     // ============================================
     // ROLE MANAGEMENT (RBAC)
     // ============================================
     Route::prefix('roles')->group(function () {
-        Route::get('/', [RoleController::class, 'index']);
-        Route::post('/', [RoleController::class, 'store']);
-        Route::get('/{id}', [RoleController::class, 'show']);
-        Route::put('/{id}', [RoleController::class, 'update']);
-        Route::delete('/{id}', [RoleController::class, 'destroy']);
-        Route::post('/{id}/permissions', [RoleController::class, 'syncPermissions']);
-        Route::get('/{id}/permissions', [RoleController::class, 'getPermissions']);
+        Route::get('/', [RoleController::class, 'index'])->middleware('permission:view_roles');
+        Route::post('/', [RoleController::class, 'store'])->middleware('permission:create_roles');
+        Route::get('/{id}', [RoleController::class, 'show'])->middleware('permission:view_roles');
+        Route::put('/{id}', [RoleController::class, 'update'])->middleware('permission:edit_roles');
+        Route::delete('/{id}', [RoleController::class, 'destroy'])->middleware('permission:delete_roles');
+        Route::post('/{id}/permissions', [RoleController::class, 'syncPermissions'])->middleware('permission:edit_roles');
+        Route::get('/{id}/permissions', [RoleController::class, 'getPermissions'])->middleware('permission:view_roles');
     });
 
-    Route::prefix('permissions')->group(function () {
+    Route::prefix('permissions')->middleware('permission:view_roles')->group(function () {
         Route::get('/', [PermissionController::class, 'index']);
         Route::get('/grouped', [PermissionController::class, 'groupedByResource']);
         Route::get('/{id}', [PermissionController::class, 'show']);
     });
 
-    Route::prefix('resources')->group(function () {
+    Route::prefix('resources')->middleware('permission:view_roles')->group(function () {
         Route::get('/', [ResourceController::class, 'index']);
         Route::get('/{id}', [ResourceController::class, 'show']);
         Route::get('/slug/{slug}', [ResourceController::class, 'getBySlug']);
     });
 
     Route::prefix('users')->group(function () {
-        Route::get('/', [UserRoleController::class, 'index']);
-        Route::get('/{id}', [UserRoleController::class, 'show']);
-        Route::get('/{id}/roles', [UserRoleController::class, 'getUserRoles']);
-        Route::post('/{id}/roles', [UserRoleController::class, 'assignRoles']);
-        Route::post('/{id}/roles/add', [UserRoleController::class, 'addRole']);
-        Route::post('/{id}/roles/remove', [UserRoleController::class, 'removeRole']);
+        Route::get('/', [UserRoleController::class, 'index'])->middleware('permission:view_roles');
+        Route::get('/{id}', [UserRoleController::class, 'show'])->middleware('permission:view_roles');
+        Route::get('/{id}/roles', [UserRoleController::class, 'getUserRoles'])->middleware('permission:view_roles');
+        Route::post('/{id}/roles', [UserRoleController::class, 'assignRoles'])->middleware('permission:edit_roles');
+        Route::post('/{id}/roles/add', [UserRoleController::class, 'addRole'])->middleware('permission:edit_roles');
+        Route::post('/{id}/roles/remove', [UserRoleController::class, 'removeRole'])->middleware('permission:edit_roles');
     });
 
 });

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { leaveService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -92,10 +93,12 @@ export default function LeaveCategories() {
       setCategories(mapped);
     } catch (error) {
       console.error('Failed to fetch categories:', error);
+      showAlert('error', 'Error', 'Failed to fetch leave categories');
     } finally {
       setIsLoading(false);
     }
   };
+
 
   /* =========================
      SUBMIT
@@ -120,12 +123,19 @@ export default function LeaveCategories() {
         await leaveService.createCategory(payload);
       }
 
+      showAlert(
+        'success',
+        'Success!',
+        editingCategory ? 'Leave category updated successfully' : 'Leave category created successfully',
+        2000
+      );
       setIsDialogOpen(false);
       setEditingCategory(null);
       resetForm();
       fetchCategories();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to save category:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to save leave category'));
     }
   };
 
@@ -155,12 +165,20 @@ export default function LeaveCategories() {
      DELETE
   ========================= */
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this category?')) return;
+    const result = await showConfirmDialog(
+      'Are you sure?',
+      'You want to delete this leave category?'
+    );
+
+    if (!result.isConfirmed) return;
+
     try {
       await leaveService.deleteCategory(id);
+      showAlert('success', 'Deleted!', 'Leave category deleted successfully', 2000);
       fetchCategories();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to delete category:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete leave category'));
     }
   };
 
@@ -187,7 +205,7 @@ export default function LeaveCategories() {
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button
+            <Button className="bg-solarized-blue hover:bg-solarized-blue/90"
               onClick={() => {
                 setEditingCategory(null);
                 resetForm();
@@ -285,7 +303,7 @@ export default function LeaveCategories() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button type="submit" className="bg-solarized-blue hover:bg-solarized-blue/90">
                   {editingCategory ? 'Update' : 'Create'}
                 </Button>
               </DialogFooter>
@@ -322,7 +340,7 @@ export default function LeaveCategories() {
                     <TableCell>{cat.name}</TableCell>
                     <TableCell>{cat.annual_quota ?? 0} days</TableCell>
                     <TableCell>
-                      <Badge>
+                      <Badge className={cat.is_active ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
                         {cat.is_paid ? 'Paid' : 'Unpaid'}
                       </Badge>
                     </TableCell>
@@ -332,7 +350,7 @@ export default function LeaveCategories() {
                         : 'Not allowed'}
                     </TableCell>
                     <TableCell>
-                      <Badge>
+                      <Badge className={cat.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
                         {cat.is_active ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>

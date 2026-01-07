@@ -15,6 +15,17 @@ class ContractTypeController extends Controller
     public function index(Request $request)
     {
         $query = ContractType::withCount('contracts');
+
+        // Search support
+        if ($request->search) {
+            $query->where('title', 'like', "%{$request->search}%");
+        }
+
+        // Sorting
+        $orderBy = $request->order_by ?? 'id';
+        $order = $request->order ?? 'asc';
+        $query->orderBy($orderBy, $order);
+
         $types = $request->paginate === 'false' ? $query->get() : $query->paginate($request->per_page ?? 15);
 
         return $this->success($types);

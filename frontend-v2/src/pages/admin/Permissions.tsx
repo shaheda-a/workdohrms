@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { adminService } from '../../services/api';
+import { showAlert } from '../../lib/sweetalert';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -80,6 +81,7 @@ export default function Permissions() {
       setMeta(response.data.meta);
     } catch (error) {
       console.error('Failed to fetch permissions:', error);
+      showAlert('error', 'Error', 'Failed to fetch permissions');
     } finally {
       setIsLoading(false);
     }

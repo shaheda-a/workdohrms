@@ -21,7 +21,7 @@ class MeetingMinutes extends Model
         return $this->belongsTo(Meeting::class);
     }
 
-    public function createdByUser()
+    public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
     }

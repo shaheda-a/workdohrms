@@ -58,6 +58,7 @@ export const staffService = {
   create: (data: Record<string, unknown>) => api.post('/staff-members', data),
   update: (id: number, data: Record<string, unknown>) => api.put(`/staff-members/${id}`, data),
   delete: (id: number) => api.delete(`/staff-members/${id}`),
+  dropdown: () => api.get('/staff-members-dropdown'),
   getFiles: (id: number) => api.get(`/staff-members/${id}/files`),
   uploadFile: (id: number, data: FormData) =>
     api.post(`/staff-members/${id}/files`, data, {
@@ -68,12 +69,14 @@ export const staffService = {
 };
 
 export const attendanceService = {
-  clockIn: () => api.post('/clock-in'),
-  clockOut: () => api.post('/clock-out'),
+  clockIn: (data: Record<string, unknown>) => api.post('/attendance/clock-in', data),
+
+  clockOut: (data: Record<string, unknown>) => api.post('/attendance/clock-out', data),
+
+  getCurrentStatus: () => api.get('/attendance/current-status'),
   getWorkLogs: (params?: { staff_member_id?: number; start_date?: string; end_date?: string; page?: number }) =>
     api.get('/work-logs', { params }),
-  getSummary: (params: { staff_member_id: number; start_date: string; end_date: string }) =>
-    api.get('/attendance-summary', { params }),
+  getSummary: (params?: Record<string, unknown>) => api.get('/attendance/summary', { params }),
   getShifts: () => api.get('/shifts'),
   createShift: (data: Record<string, unknown>) => api.post('/shifts', data),
   updateShift: (id: number, data: Record<string, unknown>) => api.put(`/shifts/${id}`, data),
@@ -84,12 +87,18 @@ export const leaveService = {
   getCategories: () => api.get('/time-off-categories'),
   createCategory: (data: Record<string, unknown>) => api.post('/time-off-categories', data),
   updateCategory: (id: number, data: Record<string, unknown>) => api.put(`/time-off-categories/${id}`, data),
+  getMyRequests: (params?: { page?: number; per_page?: number }) => api.get('/leave/my-requests', { params }),
   deleteCategory: (id: number) => api.delete(`/time-off-categories/${id}`),
   getRequests: (params?: { status?: string; page?: number }) => api.get('/time-off-requests', { params }),
   createRequest: (data: Record<string, unknown>) => api.post('/time-off-requests', data),
+  getRequestById: (id: number) => api.get(`/time-off-requests/${id}`),
+  updateRequest: (id: number, data: Record<string, unknown>) => api.put(`/time-off-requests/${id}`, data),
+  deleteRequest: (id: number) => api.delete(`/time-off-requests/${id}`),
+  cancelRequest: (id: number) => api.post(`/time-off-requests/${id}/cancel`),
   processRequest: (id: number, data: { action: 'approve' | 'decline'; remarks?: string }) =>
     api.post(`/time-off-requests/${id}/process`, data),
-  getBalances: (staffMemberId: number) => api.get(`/staff-members/${staffMemberId}/leave-balances`),
+  getBalances: (staffMemberId: number) => api.get(`/time-off-balance`, { params: { staff_member_id: staffMemberId } }),
+  getMyBalances: (year?: number) => api.get('/leave/my-balance', { params: { year } }),
 };
 
 export const payrollService = {
@@ -97,35 +106,250 @@ export const payrollService = {
     api.get('/salary-slips', { params }),
   generateSlip: (data: { staff_member_id: number; salary_period: string }) =>
     api.post('/salary-slips/generate', data),
-  bulkGenerate: (data: { staff_member_ids: number[]; salary_period: string }) =>
+  bulkGenerate: (data: { employee_ids: number[]; month: number; year: number }) =>
     api.post('/salary-slips/bulk-generate', data),
   getSlipById: (id: number) => api.get(`/salary-slips/${id}`),
-  downloadSlip: (id: number) => api.get(`/salary-slips/${id}/download`, { responseType: 'blob' }),
-  getBenefits: (staffMemberId: number) => api.get(`/staff-members/${staffMemberId}/benefits`),
-  getDeductions: (staffMemberId: number) => api.get(`/staff-members/${staffMemberId}/deductions`),
+  downloadSlip: (id: number) => api.get(`/payroll/salary-slips/${id}/download`, { responseType: 'blob' }),
+  // Updated benefits methods for top-level routes
+  getBenefits: (params?: { staff_member_id?: number; benefit_type_id?: number; active?: boolean; paginate?: boolean; page?: number; per_page?: number }) =>
+    api.get('/staff-benefits', { params }),
+  createBenefit: (data: { staff_member_id: number; benefit_type_id: number; amount: number; description?: string; calculation_type?: string; effective_until?: string; effective_from?: string; is_active?: boolean }) =>
+    api.post('/staff-benefits', data),
+  updateBenefit: (id: number, data: Partial<{
+    benefit_type_id: number;
+    description: string;
+    calculation_type: 'fixed' | 'percentage';
+    amount: number;
+    effective_from?: string | null;
+    effective_until?: string | null;
+    is_active?: boolean
+  }>) => api.put(`/staff-benefits/${id}`, data),
+  deleteBenefit: (id: number) => api.delete(`/staff-benefits/${id}`),
+
+  getBenefitTypes: (params?: {
+    active?: boolean;
+    taxable?: boolean;
+    paginate?: boolean;
+    page?: number;
+    per_page?: number;
+    search?: string;
+    order_by?: string;
+    order?: string;
+  }) => api.get('/benefit-types', { params }),
+
+  createBenefitType: (data: {
+    title: string;
+    notes?: string;
+    is_taxable?: boolean;
+    is_active?: boolean
+  }) => api.post('/benefit-types', data),
+
+  updateBenefitType: (id: number, data: Partial<{
+    title: string;
+    notes?: string;
+    is_taxable?: boolean;
+    is_active?: boolean
+  }>) => api.put(`/benefit-types/${id}`, data),
+
+  deleteBenefitType: (id: number) => api.delete(`/benefit-types/${id}`),
+
+  // Similarly for deductions (if you have staff-deductions route)
+  getDeductions: (params?: {
+    staff_member_id?: number;
+    withholding_type_id?: number;
+    active?: boolean;
+    paginate?: boolean;
+    page?: number;
+    per_page?: number
+  }) => api.get('/recurring-deductions', { params }),
+
+  createDeduction: (data: {
+    staff_member_id: number;
+    withholding_type_id: number;
+    description: string;
+    calculation_type: 'fixed' | 'percentage';
+    amount: number;
+    effective_from?: string;
+    effective_until?: string;
+    is_active?: boolean
+  }) => api.post('/recurring-deductions', data),
+
+  updateDeduction: (id: number, data: Partial<{
+    withholding_type_id: number;
+    description: string;
+    calculation_type: 'fixed' | 'percentage';
+    amount: number;
+    effective_from?: string;
+    effective_until?: string;
+    is_active?: boolean
+  }>) => api.put(`/recurring-deductions/${id}`, data),
+
+  deleteDeduction: (id: number) => api.delete(`/recurring-deductions/${id}`),
+
+  // Withholding Types CRUD methods
+  getWithholdingTypes: (params?: {
+    active?: boolean;
+    statutory?: boolean;
+    paginate?: boolean;
+    page?: number;
+    per_page?: number
+  }) => api.get('/withholding-types', { params }),
+
+  createWithholdingType: (data: {
+    title: string;
+    notes?: string;
+    is_statutory?: boolean;
+    is_active?: boolean
+  }) => api.post('/withholding-types', data),
+
+  updateWithholdingType: (id: number, data: Partial<{
+    title: string;
+    notes?: string;
+    is_statutory?: boolean;
+    is_active?: boolean
+  }>) => api.put(`/withholding-types/${id}`, data),
+
+  deleteWithholdingType: (id: number) => api.delete(`/withholding-types/${id}`),
+
   getTaxSlabs: () => api.get('/tax-slabs'),
-  calculateTax: (data: { annual_income: number }) => api.post('/tax-slabs/calculate', data),
+  calculateTax: (data: Record<string, unknown>) => api.post('/tax-slabs/calculate', data), // Remove 'annual_income' type restriction
+  createTaxSlab: (data: Record<string, unknown>) => api.post('/tax-slabs', data),
+  updateTaxSlab: (id: number, data: Record<string, unknown>) => api.put(`/tax-slabs/${id}`, data),
+  deleteTaxSlab: (id: number) => api.delete(`/tax-slabs/${id}`),
+  getTaxSlab: (id: number) => api.get(`/tax-slabs/${id}`),
 };
 
 export const recruitmentService = {
-  getJobs: (params?: { status?: string; page?: number }) => api.get('/jobs', { params }),
+  getOfficeLocations: () => api.get('/office-locations'),
+  getDivisions: () => api.get('/divisions'),
+  getJobs: (params?: {
+    status?: string;
+    paginate?: boolean;
+    page?: number;
+    per_page?: number;
+    search?: string;
+    job_category_id?: number;
+    office_location_id?: number;
+  }) => api.get('/jobs', { params }),
   createJob: (data: Record<string, unknown>) => api.post('/jobs', data),
+  getJobById: (id: number) => api.get(`/jobs/${id}`),
   updateJob: (id: number, data: Record<string, unknown>) => api.put(`/jobs/${id}`, data),
   deleteJob: (id: number) => api.delete(`/jobs/${id}`),
   publishJob: (id: number) => api.post(`/jobs/${id}/publish`),
   closeJob: (id: number) => api.post(`/jobs/${id}/close`),
-  getCandidates: (params?: { job_id?: number; page?: number }) => api.get('/candidates', { params }),
+  getJobCategories: (params?: {
+    search?: string;
+    paginate?: boolean;
+    page?: number;
+    per_page?: number
+  }) => api.get('/job-categories', { params }),
+
+  createJobCategory: (data: {
+    title: string;
+    description?: string;
+  }) => api.post('/job-categories', data),
+
+  updateJobCategory: (id: number, data: Partial<{
+    title: string;
+    description?: string;
+  }>) => api.put(`/job-categories/${id}`, data),
+
+  deleteJobCategory: (id: number) => api.delete(`/job-categories/${id}`),
+  getCandidates: (params?: Record<string, unknown>) => api.get('/candidates', { params }),
   getCandidate: (id: number) => api.get(`/candidates/${id}`),
-  createCandidate: (data: Record<string, unknown>) => api.post('/candidates', data),
-  updateCandidate: (id: number, data: Record<string, unknown>) => api.put(`/candidates/${id}`, data),
+  createCandidate: (data: FormData | Record<string, unknown>) => {
+    if (data instanceof FormData) {
+      return api.post('/candidates', data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+    }
+    return api.post('/candidates', data);
+  },
+  updateCandidate: (id: number, data: Record<string, unknown>) =>
+    api.put(`/candidates/${id}`, data),
+  deleteCandidate: (id: number) => api.delete(`/candidates/${id}`),
+  archiveCandidate: (id: number) => api.post(`/candidates/${id}/archive`),
+  convertToEmployee: (id: number, data: Record<string, unknown>) =>
+    api.post(`/candidates/${id}/convert-to-employee`, data),
   getApplications: (params?: { job_id?: number; status?: string; page?: number }) =>
     api.get('/job-applications', { params }),
   updateApplicationStatus: (id: number, data: { status: string }) =>
     api.put(`/job-applications/${id}/status`, data),
-  getInterviews: (params?: { page?: number }) => api.get('/interview-schedules', { params }),
+  // Interview methods
+  getInterviews: (params?: Record<string, unknown>) => api.get('/interview-schedules', { params }),
   scheduleInterview: (data: Record<string, unknown>) => api.post('/interview-schedules', data),
-  submitFeedback: (id: number, data: Record<string, unknown>) =>
-    api.post(`/interview-schedules/${id}/feedback`, data),
+  updateInterview: (id: number, data: Record<string, unknown>) => api.put(`/interview-schedules/${id}`, data),
+  deleteInterview: (id: number) => api.delete(`/interview-schedules/${id}`),
+  submitFeedback: (id: number, data: Record<string, unknown>) => api.post(`/interview-schedules/${id}/feedback`, data),
+  rescheduleInterview: (id: number, data: Record<string, unknown>) => api.post(`/interview-schedules/${id}/reschedule`, data),
+  getCalendarInterviews: (params?: Record<string, unknown>) => api.get('/interviews/calendar', { params }),
+  getTodayInterviews: () => api.get('/interviews/today'),
+
+  // Staff members for interviewers
+  getStaffMembers: (params?: Record<string, unknown>) => api.get('/staff-members', { params }),
+
+  // Job Stages
+  getJobStages: (params?: {
+    paginate?: boolean;
+    page?: number;
+    per_page?: number;
+  }) => api.get('/job-stages', { params }),
+
+  createJobStage: (data: {
+    title: string;
+    color?: string;
+    is_default?: boolean;
+  }) => api.post('/job-stages', data),
+
+  updateJobStage: (id: number, data: Partial<{
+    title: string;
+    color?: string;
+    is_default?: boolean;
+  }>) => api.put(`/job-stages/${id}`, data),
+
+  deleteJobStage: (id: number) => api.delete(`/job-stages/${id}`),
+
+  reorderJobStages: (data: {
+    stages: Array<{ id: number; order: number }>
+  }) => api.post('/job-stages/reorder', data),
+
+  // Job Applications
+  getJobApplications: (params?: {
+    job_posting_id?: number;
+    job_stage_id?: number;
+    status?: string;
+    paginate?: boolean;
+    page?: number;
+    per_page?: number;
+  }) => api.get('/job-applications', { params }),
+
+  createJobApplication: (jobId: number, data: {
+    candidate_id: number;
+    custom_answers?: Record<string, unknown>;
+  }) => api.post(`/jobs/${jobId}/applications`, data),
+
+  getJobApplication: (id: number) => api.get(`/job-applications/${id}`),
+
+  moveJobApplicationStage: (id: number, data: {
+    job_stage_id: number
+  }) => api.post(`/job-applications/${id}/move-stage`, data),
+
+  rateJobApplication: (id: number, data: {
+    rating: number;
+    notes?: string;
+  }) => api.post(`/job-applications/${id}/rate`, data),
+
+  addJobApplicationNote: (id: number, data: {
+    note: string;
+  }) => api.post(`/job-applications/${id}/notes`, data),
+
+  shortlistJobApplication: (id: number) => api.post(`/job-applications/${id}/shortlist`),
+
+  rejectJobApplication: (id: number) => api.post(`/job-applications/${id}/reject`),
+
+  hireJobApplication: (id: number) => api.post(`/job-applications/${id}/hire`),
 };
 
 export const performanceService = {
@@ -138,12 +362,17 @@ export const performanceService = {
   getAppraisals: (params?: { staff_member_id?: number; page?: number }) => api.get('/appraisal-records', { params }),
   getAppraisalCycles: () => api.get('/appraisal-cycles'),
   createAppraisalCycle: (data: Record<string, unknown>) => api.post('/appraisal-cycles', data),
+  updateAppraisalCycle: (id: number, data: Record<string, unknown>) => api.put(`/appraisal-cycles/${id}`, data),
+  activateCycle: (id: number) => api.post(`/appraisal-cycles/${id}/activate`),
+  closeCycle: (id: number) => api.post(`/appraisal-cycles/${id}/close`),
+  deleteCycle: (id: number) => api.delete(`/appraisal-cycles/${id}`),
   submitSelfReview: (id: number, data: Record<string, unknown>) => api.post(`/appraisal-records/${id}/self-review`, data),
   submitManagerReview: (id: number, data: Record<string, unknown>) => api.post(`/appraisal-records/${id}/manager-review`, data),
+  getStaffMembers: () => api.get('/staff-members'),
 };
 
 export const assetService = {
-  getAll: (params?: { type_id?: number; status?: string; page?: number; search?: string }) => api.get('/assets', { params }),
+  getAll: (params?: { type_id?: number; status?: string; page?: number; per_page?: number; search?: string; order_by?: string; order?: string }) => api.get('/assets', { params }),
   getAssetTypes: () => api.get('/asset-types'),
   createAssetType: (data: Record<string, unknown>) => api.post('/asset-types', data),
   getAssets: (params?: { type_id?: number; status?: string; page?: number }) => api.get('/assets', { params }),
@@ -158,38 +387,81 @@ export const assetService = {
 };
 
 export const trainingService = {
-  getTypes: () => api.get('/training-types'),
+  // Training Types
+  getTypes: (params?: { page?: number; per_page?: number; search?: string }) => api.get('/training-types', { params }),
+  getTypeById: (id: number) => api.get(`/training-types/${id}`),
   createType: (data: Record<string, unknown>) => api.post('/training-types', data),
-  getPrograms: (params?: { page?: number }) => api.get('/training-programs', { params }),
+  updateType: (id: number, data: Record<string, unknown>) => api.put(`/training-types/${id}`, data),
+  deleteType: (id: number) => api.delete(`/training-types/${id}`),
+  // Training Programs
+  getPrograms: (params?: { page?: number; per_page?: number; search?: string; order_by?: string; order?: string }) => api.get('/training-programs', { params }),
   createProgram: (data: Record<string, unknown>) => api.post('/training-programs', data),
   updateProgram: (id: number, data: Record<string, unknown>) => api.put(`/training-programs/${id}`, data),
   deleteProgram: (id: number) => api.delete(`/training-programs/${id}`),
-  getSessions: (params?: { page?: number }) => api.get('/training-sessions', { params }),
+  // Training Sessions
+  getSessions: (params?: { page?: number; per_page?: number; search?: string; training_program_id?: number | string; status?: string; paginate?: string }) => api.get('/training-sessions', { params }),
+  getSessionById: (id: number | string) => api.get(`/training-sessions/${id}`),
   createSession: (data: Record<string, unknown>) => api.post('/training-sessions', data),
+  updateSession: (id: number | string, data: Record<string, unknown>) => api.put(`/training-sessions/${id}`, data),
+  deleteSession: (id: number | string) => api.delete(`/training-sessions/${id}`),
   enrollInSession: (sessionId: number, data: Record<string, unknown>) => api.post(`/training-sessions/${sessionId}/enroll`, data),
   completeSession: (sessionId: number, data: Record<string, unknown>) => api.post(`/training-sessions/${sessionId}/complete`, data),
+  getParticipants: (params?: { page?: number; per_page?: number; search?: string; training_session_id?: number | string; staff_member_id?: number | string; paginate?: string }) => api.get('/training-participants', { params }),
+  updateParticipant: (id: number | string, data: Record<string, unknown>) => api.put(`/training-participants/${id}`, data),
+  deleteParticipant: (id: number | string) => api.delete(`/training-participants/${id}`),
   getEmployeeTraining: (staffMemberId: number) => api.get(`/training/employee/${staffMemberId}`),
 };
 
 export const contractService = {
-  getAll: (params?: { staff_member_id?: number; status?: string; page?: number }) =>
+  getAll: (params?: { staff_member_id?: number; status?: string; page?: number; per_page?: number; search?: string; order_by?: string; order?: string }) =>
     api.get('/contracts', { params }),
+  getById: (id: number) => api.get(`/contracts/${id}`),
   getContracts: (params?: { staff_member_id?: number; status?: string; page?: number }) =>
     api.get('/contracts', { params }),
   createContract: (data: Record<string, unknown>) => api.post('/contracts', data),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/contracts/${id}`, data),
   updateContract: (id: number, data: Record<string, unknown>) => api.put(`/contracts/${id}`, data),
   deleteContract: (id: number) => api.delete(`/contracts/${id}`),
   renewContract: (id: number, data: Record<string, unknown>) => api.post(`/contracts/${id}/renew`, data),
   terminateContract: (id: number, data: Record<string, unknown>) => api.post(`/contracts/${id}/terminate`, data),
 };
 
+export const contractTypeService = {
+  getAll: (params?: { page?: number; per_page?: number; search?: string; order_by?: string; order?: string }) =>
+    api.get('/contract-types', { params }),
+  getById: (id: number) => api.get(`/contract-types/${id}`),
+  create: (data: Record<string, unknown>) => api.post('/contract-types', data),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/contract-types/${id}`, data),
+  delete: (id: number) => api.delete(`/contract-types/${id}`),
+};
+
+export const meetingTypeService = {
+  getAll: (params?: { page?: number; per_page?: number; search?: string }) => api.get('/meeting-types', { params }),
+  create: (data: Record<string, unknown>) => api.post('/meeting-types', data),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/meeting-types/${id}`, data),
+  delete: (id: number) => api.delete(`/meeting-types/${id}`),
+};
+
+export const meetingRoomService = {
+  getAll: (params?: { page?: number; per_page?: number; search?: string }) => api.get('/meeting-rooms', { params }),
+  getAvailable: () => api.get('/meeting-rooms-available'),
+  create: (data: Record<string, unknown>) => api.post('/meeting-rooms', data),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/meeting-rooms/${id}`, data),
+  delete: (id: number) => api.delete(`/meeting-rooms/${id}`),
+};
 export const meetingService = {
   getTypes: () => api.get('/meeting-types'),
   createType: (data: Record<string, unknown>) => api.post('/meeting-types', data),
+  updateType: (id: number, data: Record<string, unknown>) => api.put(`/meeting-types/${id}`, data),
+  deleteType: (id: number) => api.delete(`/meeting-types/${id}`),
   getRooms: () => api.get('/meeting-rooms'),
   getAvailableRooms: () => api.get('/meeting-rooms-available'),
-  getAll: (params?: { page?: number }) => api.get('/meetings', { params }),
+  createRoom: (data: Record<string, unknown>) => api.post('/meeting-rooms', data),
+  updateRoom: (id: number, data: Record<string, unknown>) => api.put(`/meeting-rooms/${id}`, data),
+  deleteRoom: (id: number) => api.delete(`/meeting-rooms/${id}`),
+  getAll: (params?: { page?: number; per_page?: number; search?: string; order_by?: string; order?: string }) => api.get('/meetings', { params }),
   getMeetings: (params?: { page?: number }) => api.get('/meetings', { params }),
+  getById: (id: number | string) => api.get(`/meetings/${id}`),
   createMeeting: (data: Record<string, unknown>) => api.post('/meetings', data),
   updateMeeting: (id: number, data: Record<string, unknown>) => api.put(`/meetings/${id}`, data),
   deleteMeeting: (id: number) => api.delete(`/meetings/${id}`),
@@ -200,6 +472,30 @@ export const meetingService = {
   addActionItem: (meetingId: number, data: Record<string, unknown>) => api.post(`/meetings/${meetingId}/action-items`, data),
   getCalendar: () => api.get('/meetings-calendar'),
   getMyMeetings: () => api.get('/my-meetings'),
+};
+
+export const meetingAttendeeService = {
+  getAll: (params?: any) => api.get('/meeting-attendees', { params }),
+  getById: (id: number) => api.get(`/meeting-attendees/${id}`),
+  create: (data: any) => api.post('/meeting-attendees', data),
+  update: (id: number, data: any) => api.put(`/meeting-attendees/${id}`, data),
+  delete: (id: number) => api.delete(`/meeting-attendees/${id}`),
+};
+
+export const meetingMinuteService = {
+  getAll: (params?: any) => api.get('/meeting-minutes', { params }),
+  getById: (id: number) => api.get(`/meeting-minutes/${id}`),
+  create: (data: any) => api.post('/meeting-minutes', data),
+  update: (id: number, data: any) => api.put(`/meeting-minutes/${id}`, data),
+  delete: (id: number) => api.delete(`/meeting-minutes/${id}`),
+};
+
+export const meetingActionItemService = {
+  getAll: (params?: any) => api.get('/meeting-action-items', { params }),
+  getById: (id: number) => api.get(`/meeting-action-items/${id}`),
+  create: (data: any) => api.post('/meeting-action-items', data),
+  update: (id: number, data: any) => api.put(`/meeting-action-items/${id}`, data),
+  delete: (id: number) => api.delete(`/meeting-action-items/${id}`),
 };
 
 export const reportService = {
@@ -224,7 +520,7 @@ export const settingsService = {
   createOfficeLocation: (data: Record<string, unknown>) => api.post('/office-locations', data),
   updateOfficeLocation: (id: number, data: Record<string, unknown>) => api.put(`/office-locations/${id}`, data),
   deleteOfficeLocation: (id: number) => api.delete(`/office-locations/${id}`),
-  getDivisions: () => api.get('/divisions'),
+  getDivisions: (params?: { page?: number; per_page?: number; search?: string; order_by?: string; order?: string }) => api.get('/divisions', { params }),
   createDivision: (data: Record<string, unknown>) => api.post('/divisions', data),
   updateDivision: (id: number, data: Record<string, unknown>) => api.put(`/divisions/${id}`, data),
   deleteDivision: (id: number) => api.delete(`/divisions/${id}`),
@@ -236,8 +532,12 @@ export const settingsService = {
   createHoliday: (data: Record<string, unknown>) => api.post('/company-holidays', data),
   updateHoliday: (id: number, data: Record<string, unknown>) => api.put(`/company-holidays/${id}`, data),
   deleteHoliday: (id: number) => api.delete(`/company-holidays/${id}`),
-  getNotices: () => api.get('/company-notices'),
-  createNotice: (data: Record<string, unknown>) => api.post('/company-notices', data),
+  getAll: (params?: any) => api.get('/company-notices', { params }),
+  getById: (id: number) => api.get(`/company-notices/${id}`),
+  create: (data: any) => api.post('/company-notices', data),
+  update: (id: number, data: any) => api.put(`/company-notices/${id}`, data),
+  delete: (id: number) => api.delete(`/company-notices/${id}`),
+  markAsRead: (id: number) => api.post(`/company-notices/${id}/read`),
   getFileCategories: () => api.get('/file-categories', { params: { paginate: false } }),
   createFileCategory: (data: Record<string, unknown>) => api.post('/file-categories', data),
   updateFileCategory: (id: number, data: Record<string, unknown>) => api.put(`/file-categories/${id}`, data),
@@ -279,7 +579,7 @@ export const resourceService = {
 };
 
 export const organizationService = {
-  getAll: (params?: { page?: number; search?: string }) => api.get('/organizations', { params }),
+  getAll: (params?: { page?: number; per_page?: number; search?: string }) => api.get('/organizations', { params }),
   getById: (id: number) => api.get(`/organizations/${id}`),
   create: (data: Record<string, unknown>) => api.post('/organizations', data),
   update: (id: number, data: Record<string, unknown>) => api.put(`/organizations/${id}`, data),
@@ -287,7 +587,7 @@ export const organizationService = {
 };
 
 export const companyService = {
-  getAll: (params?: { page?: number; search?: string }) => api.get('/companies', { params }),
+  getAll: (params?: { page?: number; per_page?: number; search?: string }) => api.get('/companies', { params }),
   getById: (id: number) => api.get(`/companies/${id}`),
   create: (data: Record<string, unknown>) => api.post('/companies', data),
   update: (id: number, data: Record<string, unknown>) => api.put(`/companies/${id}`, data),
@@ -295,7 +595,7 @@ export const companyService = {
 };
 
 export const assetTypeService = {
-  getAll: (params?: { page?: number; search?: string }) => api.get('/asset-types', { params }),
+  getAll: (params?: { page?: number; per_page?: number; search?: string; order_by?: string; order?: string }) => api.get('/asset-types', { params }),
   getById: (id: number) => api.get(`/asset-types/${id}`),
   create: (data: Record<string, unknown>) => api.post('/asset-types', data),
   update: (id: number, data: Record<string, unknown>) => api.put(`/asset-types/${id}`, data),
@@ -303,7 +603,8 @@ export const assetTypeService = {
 };
 
 export const documentTypeService = {
-  getAll: (params?: { page?: number; search?: string }) => api.get('/document-types', { params }),
+  getAll: (params?: { page?: number; search?: string; per_page?: number; order_by?: string; order?: string }) => api.get('/document-types', { params }),
+  // getAll: (params?: { page?: number; per_page?: number; search?: string }) => api.get('/document-types', { params }),
   getById: (id: number) => api.get(`/document-types/${id}`),
   create: (data: Record<string, unknown>) => api.post('/document-types', data),
   update: (id: number, data: Record<string, unknown>) => api.put(`/document-types/${id}`, data),
@@ -311,9 +612,41 @@ export const documentTypeService = {
 };
 
 export const documentLocationService = {
-  getAll: (params?: { page?: number; search?: string }) => api.get('/document-locations', { params }),
+  getAll: (params?: { page?: number; per_page?: number; search?: string }) => api.get('/document-locations', { params }),
   getById: (id: number) => api.get(`/document-locations/${id}`),
   create: (data: Record<string, unknown>) => api.post('/document-locations', data),
   update: (id: number, data: Record<string, unknown>) => api.put(`/document-locations/${id}`, data),
   delete: (id: number) => api.delete(`/document-locations/${id}`),
+};
+
+export const documentService = {
+  upload: (data: FormData) =>
+    api.post('/documents/upload', data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  getAll: (params?: {
+    page?: number;
+    per_page?: number;
+    search?: string;
+    owner_type?: string;
+    owner_id?: number;
+    document_type_id?: number;
+  }) => api.get('/documents', { params }),
+  getById: (id: number) => api.get(`/documents/${id}`),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/documents/${id}`, data),
+  delete: (id: number) => api.delete(`/documents/${id}`),
+  download: (id: number) => api.get(`/documents/${id}/download`),
+};
+
+export const documentConfigService = {
+  createLocal: (data: Record<string, unknown>) => api.post('/document-configs/local', data),
+  updateLocal: (id: number, data: Record<string, unknown>) => api.put(`/document-configs/local/${id}`, data),
+  getLocalConfig: (locationId: number) => api.get(`/document-configs/local/${locationId}`),
+  createWasabi: (data: Record<string, unknown>) => api.post('/document-configs/wasabi', data),
+  updateWasabi: (id: number, data: Record<string, unknown>) => api.put(`/document-configs/wasabi/${id}`, data),
+  getWasabiConfig: (locationId: number) => api.get(`/document-configs/wasabi/${locationId}`),
+  createAws: (data: Record<string, unknown>) => api.post('/document-configs/aws', data),
+  updateAws: (id: number, data: Record<string, unknown>) => api.put(`/document-configs/aws/${id}`, data),
+  getAwsConfig: (locationId: number) => api.get(`/document-configs/aws/${locationId}`),
+  getConfig: (locationId: number) => api.get(`/document-configs/${locationId}`),
 };

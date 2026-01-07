@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { adminService, roleService } from '../../services/api';
+import { showAlert, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -85,6 +86,7 @@ export default function Users() {
       setMeta(responseData?.meta || response.data.meta || null);
     } catch (error) {
       console.error('Failed to fetch users:', error);
+      showAlert('error', 'Error', 'Failed to fetch users');
       setUsers([]);
     } finally {
       setIsLoading(false);
@@ -131,12 +133,13 @@ export default function Users() {
       await adminService.assignUserRoles(selectedUser.id, {
         roles: Array.from(selectedRoles),
       });
+      showAlert('success', 'Success!', 'Roles assigned successfully', 2000);
       setIsRoleDialogOpen(false);
       setSelectedUser(null);
       fetchUsers();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to assign roles:', error);
-      alert('Failed to assign roles. Please try again.');
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to assign roles'));
     } finally {
       setIsSavingRoles(false);
     }

@@ -410,7 +410,9 @@ class DocumentController extends Controller
             'owner_id' => 'required|integer',
             'org_id' => 'nullable|exists:organizations,id',
             'company_id' => 'nullable|exists:companies,id',
+            'user_id' => 'nullable|exists:users,id',
             'document_name' => 'nullable|string|max:255',
+            'document_location_id' => 'nullable|exists:document_locations,id'
         ]);
 
         if ($validator->fails()) {

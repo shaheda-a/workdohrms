@@ -10,11 +10,13 @@ class MeetingType extends Model
 {
     use HasFactory, HasOrgAndCompany;
 
+    // ADDED: meeting type status support
     protected $fillable = [
         'title',
         'description',
         'default_duration',
         'color',
+        'status',
     ];
 
     public function meetings()

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { documentLocationService, organizationService, companyService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -46,7 +47,6 @@ import {
     ChevronRight,
     MapPin,
 } from 'lucide-react';
-import { toast } from '../../hooks/use-toast';
 
 interface DocumentLocation {
     id: number;
@@ -157,11 +157,7 @@ export default function DocumentLocationList() {
         } catch (error) {
             console.error('Failed to fetch document locations:', error);
             setDocumentLocations([]);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to fetch document locations',
-            });
+            showAlert('error', 'Error', 'Failed to fetch document locations');
         } finally {
             setIsLoading(false);
         }
@@ -178,21 +174,16 @@ export default function DocumentLocationList() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this document location?')) return;
+        const result = await showConfirmDialog('Delete Document Location', 'Are you sure you want to delete this document location?');
+        if (!result.isConfirmed) return;
         try {
             await documentLocationService.delete(id);
-            toast({
-                title: 'Success',
-                description: 'Document location deleted successfully',
-            });
+            showAlert('success', 'Deleted!', 'Document location deleted successfully', 2000);
             fetchDocumentLocations();
         } catch (error) {
             console.error('Failed to delete document location:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to delete document location',
-            });
+            const errorMessage = getErrorMessage(error, 'Failed to delete document location');
+            showAlert('error', 'Error', errorMessage);
         }
     };
 
@@ -217,27 +208,18 @@ export default function DocumentLocationList() {
 
             if (editingLocation) {
                 await documentLocationService.update(editingLocation.id, payload);
-                toast({
-                    title: 'Success',
-                    description: 'Document location updated successfully',
-                });
+                showAlert('success', 'Success', 'Document location updated successfully', 2000);
             } else {
                 await documentLocationService.create(payload);
-                toast({
-                    title: 'Success',
-                    description: 'Document location created successfully',
-                });
+                showAlert('success', 'Success', 'Document location created successfully', 2000);
             }
             setIsDialogOpen(false);
             resetForm();
             fetchDocumentLocations();
         } catch (error) {
             console.error('Failed to save document location:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to save document location',
-            });
+            const errorMessage = getErrorMessage(error, 'Failed to save document location');
+            showAlert('error', 'Error', errorMessage);
         } finally {
             setIsSubmitting(false);
         }

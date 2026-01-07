@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { attendanceService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -22,7 +23,7 @@ import {
   DialogTrigger,
 } from '../../components/ui/dialog';
 import { Skeleton } from '../../components/ui/skeleton';
-import { Plus, Edit, Trash2, Clock, MoreHorizontal } from 'lucide-react';
+import { Plus, Edit, Trash2, Clock, MoreHorizontal, Eye } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,7 +49,9 @@ export default function Shifts() {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
+  const [viewingShift, setViewingShift] = useState<Shift | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -71,6 +74,7 @@ export default function Shifts() {
       setShifts(response.data.data || []);
     } catch (error) {
       console.error('Failed to fetch shifts:', error);
+      showAlert('error', 'Error', 'Failed to fetch shifts');
     } finally {
       setIsLoading(false);
     }
@@ -96,6 +100,12 @@ export default function Shifts() {
         await attendanceService.createShift(payload);
       }
 
+      showAlert(
+        'success',
+        'Success!',
+        editingShift ? 'Shift updated successfully' : 'Shift created successfully',
+        2000
+      );
       setIsDialogOpen(false);
       setEditingShift(null);
       setFormData({
@@ -106,8 +116,9 @@ export default function Shifts() {
       });
 
       fetchShifts();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to save shift:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to save shift'));
     }
   };
 
@@ -126,16 +137,31 @@ export default function Shifts() {
   };
 
   /* =========================
+     VIEW
+  ========================= */
+  const handleView = (shift: Shift) => {
+    setViewingShift(shift);
+    setIsViewDialogOpen(true);
+  };
+
+  /* =========================
      DELETE
   ========================= */
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this shift?')) return;
+    const result = await showConfirmDialog(
+      'Are you sure?',
+      'You want to delete this shift?'
+    );
+
+    if (!result.isConfirmed) return;
 
     try {
       await attendanceService.deleteShift(id);
+      showAlert('success', 'Deleted!', 'Shift deleted successfully', 2000);
       fetchShifts();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to delete shift:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete shift'));
     }
   };
 
@@ -166,6 +192,7 @@ export default function Shifts() {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button
+              className="bg-solarized-blue hover:bg-solarized-blue/90"
               onClick={() => {
                 setEditingShift(null);
                 setFormData({
@@ -262,7 +289,7 @@ export default function Shifts() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button type="submit" className="bg-solarized-blue hover:bg-solarized-blue/90">
                   {editingShift ? 'Update' : 'Create'}
                 </Button>
               </DialogFooter>
@@ -311,6 +338,12 @@ export default function Shifts() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
+                            onClick={() => handleView(shift)}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
                             onClick={() => handleEdit(shift)}
                           >
                             <Edit className="mr-2 h-4 w-4" />
@@ -333,6 +366,43 @@ export default function Shifts() {
           )}
         </CardContent>
       </Card>
+
+      {/* View Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Shift Details</DialogTitle>
+            <DialogDescription>View shift information</DialogDescription>
+          </DialogHeader>
+          {viewingShift && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Shift Name</Label>
+                <p className="font-medium">{viewingShift.name}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Start Time</Label>
+                  <p className="font-medium">{formatTime(viewingShift.start_time)}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">End Time</Label>
+                  <p className="font-medium">{formatTime(viewingShift.end_time)}</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Break Duration</Label>
+                <p className="font-medium">{viewingShift.break_duration_minutes} minutes</p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { staffService, settingsService } from '../../services/api';
+import { showAlert, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -105,6 +106,7 @@ export default function StaffEdit() {
       } catch (error) {
         console.error('Failed to fetch data:', error);
         setError('Failed to load staff data');
+        showAlert('error', 'Error', 'Failed to load staff data');
       } finally {
         setIsLoading(false);
       }
@@ -127,10 +129,12 @@ export default function StaffEdit() {
 
     try {
       await staffService.update(Number(id), formData);
+      showAlert('success', 'Success!', 'Staff member updated successfully', 2000);
       navigate(`/staff/${id}`);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setError(error.response?.data?.message || 'Failed to update staff member');
+      const errorMessage = getErrorMessage(err, 'Failed to update staff member');
+      setError(errorMessage);
+      showAlert('error', 'Error', errorMessage);
     } finally {
       setIsSaving(false);
     }

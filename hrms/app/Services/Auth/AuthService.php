@@ -68,7 +68,7 @@ class AuthService
     public function getProfile(User $user): array
     {
         return [
-            'user' => $user->load('roles', 'permissions'),
+            'user' => $this->formatUserData($user),
         ];
     }
 

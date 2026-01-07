@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { attendanceService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { showAlert, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -48,9 +49,11 @@ export default function ClockInOut() {
       setClockedIn(true);
       setClockInTime(formatTime(new Date()));
       setMessage({ type: 'success', text: 'Successfully clocked in!' });
+      showAlert('success', 'Success!', 'Successfully clocked in!', 2000);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to clock in' });
+      const errorMessage = getErrorMessage(err, 'Failed to clock in');
+      setMessage({ type: 'error', text: errorMessage });
+      showAlert('error', 'Error', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -64,9 +67,11 @@ export default function ClockInOut() {
       setClockedIn(false);
       setClockInTime(null);
       setMessage({ type: 'success', text: 'Successfully clocked out!' });
+      showAlert('success', 'Success!', 'Successfully clocked out!', 2000);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to clock out' });
+      const errorMessage = getErrorMessage(err, 'Failed to clock out');
+      setMessage({ type: 'error', text: errorMessage });
+      showAlert('error', 'Error', errorMessage);
     } finally {
       setIsLoading(false);
     }

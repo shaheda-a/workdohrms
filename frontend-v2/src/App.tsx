@@ -22,13 +22,16 @@ import StaffEdit from './pages/staff/StaffEdit';
 
 // Organization
 import OrganizationList from './pages/organization/OrganizationList';
+import OrganizationView from './pages/organization/OrganizationView';
 import CompanyList from './pages/company/CompanyList';
+import CompanyView from './pages/company/CompanyView';
 
 // Assets
 import AssetTypeList from './pages/assets/AssetTypeList';
-
+import AssetAssignmentList from './pages/assets/AssetAssignmentList';
 // Documents
 import DocumentTypeList from './pages/documents/DocumentTypeList';
+import DocumentTypeView from './pages/documents/DocumentTypeView';
 import DocumentLocationList from './pages/documents/DocumentLocationList';
 
 // Attendance
@@ -46,6 +49,7 @@ import LeaveCategories from './pages/leave/LeaveCategories';
 
 // Payroll
 import SalarySlips from './pages/payroll/SalarySlips';
+import MySalarySlip from './pages/payroll/MySalarySlip';
 import GeneratePayroll from './pages/payroll/GeneratePayroll';
 import Benefits from './pages/payroll/Benefits';
 import Deductions from './pages/payroll/Deductions';
@@ -57,7 +61,9 @@ import Candidates from './pages/recruitment/Candidates';
 import Interviews from './pages/recruitment/Interviews';
 
 // Performance
-import Goals from './pages/performance/Goals';
+import ParticipantForm from './pages/training/ParticipantForm';
+// import SessionForm from './pages/training/SessionForm';
+// import Performance from './pages/performance/Performance';
 import Appraisals from './pages/performance/Appraisals';
 
 // Assets
@@ -66,12 +72,31 @@ import AssetAssignmentList from './pages/assets/AssetAssignmentList';
 
 // Training
 import Programs from './pages/training/Programs';
+import TrainingTypeList from './pages/training/TrainingTypeList';
+import Sessions from './pages/training/Sessions';
+import Participants from './pages/training/Participants';
 
 // Contracts
 import Contracts from './pages/contracts/Contracts';
+import ContractTypes from './pages/contracts/ContractTypes';
+import ContractRenewals from './pages/contracts/ContractRenewals';
 
 // Meetings
 import Meetings from './pages/meetings/Meetings';
+
+import MeetingCalendar from './pages/meetings/MeetingCalendar';
+import MeetingTypes from './pages/meetings/MeetingTypes';
+import MeetingRooms from './pages/meetings/MeetingRooms';
+import MeetingMinutesPage from './pages/meetings/MeetingMinutesPage';
+import MeetingActionItemsPage from './pages/meetings/MeetingActionItemsPage';
+import MeetingAttendeesPage from './pages/meetings/MeetingAttendeesPage';
+
+
+// ... (existing imports)
+
+// ... inside App component ...
+
+{/* Meetings */ }
 
 // Reports
 import AttendanceReport from './pages/reports/AttendanceReport';
@@ -91,6 +116,17 @@ import Users from './pages/admin/Users';
 import Roles from './pages/admin/Roles';
 import RolePermissions from './pages/admin/RolePermissions';
 import Permissions from './pages/admin/Permissions';
+import BenefitTypes from './pages/payroll/BenefitTypes';
+import WithholdingTypes from './pages/payroll/WithHoldingType';
+import JobCategories from './pages/recruitment/JobCategory';
+import JobStages from './pages/recruitment/JobStages';
+import JobApplications from './pages/recruitment/JobApplications';
+
+// Error Pages
+import Unauthorized from './pages/Unauthorized';
+import CompanyNotices from './pages/settings/CompanyNotices';
+import AllLeaveRequests from './pages/leave/AllLeaveRequests';
+import MyLeaveBalances from './pages/leave/MyLeaveBalances';
 
 function App() {
   return (
@@ -126,13 +162,16 @@ function App() {
 
             {/* Organization */}
             <Route path="/organizations" element={<OrganizationList />} />
+            <Route path="/organizations/:id" element={<OrganizationView />} />
             <Route path="/companies" element={<CompanyList />} />
+            <Route path="/companies/:id" element={<CompanyView />} />
 
             {/* Assets */}
             <Route path="/assets/types" element={<AssetTypeList />} />
 
             {/* Documents */}
             <Route path="/documents/types" element={<DocumentTypeList />} />
+            <Route path="/documents/types/:id" element={<DocumentTypeView />} />
             <Route path="/documents/locations" element={<DocumentLocationList />} />
 
             {/* Attendance */}
@@ -145,30 +184,39 @@ function App() {
             {/* Leave Management */}
             <Route path="/leave" element={<LeaveRequests />} />
             <Route path="/leave/requests" element={<LeaveRequests />} />
+            <Route path="/leave/all-requests" element={<AllLeaveRequests />} />
             <Route path="/leave/apply" element={<LeaveApply />} />
             <Route path="/leave/approvals" element={<LeaveApprovals />} />
             <Route path="/leave/balances" element={<LeaveBalances />} />
+            <Route path="/leave/my-balances" element={<MyLeaveBalances />} />
             <Route path="/leave/categories" element={<LeaveCategories />} />
 
             {/* Payroll */}
             <Route path="/payroll" element={<SalarySlips />} />
             <Route path="/payroll/slips" element={<SalarySlips />} />
+            <Route path="/payroll/my-slips" element={<MySalarySlip />} />
             <Route path="/payroll/generate" element={<GeneratePayroll />} />
             <Route path="/payroll/benefits" element={<Benefits />} />
+            <Route path="/payroll/benefits/types" element={<BenefitTypes />} />
             <Route path="/payroll/deductions" element={<Deductions />} />
+            <Route path="/payroll/deductions/types" element={<WithholdingTypes />} />
             <Route path="/payroll/tax" element={<TaxSlabs />} />
 
             {/* Recruitment */}
+            <Route path="/recruitment/job/categories" element={<JobCategories />} />
             <Route path="/recruitment" element={<Jobs />} />
             <Route path="/recruitment/jobs" element={<Jobs />} />
             <Route path="/recruitment/candidates" element={<Candidates />} />
             <Route path="/recruitment/interviews" element={<Interviews />} />
+            <Route path="/recruitment/job/stages" element={<JobStages />} />
+            <Route path="/recruitment/applications" element={<JobApplications />} />
 
             {/* Performance */}
-            <Route path="/performance" element={<Goals />} />
-            <Route path="/performance/goals" element={<Goals />} />
+
             <Route path="/performance/appraisals" element={<Appraisals />} />
 
+            {/* Assets */}
+            <Route path="/assets" element={<AssetsList />} />
             {/* Assets */}
             <Route path="/assets" element={<AssetsList />} />
             <Route path="/assets/assignments" element={<AssetAssignmentList />} />
@@ -176,12 +224,26 @@ function App() {
             {/* Training */}
             <Route path="/training" element={<Programs />} />
             <Route path="/training/programs" element={<Programs />} />
+            <Route path="/training/types" element={<TrainingTypeList />} />
+            <Route path="/training/sessions" element={<Sessions />} />
+            <Route path="/training/participants" element={<Participants />} />
+            <Route path="/training/participants/create" element={<ParticipantForm />} />
+            <Route path="/training/participants/:id/edit" element={<ParticipantForm />} />
 
             {/* Contracts */}
             <Route path="/contracts" element={<Contracts />} />
+            <Route path="/contracts/types" element={<ContractTypes />} />
+            <Route path="/contracts/renewals" element={<ContractRenewals />} />
+
 
             {/* Meetings */}
-            <Route path="/meetings" element={<Meetings />} />
+            <Route path="/meeting" element={<Meetings />} />
+            <Route path="/meetings/calendar" element={<MeetingCalendar />} />
+            <Route path="/meetings/minutes" element={<MeetingMinutesPage />} />
+            <Route path="/meetings/action-items" element={<MeetingActionItemsPage />} />
+            <Route path="/meetings/attendees" element={<MeetingAttendeesPage />} />
+            <Route path="/meetings/types" element={<MeetingTypes />} />
+            <Route path="/meetings/rooms" element={<MeetingRooms />} />
 
             {/* Reports */}
             <Route path="/reports" element={<AttendanceReport />} />
@@ -195,6 +257,7 @@ function App() {
             <Route path="/settings/divisions" element={<Divisions />} />
             <Route path="/settings/job-titles" element={<JobTitles />} />
             <Route path="/settings/holidays" element={<Holidays />} />
+            <Route path="/settings/company-notices" element={<CompanyNotices />} />
             <Route path="/settings/file-categories" element={<FileCategories />} />
             <Route path="/settings/document-config" element={<DocumentConfiguration />} />
 
@@ -205,6 +268,9 @@ function App() {
             <Route path="/admin/roles/:id/permissions" element={<RolePermissions />} />
             <Route path="/admin/permissions" element={<Permissions />} />
           </Route>
+
+          {/* Unauthorized */}
+          <Route path="/unauthorized" element={<Unauthorized />} />
 
           {/* Catch all - redirect to dashboard */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

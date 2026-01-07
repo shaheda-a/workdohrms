@@ -32,6 +32,14 @@ class AssetController extends Controller
             });
         }
 
+        // Sorting support
+        if ($request->filled('order_by')) {
+            $direction = $request->input('order', 'asc');
+            $query->orderBy($request->input('order_by'), $direction);
+        } else {
+            $query->latest();
+        }
+
         $assets = $request->paginate === 'false'
             ? $query->get()
             : $query->paginate($request->per_page ?? 15);

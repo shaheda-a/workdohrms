@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { attendanceService } from '../../services/api';
+import { showAlert } from '../../lib/sweetalert';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -59,6 +60,7 @@ export default function WorkLogs() {
       setMeta(response.data.meta);
     } catch (error) {
       console.error('Failed to fetch work logs:', error);
+      showAlert('error', 'Error', 'Failed to fetch work logs');
     } finally {
       setIsLoading(false);
     }

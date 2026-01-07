@@ -37,6 +37,9 @@ class TimeOffCategoryController extends Controller
             'notes' => 'nullable|string',
             'is_paid' => 'boolean',
             'is_active' => 'boolean',
+            // Add these two lines for carry forward functionality
+            'is_carry_forward_allowed' => 'boolean',
+            'max_carry_forward_days' => 'nullable|integer|min:0',
         ]);
 
         $validated['author_id'] = $request->user()->id;
@@ -58,6 +61,8 @@ class TimeOffCategoryController extends Controller
             'notes' => 'nullable|string',
             'is_paid' => 'boolean',
             'is_active' => 'boolean',
+            'is_carry_forward_allowed' => 'boolean',
+            'max_carry_forward_days' => 'nullable|integer|min:0',
         ]);
 
         $timeOffCategory->update($validated);

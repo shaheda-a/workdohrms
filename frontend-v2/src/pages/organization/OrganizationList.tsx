@@ -1,18 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { organizationService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '../../components/ui/table';
 import {
     Dialog,
     DialogContent,
@@ -28,38 +22,38 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '../../components/ui/dropdown-menu';
-import { Skeleton } from '../../components/ui/skeleton';
+import DataTable, { TableColumn } from 'react-data-table-component';
 import {
     Plus,
     Search,
     MoreHorizontal,
     Edit,
     Trash2,
-    ChevronLeft,
-    ChevronRight,
     Building2,
+    Eye,
 } from 'lucide-react';
-import { toast } from '../../hooks/use-toast';
 
 interface Organization {
     id: number;
     name: string;
     address: string;
 }
+// export interface OrganizationListParams {
+//   page?: number;
+//   per_page?: number;
+//   search?: string;
+// }
 
-interface PaginationMeta {
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-}
 
 export default function OrganizationList() {
+    const navigate = useNavigate();
     const [organizations, setOrganizations] = useState<Organization[]>([]);
-    const [meta, setMeta] = useState<PaginationMeta | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [search, setSearch] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [searchInput, setSearchInput] = useState(''); // What user types
+    const [search, setSearch] = useState(''); // What's sent to API
     const [page, setPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
+    const [totalRows, setTotalRows] = useState(0);
 
     // Dialog state
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -67,72 +61,89 @@ export default function OrganizationList() {
     const [formData, setFormData] = useState({
         name: '',
         address: '',
+        user_name: '',
+        email: '',
+        password: '',
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    useEffect(() => {
-        fetchOrganizations();
-    }, [page, search]);
-
-    const fetchOrganizations = async () => {
-        setIsLoading(true);
-        try {
-            const response = await organizationService.getAll({ page, search });
-            const payload = response.data.data;
-
-            if (Array.isArray(payload)) {
-                setOrganizations(payload);
-                setMeta(null);
-            } else if (payload && Array.isArray(payload.data)) {
-                setOrganizations(payload.data);
-                setMeta({
-                    current_page: payload.current_page,
-                    last_page: payload.last_page,
-                    per_page: payload.per_page,
-                    total: payload.total,
+    // ================= FETCH ORGANIZATIONS =================
+    const fetchOrganizations = useCallback(
+        async (currentPage: number = 1) => {
+            setIsLoading(true);
+            try {
+                const response = await organizationService.getAll({
+                    page: currentPage,
+                    per_page: perPage,
+                    search,
                 });
-            } else {
+
+                const { data, meta } = response.data;
+
+                if (Array.isArray(data)) {
+                    setOrganizations(data);
+                    setTotalRows(meta?.total ?? 0);
+                } else {
+                    setOrganizations([]);
+                    setTotalRows(0);
+                }
+            } catch (error) {
+                console.error('Failed to fetch organizations:', error);
+                showAlert('error', 'Error', getErrorMessage(error, 'Failed to fetch organizations'));
                 setOrganizations([]);
-                setMeta(null);
+                setTotalRows(0);
+            } finally {
+                setIsLoading(false);
             }
-        } catch (error) {
-            console.error('Failed to fetch organizations:', error);
-            setOrganizations([]);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to fetch organizations',
-            });
-        } finally {
-            setIsLoading(false);
-        }
+        },
+        [perPage, search]
+    );
+
+    useEffect(() => {
+        fetchOrganizations(page);
+    }, [page, fetchOrganizations]);
+
+    // ================= SEARCH =================
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setSearch(searchInput); // Update search state with current input
+        setPage(1);
     };
 
+    // ================= PAGINATION =================
+    const handlePageChange = (newPage: number) => {
+        setPage(newPage);
+    };
+
+    const handlePerRowsChange = (newPerPage: number) => {
+        setPerPage(newPerPage);
+        setPage(1); // Reset to first page when changing rows per page
+    };
+
+    // ================= DIALOG HANDLERS =================
     const handleEdit = (org: Organization) => {
         setEditingOrganization(org);
         setFormData({
             name: org.name,
             address: org.address || '',
+            user_name: '',
+            email: '',
+            password: '',
         });
         setIsDialogOpen(true);
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this organization?')) return;
+        const result = await showConfirmDialog('Delete Organization', 'Are you sure you want to delete this organization?');
+        if (!result.isConfirmed) return;
         try {
             await organizationService.delete(id);
-            toast({
-                title: 'Success',
-                description: 'Organization deleted successfully',
-            });
-            fetchOrganizations();
+            showAlert('success', 'Deleted!', 'Organization deleted successfully', 2000);
+            fetchOrganizations(page);
         } catch (error) {
             console.error('Failed to delete organization:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to delete organization',
-            });
+            const errorMessage = getErrorMessage(error, 'Failed to delete organization');
+            showAlert('error', 'Error', errorMessage);
         }
     };
 
@@ -140,6 +151,9 @@ export default function OrganizationList() {
         setFormData({
             name: '',
             address: '',
+            user_name: '',
+            email: '',
+            password: '',
         });
         setEditingOrganization(null);
     };
@@ -150,49 +164,87 @@ export default function OrganizationList() {
         try {
             if (editingOrganization) {
                 await organizationService.update(editingOrganization.id, formData);
-                toast({
-                    title: 'Success',
-                    description: 'Organization updated successfully',
-                });
+                showAlert('success', 'Success', 'Organization updated successfully', 2000);
             } else {
-                await organizationService.create(formData);
-                toast({
-                    title: 'Success',
-                    description: 'Organization created successfully',
-                });
+                // Backend expects 'org_name' for create
+                const createPayload = {
+                    org_name: formData.name,
+                    address: formData.address,
+                    user_name: formData.user_name,
+                    email: formData.email,
+                    password: formData.password,
+                };
+                await organizationService.create(createPayload);
+                showAlert('success', 'Success', 'Organization created successfully', 2000);
             }
             setIsDialogOpen(false);
             resetForm();
-            fetchOrganizations();
+            fetchOrganizations(page);
         } catch (error) {
             console.error('Failed to save organization:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to save organization',
-            });
+            const errorMessage = getErrorMessage(error, 'Failed to save organization');
+            showAlert('error', 'Error', errorMessage);
         } finally {
             setIsSubmitting(false);
         }
     };
 
+    // ================= TABLE COLUMNS =================
+    const columns: TableColumn<Organization>[] = [
+        {
+            name: 'Name',
+            selector: (row) => row.name,
+            sortable: true,
+            minWidth: '200px',
+        },
+        {
+            name: 'Address',
+            selector: (row) => row.address || '-',
+            sortable: true,
+            grow: 2,
+        },
+        {
+            name: 'Actions',
+            cell: (row) => (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={() => navigate(`/organizations/${row.id}`)}>
+                                                <Eye className="mr-2 h-4 w-4" /> View
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleEdit(row)}>
+                                                <Edit className="mr-2 h-4 w-4" /> Edit
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                onClick={() => handleDelete(row.id)}
+                                                className="text-red-600"
+                                            >
+                                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                </DropdownMenu>
+            ),
+            ignoreRowClick: true,
+            width: '80px',
+        },
+    ];
+
+    // ================= UI =================
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-solarized-base02">Organizations</h1>
-                    <p className="text-solarized-base01">Manage your client organizations</p>
+                    <h1 className="text-2xl font-bold">Organizations</h1>
+                    <p className="text-muted-foreground">Manage your client organizations</p>
                 </div>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
-                        <Button
-                            className="bg-solarized-blue hover:bg-solarized-blue/90"
-                            onClick={() => {
-                                resetForm();
-                            }}
-                        >
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Organization
+                        <Button className="bg-solarized-blue hover:bg-solarized-blue/90" onClick={() => resetForm()}>
+                            <Plus className="mr-2 h-4 w-4" /> Add Organization
                         </Button>
                     </DialogTrigger>
                     <DialogContent>
@@ -224,6 +276,43 @@ export default function OrganizationList() {
                                         rows={3}
                                     />
                                 </div>
+
+                                {!editingOrganization && (
+                                    <>
+                                        <hr />
+                                        <div className="space-y-2">
+                                            <Label htmlFor="user_name">Admin Name *</Label>
+                                            <Input
+                                                id="user_name"
+                                                value={formData.user_name}
+                                                onChange={(e) => setFormData({ ...formData, user_name: e.target.value })}
+                                                placeholder="John Doe"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="email">Admin Email *</Label>
+                                            <Input
+                                                id="email"
+                                                type="email"
+                                                value={formData.email}
+                                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                                placeholder="admin@example.com"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="password">Password</Label>
+                                            <Input
+                                                id="password"
+                                                type="password"
+                                                value={formData.password}
+                                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                                placeholder="Default: password123"
+                                            />
+                                        </div>
+                                    </>
+                                )}
                             </div>
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -238,126 +327,40 @@ export default function OrganizationList() {
                 </Dialog>
             </div>
 
-            <Card className="border-0 shadow-md">
+            <Card>
                 <CardContent className="pt-6">
-                    <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-solarized-base01" />
-                            <Input
-                                placeholder="Search organizations..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="pl-10"
-                            />
-                        </div>
-                    </div>
+                    <form onSubmit={handleSearchSubmit} className="flex gap-4 mb-4">
+                        <Input
+                            placeholder="Search organizations..."
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
+                        />
+                        <Button type="submit" variant="outline">
+                            <Search className="mr-2 h-4 w-4" /> Search
+                        </Button>
+                    </form>
 
-                    {isLoading ? (
-                        <div className="space-y-4">
-                            {[...Array(5)].map((_, i) => (
-                                <div key={i} className="flex items-center gap-4">
-                                    <Skeleton className="h-10 w-10 rounded-full" />
-                                    <div className="space-y-2 flex-1">
-                                        <Skeleton className="h-4 w-48" />
-                                        <Skeleton className="h-3 w-32" />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : organizations.length === 0 ? (
+                    {!isLoading && organizations.length === 0 ? (
                         <div className="text-center py-12">
-                            <Building2 className="h-12 w-12 text-solarized-base01 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-solarized-base02">No organizations found</h3>
-                            <p className="text-solarized-base01 mt-1">Get started by adding your first organization.</p>
-                            <Button
-                                className="mt-4 bg-solarized-blue hover:bg-solarized-blue/90"
-                                onClick={() => {
-                                    resetForm();
-                                    setIsDialogOpen(true);
-                                }}
-                            >
-                                <Plus className="mr-2 h-4 w-4" />
-                                Add Organization
-                            </Button>
+                            <Building2 className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                            <p>No organizations found</p>
                         </div>
                     ) : (
-                        <>
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Name</TableHead>
-                                            <TableHead>Address</TableHead>
-                                            <TableHead className="w-[50px]"></TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {organizations.map((org) => (
-                                            <TableRow key={org.id}>
-                                                <TableCell className="font-medium text-solarized-base02">
-                                                    {org.name}
-                                                </TableCell>
-                                                <TableCell>{org.address || '-'}</TableCell>
-                                                <TableCell>
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" size="icon">
-                                                                <MoreHorizontal className="h-4 w-4" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            <DropdownMenuItem onClick={() => handleEdit(org)}>
-                                                                <Edit className="mr-2 h-4 w-4" />
-                                                                Edit
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem
-                                                                onClick={() => handleDelete(org.id)}
-                                                                className="text-solarized-red"
-                                                            >
-                                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                                Delete
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-
-                            {meta && meta.last_page > 1 && (
-                                <div className="flex items-center justify-between mt-6">
-                                    <p className="text-sm text-solarized-base01">
-                                        Showing {(meta.current_page - 1) * meta.per_page + 1} to{' '}
-                                        {Math.min(meta.current_page * meta.per_page, meta.total)} of {meta.total} results
-                                    </p>
-                                    <div className="flex items-center gap-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setPage(page - 1)}
-                                            disabled={page === 1}
-                                        >
-                                            <ChevronLeft className="h-4 w-4" />
-                                            Previous
-                                        </Button>
-                                        <span className="text-sm text-solarized-base01">
-                                            Page {meta.current_page} of {meta.last_page}
-                                        </span>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setPage(page + 1)}
-                                            disabled={page === meta.last_page}
-                                        >
-                                            Next
-                                            <ChevronRight className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
-                        </>
+                        <DataTable
+                            columns={columns}
+                            data={organizations}
+                            progressPending={isLoading}
+                            pagination
+                            paginationServer
+                            paginationTotalRows={totalRows}
+                            paginationPerPage={perPage}
+                            paginationRowsPerPageOptions={[1, 5, 10, 15, 20]}
+                            paginationDefaultPage={page}
+                            onChangePage={handlePageChange}
+                            onChangeRowsPerPage={handlePerRowsChange}
+                            highlightOnHover
+                            responsive
+                        />
                     )}
                 </CardContent>
             </Card>
