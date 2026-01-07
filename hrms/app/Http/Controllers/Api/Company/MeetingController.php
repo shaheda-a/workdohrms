@@ -31,6 +31,17 @@ class MeetingController extends Controller
         return $this->success($meetings);
     }
 
+    public function show(Meeting $meeting)
+    {
+        return $this->success($meeting->load([
+            'meetingType',
+            'meetingRoom',
+            'attendees.staffMember',
+            'minutes.createdByUser',
+            'actionItems.assignedEmployee'
+        ]));
+    }
+
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -164,7 +175,7 @@ class MeetingController extends Controller
             'created_by' => auth()->id(),
         ]);
 
-        return $this->success($minutes, 'Minutes added');
+        return $this->success($minutes->load('createdByUser'), 'Minutes added');
     }
 
     public function addActionItem(Request $request, Meeting $meeting)
@@ -186,7 +197,7 @@ class MeetingController extends Controller
             'due_date' => $request->due_date,
         ]);
 
-        return $this->success($item, 'Action item added');
+        return $this->success($item->load('assignedEmployee'), 'Action item added');
     }
 
     public function completeActionItem(MeetingActionItem $meetingActionItem)

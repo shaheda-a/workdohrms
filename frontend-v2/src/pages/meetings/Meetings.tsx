@@ -12,7 +12,7 @@ import {
   Plus,
   Calendar,
   Clock,
-  Users,
+  CheckCircle2,
   Video,
   MapPin,
   Search,
@@ -59,6 +59,8 @@ interface Meeting {
   end_time: string;
   status: string;
   meeting_link?: string;
+  meeting_type_id?: number;
+  meeting_room_id?: number;
 
   meeting_type?: {
     id: number;
@@ -66,6 +68,7 @@ interface Meeting {
   };
 
   meeting_room?: {
+    id: number;
     name: string;
     location: string;
   };
@@ -85,11 +88,14 @@ export default function Meetings() {
   const [sortField, setSortField] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  // Creation State
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  // Modal State
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
+  const [viewingMeeting, setViewingMeeting] = useState<Meeting | null>(null);
+
   const [meetingTypes, setMeetingTypes] = useState<{ id: number; title: string }[]>([]);
   const [rooms, setRooms] = useState<{ id: number; name: string }[]>([]);
-
 
   const [formData, setFormData] = useState({
     title: '',
@@ -100,6 +106,7 @@ export default function Meetings() {
     end_time: '',
     description: '',
     meeting_link: '',
+    status: 'scheduled',
     attendee_ids: [] as number[],
   });
 
@@ -168,7 +175,7 @@ export default function Meetings() {
 
 
 
-  const handleCreateMeeting = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const payload = {
@@ -177,25 +184,59 @@ export default function Meetings() {
         meeting_room_id: formData.meeting_room_id ? Number(formData.meeting_room_id) : null,
       };
 
-      await meetingService.createMeeting(payload);
-      showAlert('success', 'Success', 'Meeting scheduled successfully');
-      setIsCreateDialogOpen(false);
-      setFormData({
-        title: '',
-        meeting_type_id: '',
-        meeting_room_id: '',
-        date: '',
-        start_time: '',
-        end_time: '',
-        description: '',
-        meeting_link: '',
-        attendee_ids: [],
-      });
+      if (editingMeeting) {
+        await meetingService.updateMeeting(editingMeeting.id, payload);
+        showAlert('success', 'Updated', 'Meeting updated successfully');
+      } else {
+        await meetingService.createMeeting(payload);
+        showAlert('success', 'Success', 'Meeting scheduled successfully');
+      }
+
+      setIsDialogOpen(false);
+      resetForm();
       fetchMeetings(page);
     } catch (error) {
-      console.error('Failed to create meeting:', error);
-      showAlert('error', 'Error', getErrorMessage(error, 'Failed to create meeting'));
+      console.error('Failed to save meeting:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to save meeting'));
     }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      meeting_type_id: '',
+      meeting_room_id: '',
+      date: '',
+      start_time: '',
+      end_time: '',
+      description: '',
+      meeting_link: '',
+      status: 'scheduled',
+      attendee_ids: [],
+    });
+    setEditingMeeting(null);
+  };
+
+  const handleEdit = (meeting: Meeting) => {
+    setEditingMeeting(meeting);
+    setFormData({
+      title: meeting.title || '',
+      meeting_type_id: meeting.meeting_type?.id?.toString() || meeting.meeting_type_id?.toString() || '',
+      meeting_room_id: meeting.meeting_room?.id?.toString() || meeting.meeting_room_id?.toString() || '',
+      date: meeting.date ? new Date(meeting.date).toISOString().split('T')[0] : '',
+      start_time: meeting.start_time || '',
+      end_time: meeting.end_time || '',
+      description: meeting.description || '',
+      meeting_link: meeting.meeting_link || '',
+      status: meeting.status || 'scheduled',
+      attendee_ids: [],
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleView = (meeting: Meeting) => {
+    setViewingMeeting(meeting);
+    setIsViewDialogOpen(true);
   };
 
 
@@ -205,11 +246,15 @@ export default function Meetings() {
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
       scheduled: 'bg-solarized-blue/10 text-solarized-blue',
-      in_progress: 'bg-solarized-green/10 text-solarized-green',
-      completed: 'bg-solarized-base01/10 text-solarized-base01',
+      in_progress: 'bg-solarized-orange/10 text-solarized-orange',
+      completed: 'bg-solarized-green/10 text-solarized-green',
       cancelled: 'bg-solarized-red/10 text-solarized-red',
     };
-    return variants[status] || variants.scheduled;
+    return (
+      <Badge className={`${variants[status] || variants.scheduled} border-none shadow-none`}>
+        {status.replace('_', ' ').toUpperCase()}
+      </Badge>
+    );
   };
 
   const formatDate = (date: string) =>
@@ -317,12 +362,8 @@ export default function Meetings() {
     },
     {
       name: 'Status',
-      cell: (row) => (
-        <Badge className={getStatusBadge(row.status)}>
-          {row.status.replace('_', ' ')}
-        </Badge>
-      ),
-      width: '120px',
+      cell: (row) => getStatusBadge(row.status),
+      width: '140px',
     },
     {
       name: 'Actions',
@@ -334,10 +375,10 @@ export default function Meetings() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleView(row)}>
               <Eye className="mr-2 h-4 w-4" /> View
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleEdit(row)}>
               <Edit className="mr-2 h-4 w-4" /> Edit
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -384,7 +425,10 @@ export default function Meetings() {
         </div>
         <Button
           className="bg-solarized-blue hover:bg-solarized-blue/90"
-          onClick={() => setIsCreateDialogOpen(true)}
+          onClick={() => {
+            resetForm();
+            setIsDialogOpen(true);
+          }}
         >
           <Plus className="mr-2 h-4 w-4" />
           Schedule Meeting
@@ -392,7 +436,7 @@ export default function Meetings() {
       </div>
 
       {/* SUMMARY CARDS */}
-      <div className="grid gap-6 sm:grid-cols-3">
+      {/* <div className="grid gap-6 sm:grid-cols-3">
         <Card className="border-0 shadow-md">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
@@ -422,17 +466,17 @@ export default function Meetings() {
         <Card className="border-0 shadow-md">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <Users className="h-5 w-5 text-solarized-green" />
+              <CheckCircle2 className="h-5 w-5 text-solarized-green" />
               <div>
-                <p className="text-sm">Completed</p>
-                <p className="text-xl font-bold">
+                <p className="text-sm font-medium text-muted-foreground">Completed</p>
+                <p className="text-xl font-bold text-solarized-base02">
                   {meetings.filter(m => m.status === 'completed').length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-      </div>
+      </div> */}
 
       {/* UPDATED: List UI aligned with StaffList */}
       <Card>
@@ -477,16 +521,18 @@ export default function Meetings() {
         </CardContent>
       </Card>
 
-      {/* CREATE MEETING DIALOG */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+      {/* CREATE / EDIT MEETING DIALOG */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Schedule New Meeting</DialogTitle>
+            <DialogTitle>{editingMeeting ? 'Edit Meeting' : 'Schedule New Meeting'}</DialogTitle>
             <DialogDescription>
-              Enter the meeting details and invite attendees.
+              {editingMeeting
+                ? 'Update the meeting details and save changes.'
+                : 'Enter the meeting details and invite attendees.'}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCreateMeeting}>
+          <form onSubmit={handleSubmit}>
             <div className="grid gap-6 py-4">
               <div className="space-y-2">
                 <Label htmlFor="title">Meeting Title *</Label>
@@ -520,6 +566,26 @@ export default function Meetings() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="status">Status</Label>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(v) => setFormData({ ...formData, status: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="scheduled">Scheduled</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <Label htmlFor="meeting_room">Meeting Room</Label>
                   <Select
                     value={formData.meeting_room_id}
@@ -536,6 +602,16 @@ export default function Meetings() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="meeting_link">Meeting Link (Virtual)</Label>
+                  <Input
+                    id="meeting_link"
+                    value={formData.meeting_link}
+                    onChange={(e) => setFormData({ ...formData, meeting_link: e.target.value })}
+                    placeholder="https://zoom.us/..."
+                  />
                 </div>
               </div>
 
@@ -573,16 +649,6 @@ export default function Meetings() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="meeting_link">Meeting Link (Virtual)</Label>
-                <Input
-                  id="meeting_link"
-                  value={formData.meeting_link}
-                  onChange={(e) => setFormData({ ...formData, meeting_link: e.target.value })}
-                  placeholder="https://zoom.us/..."
-                />
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
@@ -592,18 +658,115 @@ export default function Meetings() {
                   rows={3}
                 />
               </div>
-
-
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
               <Button type="submit" className="bg-solarized-blue hover:bg-solarized-blue/90">
-                Create Meeting
+                {editingMeeting ? 'Save Changes' : 'Create Meeting'}
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* VIEW MEETING DIALOG */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Meeting Details</DialogTitle>
+            <DialogDescription>
+              Check the meeting status, timing, and agenda.
+            </DialogDescription>
+          </DialogHeader>
+          {viewingMeeting && (
+            <div className="grid gap-6 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Meeting Title</Label>
+                  <p className="font-medium text-lg">{viewingMeeting.title}</p>
+                </div>
+                <div className="text-right">
+                  <Label className="text-muted-foreground">Status</Label>
+                  <div className="mt-1">{getStatusBadge(viewingMeeting.status)}</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground flex items-center gap-1">
+                    <Calendar className="h-3 w-3" /> Date
+                  </Label>
+                  <p className="font-medium">{formatDate(viewingMeeting.date)}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground flex items-center gap-1">
+                    <Clock className="h-3 w-3" /> Time
+                  </Label>
+                  <p className="font-medium">{viewingMeeting.start_time} - {viewingMeeting.end_time}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground flex items-center gap-1">
+                    <MapPin className="h-3 w-3" /> Meeting Room
+                  </Label>
+                  <p>{viewingMeeting.meeting_room?.name || 'N/A'}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground flex items-center gap-1">
+                    <Video className="h-3 w-3" /> Meeting Link
+                  </Label>
+                  {viewingMeeting.meeting_link ? (
+                    <a
+                      href={viewingMeeting.meeting_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-solarized-blue hover:underline block truncate max-w-[200px]"
+                    >
+                      {viewingMeeting.meeting_link}
+                    </a>
+                  ) : (
+                    <p>N/A</p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-muted-foreground">Meeting Type</Label>
+                <p>{viewingMeeting.meeting_type?.title || 'N/A'}</p>
+              </div>
+
+              {viewingMeeting.description && (
+                <div>
+                  <Label className="text-muted-foreground">Description</Label>
+                  <Card className="mt-1 bg-muted/30 border-none shadow-none">
+                    <CardContent className="p-3 text-sm text-solarized-base01 whitespace-pre-wrap">
+                      {viewingMeeting.description}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+              Close
+            </Button>
+            {viewingMeeting && (
+              <Button
+                className="bg-solarized-blue hover:bg-solarized-blue/90"
+                onClick={() => {
+                  setIsViewDialogOpen(false);
+                  handleEdit(viewingMeeting);
+                }}
+              >
+                <Edit className="mr-2 h-4 w-4" /> Edit Meeting
+              </Button>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
