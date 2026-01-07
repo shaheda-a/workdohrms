@@ -392,9 +392,9 @@ export default function MeetingTypes() {
                 <DialogContent className="max-w-md">
                     <DialogHeader>
                         <DialogTitle>{editingType ? 'Edit Meeting Type' : 'Add Meeting Type'}</DialogTitle>
-                        <DialogDescription>
+                        {/* <DialogDescription>
                             Define meeting characteristics like default duration and color code.
-                        </DialogDescription>
+                        </DialogDescription> */}
                     </DialogHeader>
                     <form onSubmit={handleSubmit}>
                         <div className="grid gap-4 py-4">

@@ -235,11 +235,13 @@ export default function MeetingAttendees() {
             cell: (row) => (
                 <div className="py-2">
                     <p className="font-medium">{row.meeting?.title || 'N/A'}</p>
-                    <p className="text-xs text-muted-foreground">{row.meeting?.date}</p>
+                    {/* <p className="text-xs text-muted-foreground">{row.meeting?.date}</p> */}
                 </div>
             ),
             sortable: true,
         },
+
+        
         {
             name: 'Status',
             cell: (row) => getStatusBadge(row.status),
@@ -296,7 +298,7 @@ export default function MeetingAttendees() {
                 </Button>
             </div>
 
-            {/* <div className="grid gap-6 sm:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-3">
                 <Card className="border-0 shadow-sm bg-white">
                     <CardContent className="pt-6">
                         <div className="flex items-center gap-4">
@@ -340,7 +342,7 @@ export default function MeetingAttendees() {
                         </div>
                     </CardContent>
                 </Card>
-            </div> */}
+            </div>
 
             <Card>
                 <CardHeader className="pb-3">

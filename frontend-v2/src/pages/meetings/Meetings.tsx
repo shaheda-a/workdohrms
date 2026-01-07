@@ -339,15 +339,29 @@ export default function Meetings() {
             <Calendar className="h-3 w-3 text-muted-foreground" />
             {formatDate(row.date)}
           </div>
-          <div className="flex items-center gap-1.5 mt-0.5">
+          {/* <div className="flex items-center gap-1.5 mt-0.5">
             <Clock className="h-3 w-3 text-muted-foreground" />
             {row.start_time} - {row.end_time}
-          </div>
+          </div> */}
         </div>
       ),
       sortable: true,
       width: '180px',
     },
+{
+
+   name: 'Time',
+      selector: (row) => row.date,
+      cell: (row) => (
+    <div className="flex items-center gap-1.5 mt-0.5">
+            <Clock className="h-3 w-3 text-muted-foreground" />
+            {row.start_time} - {row.end_time}
+          </div>
+            ),
+      sortable: true,
+      width: '180px',
+
+},
     {
       name: 'Meeting Room',
       selector: (row) => row.meeting_room?.name || '',
@@ -526,11 +540,11 @@ export default function Meetings() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingMeeting ? 'Edit Meeting' : 'Schedule New Meeting'}</DialogTitle>
-            <DialogDescription>
+            {/* <DialogDescription>
               {editingMeeting
                 ? 'Update the meeting details and save changes.'
                 : 'Enter the meeting details and invite attendees.'}
-            </DialogDescription>
+            </DialogDescription> */}
           </DialogHeader>
           <form onSubmit={handleSubmit}>
             <div className="grid gap-6 py-4">
