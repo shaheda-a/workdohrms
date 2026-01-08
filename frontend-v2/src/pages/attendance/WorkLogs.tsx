@@ -30,8 +30,11 @@ interface WorkLog {
   staff_member_id: number;
   staff_member?: { full_name: string; staff_code?: string };
   log_date: string;
+  log_date_formatted?: string;
   clock_in: string | null;
   clock_out: string | null;
+  clock_in_time?: string | null;
+  clock_out_time?: string | null;
   status: string;
   late_minutes: number;
   notes: string | null;
@@ -76,11 +79,11 @@ export default function WorkLogs() {
   const [isAdminUser, setIsAdminUser] = useState(false);
 
   const safeNumberFormat = (value: any, decimals: number = 1): string => {
-  if (value === undefined || value === null || isNaN(Number(value))) {
-    return '0.0';
-  }
-  return Number(value).toFixed(decimals);
-};
+    if (value === undefined || value === null || isNaN(Number(value))) {
+      return '0.0';
+    }
+    return Number(value).toFixed(decimals);
+  };
 
   // Load user data from localStorage on mount
   useEffect(() => {
@@ -202,35 +205,78 @@ export default function WorkLogs() {
     return variants[status] || variants.absent;
   };
 
-  const formatTime = (time: string | null) => {
+  // Helper function to extract time from ISO string or use formatted time
+  const formatTime = (time: string | null, formattedTime?: string | null): string => {
+    // If we have a pre-formatted time from backend, use it
+    if (formattedTime) return formattedTime;
+    
     if (!time) return '--:--';
-    return time.substring(0, 5);
+    
+    try {
+      // If it's already in HH:MM:SS format
+      if (time.match(/^\d{2}:\d{2}:\d{2}$/)) {
+        return time.substring(0, 5); // Return HH:MM
+      }
+      
+      // If it's an ISO datetime string
+      if (time.includes('T')) {
+        const date = new Date(time);
+        return date.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        });
+      }
+      
+      return time;
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return time;
+    }
   };
 
+  // Format date from log_date
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return dateString;
+    }
   };
 
   // Calculate total hours for a work log
   const calculateTotalHours = (clockIn: string | null, clockOut: string | null): number => {
     if (!clockIn || !clockOut) return 0;
     
-    const inTime = new Date(`1970-01-01T${clockIn}`);
-    const outTime = new Date(`1970-01-01T${clockOut}`);
-    const diffMs = outTime.getTime() - inTime.getTime();
-    return diffMs / (1000 * 60 * 60);
+    try {
+      const inTime = new Date(clockIn);
+      const outTime = new Date(clockOut);
+      
+      // Handle cases where clock_in/clock_out might be on different days
+      const diffMs = outTime.getTime() - inTime.getTime();
+      
+      // Convert milliseconds to hours
+      return diffMs / (1000 * 60 * 60);
+    } catch (error) {
+      console.error('Error calculating total hours:', error);
+      return 0;
+    }
   };
 
   // Get total hours for all displayed logs
   const getTotalHours = () => {
     return logs.reduce((total, log) => {
-      return total + (log.total_hours || calculateTotalHours(log.clock_in, log.clock_out));
+      if (log.total_hours !== undefined && log.total_hours !== null) {
+        return total + log.total_hours;
+      }
+      return total + calculateTotalHours(log.clock_in, log.clock_out);
     }, 0);
   };
 
@@ -421,13 +467,26 @@ export default function WorkLogs() {
                   </TableHeader>
                   <TableBody>
                     {logs.map((log) => {
-                      const totalHours = log.total_hours || calculateTotalHours(log.clock_in, log.clock_out);
+                      // Use formatted time if available, otherwise use clock_in/clock_out
+                      const clockInTime = formatTime(log.clock_in, log.clock_in_time);
+                      const clockOutTime = formatTime(log.clock_out, log.clock_out_time);
+                      
+                      // Calculate total hours
+                      let totalHours = log.total_hours;
+                      if (totalHours === undefined || totalHours === null) {
+                        totalHours = calculateTotalHours(log.clock_in, log.clock_out);
+                      }
+                      
                       return (
                         <TableRow key={log.id} className="hover:bg-solarized-base3/50">
                           <TableCell className="font-medium">
                             <div className="flex flex-col">
                               <span>{formatDate(log.log_date)}</span>
-                              <span className="text-xs text-solarized-base01">{log.log_date}</span>
+                              {log.log_date_formatted && (
+                                <span className="text-xs text-solarized-base01">
+                                  {log.log_date_formatted}
+                                </span>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -441,13 +500,13 @@ export default function WorkLogs() {
                           <TableCell>
                             <div className="flex items-center gap-1">
                               <Clock className="h-4 w-4 text-solarized-green" />
-                              {formatTime(log.clock_in)}
+                              {clockInTime}
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
                               <Clock className="h-4 w-4 text-solarized-red" />
-                              {formatTime(log.clock_out)}
+                              {clockOutTime}
                             </div>
                           </TableCell>
                           <TableCell>

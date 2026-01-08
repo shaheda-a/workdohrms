@@ -34,6 +34,8 @@ class WorkLog extends Model
         'early_leave_minutes' => 'integer',
         'overtime_minutes' => 'integer',
         'break_minutes' => 'integer',
+        'clock_in' => 'datetime',
+        'clock_out' => 'datetime',
     ];
 
     public function staffMember()

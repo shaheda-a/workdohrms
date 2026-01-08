@@ -255,65 +255,6 @@ export default function MyAttendanceSummary() {
 
   const workingDays = calculateWorkingDays();
 
-  // Get attendance insights
-  const getAttendanceInsights = () => {
-    const insights = [];
-    
-    if (safeSummary.attendance_percentage >= 90) {
-      insights.push({
-        type: 'success',
-        icon: CheckCircle,
-        title: 'Excellent Attendance',
-        message: `Your attendance rate of ${safeNumberFormat(safeSummary.attendance_percentage, 1)}% is outstanding!`,
-      });
-    } else if (safeSummary.attendance_percentage >= 80) {
-      insights.push({
-        type: 'warning',
-        icon: AlertTriangle,
-        title: 'Good Attendance',
-        message: `Your attendance rate of ${safeNumberFormat(safeSummary.attendance_percentage, 1)}% is good.`,
-      });
-    } else {
-      insights.push({
-        type: 'error',
-        icon: XCircle,
-        title: 'Needs Improvement',
-        message: `Your attendance rate of ${safeNumberFormat(safeSummary.attendance_percentage, 1)}% needs improvement.`,
-      });
-    }
-    
-    if (safeSummary.late_days > 0) {
-      insights.push({
-        type: 'warning',
-        icon: Clock,
-        title: 'Late Arrivals',
-        message: `You have ${safeSummary.late_days} late day${safeSummary.late_days > 1 ? 's' : ''}. Try to arrive on time.`,
-      });
-    }
-    
-    if (safeSummary.absent_days > 0) {
-      insights.push({
-        type: 'error',
-        icon: UserX,
-        title: 'Absences',
-        message: `You have ${safeSummary.absent_days} absent day${safeSummary.absent_days > 1 ? 's' : ''}.`,
-      });
-    }
-    
-    if (safeSummary.total_hours === 0) {
-      insights.push({
-        type: 'info',
-        icon: Zap,
-        title: 'No Hours Logged',
-        message: 'No hours have been logged for this period. Make sure to clock in and out.',
-      });
-    }
-    
-    return insights;
-  };
-
-  const attendanceInsights = getAttendanceInsights();
-
   if (!currentUser) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -479,9 +420,9 @@ export default function MyAttendanceSummary() {
                     <p className="text-2xl font-bold text-solarized-yellow">
                       {safeSummary.late_days || 0}
                     </p>
-                    <p className="text-xs text-solarized-base01">
+                    {/* <p className="text-xs text-solarized-base01">
                       {safeSummary.late_days > 0 ? 'Need improvement' : 'Excellent'}
-                    </p>
+                    </p> */}
                   </div>
                 </div>
               </CardContent>
@@ -577,7 +518,7 @@ export default function MyAttendanceSummary() {
           </div>
 
           {/* Charts Section */}
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-1">
             <Card className="border-0 shadow-md">
               <CardHeader>
                 <CardTitle>Attendance Breakdown</CardTitle>
@@ -611,7 +552,7 @@ export default function MyAttendanceSummary() {
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-md">
+            {/* <Card className="border-0 shadow-md">
               <CardHeader>
                 <CardTitle>Attendance Distribution</CardTitle>
                 <CardDescription>
@@ -649,97 +590,8 @@ export default function MyAttendanceSummary() {
                   </ResponsiveContainer>
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
           </div>
-
-          {/* Insights Section */}
-          {attendanceInsights.length > 0 && (
-            <Card className="border-0 shadow-md">
-              <CardHeader>
-                <CardTitle>Attendance Insights</CardTitle>
-                <CardDescription>
-                  Key insights and recommendations based on your attendance
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {attendanceInsights.map((insight, index) => {
-                    const IconComponent = insight.icon;
-                    const bgColor = insight.type === 'success' ? 'bg-solarized-green/10' :
-                                   insight.type === 'warning' ? 'bg-solarized-yellow/10' :
-                                   insight.type === 'error' ? 'bg-solarized-red/10' :
-                                   'bg-solarized-blue/10';
-                    const textColor = insight.type === 'success' ? 'text-solarized-green' :
-                                    insight.type === 'warning' ? 'text-solarized-yellow' :
-                                    insight.type === 'error' ? 'text-solarized-red' :
-                                    'text-solarized-blue';
-                    
-                    return (
-                      <div key={index} className={`p-4 ${bgColor} rounded-lg flex items-start gap-3`}>
-                        <div className={`p-2 rounded-full ${textColor}`}>
-                          <IconComponent className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <p className={`font-medium ${textColor}`}>{insight.title}</p>
-                          <p className="text-sm text-solarized-base01 mt-1">{insight.message}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Summary Details */}
-          <Card className="border-0 shadow-md">
-            <CardHeader>
-              <CardTitle>Summary Details</CardTitle>
-              <CardDescription>
-                Complete breakdown of your attendance metrics
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center py-2 border-b border-solarized-base2">
-                    <span className="text-solarized-base01">Period</span>
-                    <span className="font-medium">{formatDateRange()}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-solarized-base2">
-                    <span className="text-solarized-base01">Total Days</span>
-                    <span className="font-medium">{safeSummary.total_days || 0}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-solarized-base2">
-                    <span className="text-solarized-base01">Present Days</span>
-                    <span className="font-medium text-solarized-green">{safeSummary.present_days || 0}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-solarized-base2">
-                    <span className="text-solarized-base01">Late Days</span>
-                    <span className="font-medium text-solarized-yellow">{safeSummary.late_days || 0}</span>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center py-2 border-b border-solarized-base2">
-                    <span className="text-solarized-base01">Half Days</span>
-                    <span className="font-medium text-solarized-orange">{safeSummary.half_days || 0}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-solarized-base2">
-                    <span className="text-solarized-base01">Absent Days</span>
-                    <span className="font-medium text-solarized-red">{safeSummary.absent_days || 0}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-solarized-base2">
-                    <span className="text-solarized-base01">Total Hours</span>
-                    <span className="font-medium">{safeNumberFormat(safeSummary.total_hours)}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-solarized-base2">
-                    <span className="text-solarized-base01">Avg Hours/Day</span>
-                    <span className="font-medium">{safeNumberFormat(safeSummary.average_hours_per_day)}</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </>
       ) : (
         <Card className="border-0 shadow-md">

@@ -250,12 +250,12 @@ export default function LeaveBalances() {
         </div>
       ) : selectedStaff && balances.length > 0 ? (
         <>
-          {isAdminUser && selectedStaff && (
+          {/* {isAdminUser && selectedStaff && (
             <div className="mb-4 p-4 bg-solarized-base3 rounded-lg">
               <p className="text-sm text-solarized-base01">Viewing balances for:</p>
               <p className="font-medium text-lg">{getCurrentStaffName()}</p>
             </div>
-          )}
+          )} */}
           
           <div className="grid gap-6 sm:grid-cols-2">
             {balances.map((balance) => (

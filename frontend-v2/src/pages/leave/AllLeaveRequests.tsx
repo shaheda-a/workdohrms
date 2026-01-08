@@ -666,13 +666,13 @@ export default function AllLeaveRequests() {
                   </SelectContent>
                 </Select>
               )}
-              <Button
+              {/* <Button
                 variant="outline"
                 onClick={() => fetchRequests(1)}
                 disabled={isLoading}
               >
                 Refresh
-              </Button>
+              </Button> */}
             </div>
           </div>
         </CardHeader>

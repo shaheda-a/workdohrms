@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api\Attendance;
 
 use App\Http\Controllers\Controller;
 use App\Models\StaffMember;
+use App\Models\WorkLog;
 use App\Services\Attendance\AttendanceService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -26,7 +28,7 @@ class WorkLogController extends Controller
         $this->service = $service;
     }
 
-/**
+    /**
      * Check if user is admin or has admin-like roles
      */
     protected function isAdminUser($user): bool
@@ -61,10 +63,10 @@ class WorkLogController extends Controller
             ]);
 
             $user = $request->user();
-            
+
             // Get the staff member ID for the logged-in user
             $staffMemberId = $this->getStaffMemberId($user);
-            
+
             if (!$staffMemberId) {
                 // If user doesn't have a staff member record, return empty
                 return $this->success([
@@ -81,7 +83,7 @@ class WorkLogController extends Controller
                     ]
                 ], 'Work logs retrieved successfully');
             }
-            
+
             // ALWAYS filter by the logged-in user's staff_member_id
             $params['staff_member_id'] = $staffMemberId;
 
@@ -118,7 +120,7 @@ class WorkLogController extends Controller
             if (!$this->isAdminUser($user)) {
                 // For non-admin users, they can only see their own work logs
                 $staffMemberId = $this->getStaffMemberId($user);
-                
+
                 if ($staffMemberId) {
                     $params['staff_member_id'] = $staffMemberId;
                 } else {
@@ -156,7 +158,7 @@ class WorkLogController extends Controller
         } catch (ValidationException $e) {
             return $this->validationError($e->errors());
         } catch (\Exception $e) {
-            return $this->serverError('Failed to record attendance: '.$e->getMessage());
+            return $this->serverError('Failed to record attendance: ' . $e->getMessage());
         }
     }
 
@@ -174,7 +176,7 @@ class WorkLogController extends Controller
 
             return $this->success($workLog, 'Work log retrieved successfully');
         } catch (\Exception $e) {
-            return $this->serverError('Failed to retrieve work log: '.$e->getMessage());
+            return $this->serverError('Failed to retrieve work log: ' . $e->getMessage());
         }
     }
 
@@ -199,7 +201,7 @@ class WorkLogController extends Controller
         } catch (ValidationException $e) {
             return $this->validationError($e->errors());
         } catch (\Exception $e) {
-            return $this->serverError('Failed to update work log: '.$e->getMessage());
+            return $this->serverError('Failed to update work log: ' . $e->getMessage());
         }
     }
 
@@ -215,21 +217,38 @@ class WorkLogController extends Controller
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return $this->notFound('Work log not found');
         } catch (\Exception $e) {
-            return $this->serverError('Failed to delete work log: '.$e->getMessage());
+            return $this->serverError('Failed to delete work log: ' . $e->getMessage());
         }
     }
 
     /**
-     * Clock in for the current user.
+     * Clock in for an employee.
      */
     public function clockIn(Request $request): JsonResponse
     {
         try {
-            $staffMemberId = $request->input('staff_member_id') ?? $request->user()->staffMember?->id;
+            $user = $request->user();
+
+            // Get staff member ID from request or user
+            $staffMemberId = $request->input('staff_member_id');
+
+            // If staff_member_id is not provided in request
+            if (!$staffMemberId) {
+                // For non-admin users, use their own staff member ID
+                if (!$this->isAdminUser($user)) {
+                    $staffMemberId = $this->getStaffMemberId($user);
+                } else {
+                    // For admin users without staff_member_id, return error
+                    return $this->error('Staff member ID is required for admin users', 400);
+                }
+            }
 
             if (! $staffMemberId) {
                 return $this->error('Staff member not found', 404);
             }
+
+            // Ensure staffMemberId is an integer
+            $staffMemberId = (int) $staffMemberId;
 
             $workLog = $this->service->clockIn($staffMemberId, [
                 'ip_address' => $request->ip(),
@@ -243,16 +262,33 @@ class WorkLogController extends Controller
     }
 
     /**
-     * Clock out for the current user.
+     * Clock out for an employee.
      */
     public function clockOut(Request $request): JsonResponse
     {
         try {
-            $staffMemberId = $request->input('staff_member_id') ?? $request->user()->staffMember?->id;
+            $user = $request->user();
+
+            // Get staff member ID from request or user
+            $staffMemberId = $request->input('staff_member_id');
+
+            // If staff_member_id is not provided in request
+            if (!$staffMemberId) {
+                // For non-admin users, use their own staff member ID
+                if (!$this->isAdminUser($user)) {
+                    $staffMemberId = $this->getStaffMemberId($user);
+                } else {
+                    // For admin users without staff_member_id, return error
+                    return $this->error('Staff member ID is required for admin users', 400);
+                }
+            }
 
             if (! $staffMemberId) {
                 return $this->error('Staff member not found', 404);
             }
+
+            // Ensure staffMemberId is an integer
+            $staffMemberId = (int) $staffMemberId;
 
             $workLog = $this->service->clockOut($staffMemberId, [
                 'ip_address' => $request->ip(),
@@ -266,6 +302,76 @@ class WorkLogController extends Controller
     }
 
     /**
+     * Clock in for current user (self)
+     */
+    public function clockInSelf(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $staffMemberId = $this->getStaffMemberId($user);
+
+            if (!$staffMemberId) {
+                return $this->error('Staff member not found', 404);
+            }
+
+            $workLog = $this->service->clockIn($staffMemberId, [
+                'ip_address' => $request->ip(),
+                'location' => $request->input('location', 'Office'),
+            ]);
+
+            return $this->success($workLog, 'Clocked in successfully');
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Clock out for current user (self)
+     */
+    public function clockOutSelf(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $staffMemberId = $this->getStaffMemberId($user);
+
+            if (!$staffMemberId) {
+                return $this->error('Staff member not found', 404);
+            }
+
+            $workLog = $this->service->clockOut($staffMemberId, [
+                'ip_address' => $request->ip(),
+                'location' => $request->input('location', 'Office'),
+            ]);
+
+            return $this->success($workLog, 'Clocked out successfully');
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Get current status for current user (self)
+     */
+    public function currentStatusSelf(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $staffMemberId = $this->getStaffMemberId($user);
+
+            if (!$staffMemberId) {
+                return $this->error('Staff member not found', 404);
+            }
+
+            $status = $this->service->getCurrentStatus($staffMemberId);
+
+            return $this->success($status, 'Current status retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->serverError('Failed to retrieve current status: ' . $e->getMessage());
+        }
+    }
+
+
+    /**
      * Get today's attendance summary.
      */
     public function todaySummary(): JsonResponse
@@ -275,7 +381,7 @@ class WorkLogController extends Controller
 
             return $this->success($summary, 'Today\'s attendance summary retrieved successfully');
         } catch (\Exception $e) {
-            return $this->serverError('Failed to retrieve attendance summary: '.$e->getMessage());
+            return $this->serverError('Failed to retrieve attendance summary: ' . $e->getMessage());
         }
     }
 
@@ -290,7 +396,7 @@ class WorkLogController extends Controller
 
             return $this->collection($report, 'Attendance report generated successfully');
         } catch (\Exception $e) {
-            return $this->serverError('Failed to generate attendance report: '.$e->getMessage());
+            return $this->serverError('Failed to generate attendance report: ' . $e->getMessage());
         }
     }
 
@@ -307,7 +413,7 @@ class WorkLogController extends Controller
 
             return $this->success($attendance, 'Monthly attendance retrieved successfully');
         } catch (\Exception $e) {
-            return $this->serverError('Failed to retrieve monthly attendance: '.$e->getMessage());
+            return $this->serverError('Failed to retrieve monthly attendance: ' . $e->getMessage());
         }
     }
 
@@ -317,17 +423,34 @@ class WorkLogController extends Controller
     public function currentStatus(Request $request): JsonResponse
     {
         try {
-            $staffMemberId = $request->input('staff_member_id') ?? $request->user()->staffMember?->id;
+            $user = $request->user();
+
+            // Get staff member ID from request or user
+            $staffMemberId = $request->input('staff_member_id');
+
+            // If staff_member_id is not provided in request
+            if (!$staffMemberId) {
+                // For non-admin users, use their own staff member ID
+                if (!$this->isAdminUser($user)) {
+                    $staffMemberId = $this->getStaffMemberId($user);
+                } else {
+                    // For admin users without staff_member_id, return error
+                    return $this->error('Staff member ID is required for admin users', 400);
+                }
+            }
 
             if (! $staffMemberId) {
                 return $this->error('Staff member not found', 404);
             }
 
+            // Ensure staffMemberId is an integer
+            $staffMemberId = (int) $staffMemberId;
+
             $status = $this->service->getCurrentStatus($staffMemberId);
 
             return $this->success($status, 'Current status retrieved successfully');
         } catch (\Exception $e) {
-            return $this->serverError('Failed to retrieve current status: '.$e->getMessage());
+            return $this->serverError('Failed to retrieve current status: ' . $e->getMessage());
         }
     }
 
@@ -352,7 +475,7 @@ class WorkLogController extends Controller
         } catch (ValidationException $e) {
             return $this->validationError($e->errors());
         } catch (\Exception $e) {
-            return $this->serverError('Failed to record bulk attendance: '.$e->getMessage());
+            return $this->serverError('Failed to record bulk attendance: ' . $e->getMessage());
         }
     }
 
@@ -378,11 +501,11 @@ class WorkLogController extends Controller
 
             return $this->success($summary, 'Attendance summary retrieved successfully');
         } catch (\Exception $e) {
-            return $this->serverError('Failed to retrieve attendance summary: '.$e->getMessage());
+            return $this->serverError('Failed to retrieve attendance summary: ' . $e->getMessage());
         }
     }
 
-     /**
+    /**
      * Get work log summary for the current user
      */
     public function mySummary(Request $request): JsonResponse
@@ -390,7 +513,7 @@ class WorkLogController extends Controller
         try {
             $user = $request->user();
             $staffMemberId = $this->getStaffMemberId($user);
-            
+
             if (!$staffMemberId) {
                 return $this->success([], 'No work log summary found');
             }
@@ -414,7 +537,7 @@ class WorkLogController extends Controller
         try {
             $user = $request->user();
             $staffMemberId = $this->getStaffMemberId($user);
-            
+
             if (!$staffMemberId) {
                 return $this->success([], 'No monthly attendance found');
             }

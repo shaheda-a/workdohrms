@@ -220,7 +220,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('work-logs', WorkLogController::class);
     Route::post('/clock-in', [WorkLogController::class, 'clockIn']);
     Route::post('/clock-out', [WorkLogController::class, 'clockOut']);
+    Route::post('/clock-in-self', [WorkLogController::class, 'clockInSelf']);
+    Route::post('/clock-out-self', [WorkLogController::class, 'clockOutSelf']);
+    Route::get('/current-status-self', [WorkLogController::class, 'currentStatusSelf']);
     Route::post('/work-logs/bulk', [WorkLogController::class, 'bulkStore']);
+    Route::get('/current-status', [WorkLogController::class, 'currentStatus']);
     Route::get('/attendance-summary', [WorkLogController::class, 'summary']);
         Route::get('/my-logs', [WorkLogController::class, 'myLogs']); // My Work Logs
     Route::get('/my-summary', [WorkLogController::class, 'mySummary']);

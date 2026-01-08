@@ -27,48 +27,81 @@ class AttendanceService extends BaseService
         'office_location_id' => 'office_location_id',
     ];
 
-    /**
-     * Get attendance records with filters.
-     */
-    public function getAll(array $params = []): \Illuminate\Pagination\LengthAwarePaginator|\Illuminate\Support\Collection
-    {
-        $query = $this->query()->with($this->defaultRelations);
+/**
+ * Get attendance records with filters.
+ */
+public function getAll(array $params = []): \Illuminate\Pagination\LengthAwarePaginator|\Illuminate\Support\Collection
+{
+    $query = $this->query()->with($this->defaultRelations);
 
-        $query = $this->applyFilters($query, $params);
+    $query = $this->applyFilters($query, $params);
 
-        // Date filter
-        if (! empty($params['date'])) {
-            $query->whereDate('log_date', $params['date']);
-        }
-
-        // Date range filter
-        if (! empty($params['start_date'])) {
-            $query->whereDate('log_date', '>=', $params['start_date']);
-        }
-        if (! empty($params['end_date'])) {
-            $query->whereDate('log_date', '<=', $params['end_date']);
-        }
-
-        // Month/Year filter
-        if (! empty($params['month']) && ! empty($params['year'])) {
-            $query->whereMonth('log_date', $params['month'])
-                ->whereYear('log_date', $params['year']);
-        }
-
-        $query = $this->applyOrdering($query, ['order_by' => 'log_date', 'order' => 'desc']);
-
-        $paginate = $params['paginate'] ?? true;
-        $perPage = $params['per_page'] ?? $this->perPage;
-
-        return $paginate
-            ? $query->paginate($perPage)
-            : $query->get();
+    // Date filter
+    if (! empty($params['date'])) {
+        $query->whereDate('log_date', $params['date']);
     }
+
+    // Date range filter
+    if (! empty($params['start_date'])) {
+        $query->whereDate('log_date', '>=', $params['start_date']);
+    }
+    if (! empty($params['end_date'])) {
+        $query->whereDate('log_date', '<=', $params['end_date']);
+    }
+
+    // Month/Year filter
+    if (! empty($params['month']) && ! empty($params['year'])) {
+        $query->whereMonth('log_date', $params['month'])
+            ->whereYear('log_date', $params['year']);
+    }
+
+    $query = $this->applyOrdering($query, ['order_by' => 'log_date', 'order' => 'desc']);
+
+    $paginate = $params['paginate'] ?? true;
+    $perPage = $params['per_page'] ?? $this->perPage;
+
+    $result = $paginate
+        ? $query->paginate($perPage)
+        : $query->get();
+
+    // Format the clock_in and clock_out times to show only time (H:i:s)
+    $transformFunc = function ($workLog) {
+        if ($workLog->clock_in instanceof \Carbon\Carbon) {
+            $workLog->clock_in = $workLog->clock_in->format('H:i:s');
+        } elseif (is_string($workLog->clock_in)) {
+            try {
+                $workLog->clock_in = \Carbon\Carbon::parse($workLog->clock_in)->format('H:i:s');
+            } catch (\Exception $e) {
+                // Keep original if parsing fails
+            }
+        }
+
+        if ($workLog->clock_out instanceof \Carbon\Carbon) {
+            $workLog->clock_out = $workLog->clock_out->format('H:i:s');
+        } elseif (is_string($workLog->clock_out)) {
+            try {
+                $workLog->clock_out = \Carbon\Carbon::parse($workLog->clock_out)->format('H:i:s');
+            } catch (\Exception $e) {
+                // Keep original if parsing fails
+            }
+        }
+
+        return $workLog;
+    };
+
+    if ($paginate) {
+        $result->getCollection()->transform($transformFunc);
+    } else {
+        $result->transform($transformFunc);
+    }
+
+    return $result;
+}
 
     /**
      * Clock in for an employee.
      */
-    public function clockIn(int $staffMemberId, array $data = []): WorkLog
+public function clockIn(int $staffMemberId, array $data = []): array
     {
         $today = now()->toDateString();
 
@@ -77,23 +110,37 @@ class AttendanceService extends BaseService
             ->whereDate('log_date', $today)
             ->first();
 
-        if ($existing) {
+        if ($existing && !$existing->clock_out) {
             throw new \Exception('Already clocked in for today');
         }
 
-        return WorkLog::create([
-            'staff_member_id' => $staffMemberId,
-            'log_date' => $today,
-            'clock_in' => now(),
-            'clock_in_ip' => $data['ip_address'] ?? null,
-            'status' => 'present',
-        ]);
+        // If exists but clocked out, update clock in time
+        if ($existing && $existing->clock_out) {
+            $existing->update([
+                'clock_in' => now(),
+                'clock_in_ip' => $data['ip_address'] ?? null,
+                'clock_out' => null,
+                'total_hours' => null,
+            ]);
+        } else {
+            // Create new work log
+            $existing = WorkLog::create([
+                'staff_member_id' => $staffMemberId,
+                'log_date' => $today,
+                'clock_in' => now(),
+                'clock_in_ip' => $data['ip_address'] ?? null,
+                'status' => 'present',
+            ]);
+        }
+
+        // Return current status
+        return $this->getCurrentStatus($staffMemberId);
     }
 
     /**
      * Clock out for an employee.
      */
-    public function clockOut(int $staffMemberId, array $data = []): WorkLog
+public function clockOut(int $staffMemberId, array $data = []): array
     {
         $today = now()->toDateString();
 
@@ -117,8 +164,53 @@ class AttendanceService extends BaseService
             'total_hours' => round($workedMinutes / 60, 2),
         ]);
 
-        return $workLog->fresh($this->defaultRelations);
+        // Return current status
+        return $this->getCurrentStatus($staffMemberId);
     }
+
+    /**
+     * Get current status for employee.
+     */
+    public function getCurrentStatus(int $staffMemberId): array
+    {
+        $workLog = WorkLog::where('staff_member_id', $staffMemberId)
+            ->whereDate('log_date', now()->toDateString())
+            ->first();
+
+        if (! $workLog) {
+            return [
+                'status' => 'not_clocked_in',
+                'clock_in' => null,
+                'clock_out' => null,
+                'total_hours' => null,
+            ];
+        }
+
+        // Safely format times
+        $formatTime = function($time) {
+            if (!$time) {
+                return null;
+            }
+            
+            if (is_string($time)) {
+                return $time;
+            }
+            
+            if ($time instanceof \Carbon\Carbon || $time instanceof \DateTime) {
+                return $time->format('H:i:s');
+            }
+            
+            return (string) $time;
+        };
+
+        return [
+            'status' => $workLog->clock_out ? 'clocked_out' : 'clocked_in',
+            'clock_in' => $formatTime($workLog->clock_in),
+            'clock_out' => $formatTime($workLog->clock_out),
+            'total_hours' => $workLog->total_hours,
+        ];
+    }
+
 
     /**
      * Create or update attendance record (manual entry).
@@ -277,31 +369,6 @@ class AttendanceService extends BaseService
         return WorkLog::where('staff_member_id', $staffMemberId)
             ->whereDate('log_date', now()->toDateString())
             ->exists();
-    }
-
-    /**
-     * Get current status for employee.
-     */
-    public function getCurrentStatus(int $staffMemberId): ?array
-    {
-        $workLog = WorkLog::where('staff_member_id', $staffMemberId)
-            ->whereDate('log_date', now()->toDateString())
-            ->first();
-
-        if (! $workLog) {
-            return [
-                'status' => 'not_clocked_in',
-                'clock_in' => null,
-                'clock_out' => null,
-            ];
-        }
-
-        return [
-            'status' => $workLog->clock_out ? 'clocked_out' : 'clocked_in',
-            'clock_in' => $workLog->clock_in,
-            'clock_out' => $workLog->clock_out,
-            'total_hours' => $workLog->total_hours,
-        ];
     }
 
     /**

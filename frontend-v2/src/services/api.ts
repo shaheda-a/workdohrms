@@ -69,12 +69,16 @@ export const staffService = {
 };
 
 export const attendanceService = {
-  clockIn: (data: Record<string, unknown>) => api.post('/attendance/clock-in', data),
+  // Self attendance endpoints
+  clockInSelf: (data: Record<string, unknown>) => api.post('/clock-in-self', data),
+  clockOutSelf: (data: Record<string, unknown>) => api.post('/clock-out-self', data),
+  getCurrentStatusSelf: (params?: Record<string, unknown>) => 
+    api.get('/current-status-self', { params }),
 
-  clockOut: (data: Record<string, unknown>) => api.post('/attendance/clock-out', data),
-
-  getCurrentStatus: () => api.get('/attendance/current-status'),
-  
+  // Legacy endpoints (keep for compatibility)
+  clockIn: (data: Record<string, unknown>) => api.post('/clock-in', data),
+  clockOut: (data: Record<string, unknown>) => api.post('/clock-out', data),
+  getCurrentStatus: (params?: Record<string, unknown>) => api.get('/current-status', { params }),
   getWorkLogs: (params?: { 
     staff_member_id?: number; 
     start_date?: string; 
