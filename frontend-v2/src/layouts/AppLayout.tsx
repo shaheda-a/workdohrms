@@ -69,13 +69,13 @@ const navigation: NavItem[] = [
     name: 'Organizations',
     href: '/organizations',
     icon: Building2,
-    permission: 'manage_settings',
+    permission: 'view_organizations',
   },
   {
     name: 'Companies',
     href: '/companies',
     icon: Building2,
-    permission: 'manage_settings',
+    permission: 'view_companies',
   },
   {
     name: 'Attendance',
