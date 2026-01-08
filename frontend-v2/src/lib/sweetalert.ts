@@ -39,7 +39,11 @@ export const showAlert = (
   return Swal.fire(config);
 };
 
-export const showConfirmDialog = async (title: string, text: string) => {
+export const showConfirmDialog = async (
+  title: string,
+  text: string,
+  confirmButtonText: string = "Yes, delete it!"
+) => {
   return Swal.fire({
     title,
     text,
@@ -47,7 +51,7 @@ export const showConfirmDialog = async (title: string, text: string) => {
     showCancelButton: true,
     confirmButtonColor: "#dc322f",
     cancelButtonColor: "#268bd2",
-    confirmButtonText: "Yes, delete it!",
+    confirmButtonText,
     cancelButtonText: "Cancel",
     customClass: {
       popup: "swal-solarized",

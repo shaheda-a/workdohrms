@@ -25,9 +25,31 @@ class AppraisalRecordController extends Controller
             $query->where('status', $request->status);
         }
 
+        // Search by employee full_name
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('staffMember', function ($q) use ($search) {
+                $q->where('full_name', 'like', "%{$search}%");
+            });
+        }
+
+        // Sorting support
+        if ($request->filled('order_by')) {
+            $direction = $request->input('order', 'asc');
+            if ($request->order_by === 'full_name') {
+                $query->join('staff_members', 'appraisal_records.staff_member_id', '=', 'staff_members.id')
+                    ->orderBy('staff_members.full_name', $direction)
+                    ->select('appraisal_records.*');
+            } else {
+                $query->orderBy($request->order_by, $direction);
+            }
+        } else {
+            $query->latest();
+        }
+
         $records = $request->boolean('paginate', true)
-            ? $query->latest()->paginate($request->input('per_page', 15))
-            : $query->latest()->get();
+            ? $query->paginate($request->input('per_page', 15))
+            : $query->get();
 
         return $this->success($records);
     }

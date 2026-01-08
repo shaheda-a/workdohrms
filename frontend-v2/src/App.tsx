@@ -62,6 +62,8 @@ import Interviews from './pages/recruitment/Interviews';
 import ParticipantForm from './pages/training/ParticipantForm';
 // import SessionForm from './pages/training/SessionForm';
 // import Performance from './pages/performance/Performance';
+import Goals from './pages/performance/Goals';
+import Competencies from './pages/performance/Competencies';
 import Appraisals from './pages/performance/Appraisals';
 
 // Assets
@@ -162,17 +164,17 @@ function App() {
             <Route path="/staff/:id" element={<StaffProfile />} />
             <Route path="/staff/:id/edit" element={<StaffEdit />} />
 
-                        {/* Organization */}
-                        <Route path="/organizations" element={<OrganizationList />} />
-                        <Route path="/companies" element={<CompanyList />} />
+            {/* Organization */}
+            <Route path="/organizations" element={<OrganizationList />} />
+            <Route path="/companies" element={<CompanyList />} />
 
-           {/* Assets */}
+            {/* Assets */}
             <Route path="/assets" element={<AssetsList />} />
             <Route path="/assets/assignments" element={<AssetAssignmentList />} />
 
-                        {/* Documents */}
-                        <Route path="/documents/types" element={<DocumentTypeList />} />
-                        <Route path="/documents/locations" element={<DocumentLocationList />} />
+            {/* Documents */}
+            <Route path="/documents/types" element={<DocumentTypeList />} />
+            <Route path="/documents/locations" element={<DocumentLocationList />} />
 
             {/* Attendance */}
             <Route path="/attendance" element={<ClockInOut />} />
@@ -214,7 +216,8 @@ function App() {
             <Route path="/recruitment/applications" element={<JobApplications />} />
 
             {/* Performance */}
-
+            <Route path="/performance/goals" element={<Goals />} />
+            <Route path="/performance/competencies" element={<Competencies />} />
             <Route path="/performance/appraisals" element={<Appraisals />} />
             <Route path="/performance/goals" element={<Goals />} />
 

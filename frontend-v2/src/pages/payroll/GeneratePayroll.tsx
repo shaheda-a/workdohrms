@@ -15,7 +15,7 @@ interface StaffMember {
   id: number;
   full_name: string;
   base_salary: number;
-  job_title?: { name: string };
+  job_title?: { title: string };
 }
 
 export default function GeneratePayroll() {
@@ -102,15 +102,15 @@ export default function GeneratePayroll() {
       console.log('Sending payload:', payload); // For debugging
 
       const response = await payrollService.bulkGenerate(payload);
-      
+
       setSuccess(`Successfully generated payroll for ${selectedStaff.length} employees`);
       showAlert('success', 'Success!', `Successfully generated payroll for ${selectedStaff.length} employees`, 2000);
-      
+
       // Navigate to payroll slips after successful generation
       setTimeout(() => navigate('/payroll/slips'), 2000);
     } catch (err: unknown) {
       console.error('Generation error:', err);
-      
+
       // Handle validation errors from backend
       const errorMessage = getErrorMessage(err, 'Failed to generate payroll. Please try again.');
       setError(errorMessage);
@@ -180,11 +180,10 @@ export default function GeneratePayroll() {
                   {staff.map((member) => (
                     <div
                       key={member.id}
-                      className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${
-                        selectedStaff.includes(member.id)
+                      className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${selectedStaff.includes(member.id)
                           ? 'border-solarized-blue bg-solarized-blue/5'
                           : 'border-solarized-base2 hover:border-solarized-base1'
-                      }`}
+                        }`}
                       onClick={() => handleSelectStaff(member.id)}
                     >
                       <div className="flex items-center gap-3">
@@ -195,7 +194,7 @@ export default function GeneratePayroll() {
                         <div>
                           <p className="font-medium">{member.full_name}</p>
                           <p className="text-sm text-solarized-base01">
-                            {member.job_title?.name || 'No job title'}
+                            {member.job_title?.title || 'No job title'}
                           </p>
                         </div>
                       </div>

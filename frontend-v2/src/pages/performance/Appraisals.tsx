@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { performanceService } from '../../services/api';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle, 
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
   CardDescription,
-  CardFooter 
+  CardFooter
 } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -144,32 +144,31 @@ const getInitials = (name?: string): string => {
 // ============ MAIN COMPONENT ============
 export default function Appraisals() {
   const [activeTab, setActiveTab] = useState<'records' | 'cycles'>('records');
-  
+
   // Appraisal Records State
   const [records, setRecords] = useState<AppraisalRecord[]>([]);
   const [recordsMeta, setRecordsMeta] = useState<PaginationMeta | null>(null);
   const [recordsPage, setRecordsPage] = useState(1);
-  
+
   // Appraisal Cycles State
   const [cycles, setCycles] = useState<AppraisalCycle[]>([]);
   const [cyclesMeta, setCyclesMeta] = useState<PaginationMeta | null>(null);
   const [cyclesPage, setCyclesPage] = useState(1);
-  
+
   // General State
   const [isLoading, setIsLoading] = useState(true);
-  const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
-  
+
   // Dialog States
   const [isCycleDialogOpen, setIsCycleDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isSelfReviewDialogOpen, setIsSelfReviewDialogOpen] = useState(false);
   const [isManagerReviewDialogOpen, setIsManagerReviewDialogOpen] = useState(false);
-  
+
   // Selected Items
   const [selectedCycle, setSelectedCycle] = useState<AppraisalCycle | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<AppraisalRecord | null>(null);
   const [editingCycle, setEditingCycle] = useState<AppraisalCycle | null>(null);
-  
+
   // Form Data
   const [cycleForm, setCycleForm] = useState({
     title: '',
@@ -178,12 +177,12 @@ export default function Appraisals() {
     review_deadline: '',
     notes: '',
   });
-  
+
   const [selfReviewForm, setSelfReviewForm] = useState({
     self_assessment: '',
     career_goals: '',
   });
-  
+
   const [managerReviewForm, setManagerReviewForm] = useState({
     manager_feedback: '',
     overall_rating: 3,
@@ -200,17 +199,13 @@ export default function Appraisals() {
     }
   }, [activeTab, recordsPage, cyclesPage]);
 
-  useEffect(() => {
-    fetchStaffMembers();
-  }, []);
-
   // ============ API FUNCTIONS ============
   const fetchAppraisalRecords = async () => {
     setIsLoading(true);
     try {
       const response = await performanceService.getAppraisals({ page: recordsPage });
       console.log('Records response:', response.data);
-      
+
       if (response.data.success) {
         const data = response.data.data;
         if (data && Array.isArray(data.data)) {
@@ -243,7 +238,7 @@ export default function Appraisals() {
     try {
       const response = await performanceService.getAppraisalCycles();
       console.log('Cycles response:', response.data);
-      
+
       if (response.data.success) {
         const data = response.data.data;
         if (data && Array.isArray(data.data)) {
@@ -271,42 +266,31 @@ export default function Appraisals() {
     }
   };
 
-  const fetchStaffMembers = async () => {
+  // ============ CYCLE FUNCTIONS ============
+  const handleCreateCycle = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      const response = await performanceService.getStaffMembers();
-      if (response.data.success) {
-        setStaffMembers(response.data.data || []);
+      if (editingCycle) {
+        // Update existing cycle
+        await performanceService.updateAppraisalCycle(editingCycle.id, cycleForm);
+        showAlert('success', 'Success!', 'Appraisal cycle updated successfully', 2000);
+      } else {
+        // Create new cycle
+        await performanceService.createAppraisalCycle(cycleForm);
+        showAlert('success', 'Success!', 'Appraisal cycle created successfully', 2000);
       }
+      setIsCycleDialogOpen(false);
+      resetCycleForm();
+      fetchAppraisalCycles();
     } catch (error) {
-      console.error('Failed to fetch staff members:', error);
+      console.error('Failed to save appraisal cycle:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to save appraisal cycle.'));
     }
   };
 
-  // ============ CYCLE FUNCTIONS ============
-const handleCreateCycle = async (e: React.FormEvent) => {
-  e.preventDefault();
-  try {
-    if (editingCycle) {
-      // Update existing cycle
-      await performanceService.updateAppraisalCycle(editingCycle.id, cycleForm);
-      showAlert('success', 'Success!', 'Appraisal cycle updated successfully', 2000);
-    } else {
-      // Create new cycle
-      await performanceService.createAppraisalCycle(cycleForm);
-      showAlert('success', 'Success!', 'Appraisal cycle created successfully', 2000);
-    }
-    setIsCycleDialogOpen(false);
-    resetCycleForm();
-    fetchAppraisalCycles();
-  } catch (error) {
-    console.error('Failed to save appraisal cycle:', error);
-    showAlert('error', 'Error', getErrorMessage(error, 'Failed to save appraisal cycle.'));
-  }
-};
-
   const handleActivateCycle = async (cycleId: number) => {
     if (!confirm('Activating this cycle will create appraisal records for all active staff members. Continue?')) return;
-    
+
     try {
       await performanceService.activateCycle(cycleId);
       showAlert('success', 'Success!', 'Cycle activated successfully', 2000);
@@ -319,7 +303,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
 
   const handleCloseCycle = async (cycleId: number) => {
     if (!confirm('Are you sure you want to close this cycle?')) return;
-    
+
     try {
       await performanceService.closeCycle(cycleId);
       showAlert('success', 'Success!', 'Cycle closed successfully', 2000);
@@ -332,7 +316,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
 
   const handleDeleteCycle = async (cycleId: number) => {
     if (!confirm('Are you sure you want to delete this cycle?')) return;
-    
+
     try {
       await performanceService.deleteCycle(cycleId);
       showAlert('success', 'Success!', 'Cycle deleted successfully', 2000);
@@ -347,7 +331,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
   const handleSubmitSelfReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRecord) return;
-    
+
     try {
       await performanceService.submitSelfReview(selectedRecord.id, selfReviewForm);
       showAlert('success', 'Success!', 'Self review submitted successfully', 2000);
@@ -363,14 +347,14 @@ const handleCreateCycle = async (e: React.FormEvent) => {
   const handleSubmitManagerReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRecord) return;
-    
+
     try {
       // Ensure overall_rating is a number
       const data = {
         ...managerReviewForm,
         overall_rating: Number(managerReviewForm.overall_rating)
       };
-      
+
       await performanceService.submitManagerReview(selectedRecord.id, data);
       showAlert('success', 'Success!', 'Manager review submitted successfully', 2000);
       setIsManagerReviewDialogOpen(false);
@@ -439,21 +423,20 @@ const handleCreateCycle = async (e: React.FormEvent) => {
   const renderRating = (rating?: number | string) => {
     // Convert to number if it's a string
     const numericRating = typeof rating === 'string' ? parseFloat(rating) : rating;
-    
+
     if (numericRating === undefined || numericRating === null || isNaN(numericRating)) {
       return <span className="text-gray-500 text-sm">Not rated</span>;
     }
-    
+
     return (
       <div className="flex items-center gap-1">
         {[1, 2, 3, 4, 5].map((star) => (
           <Star
             key={star}
-            className={`h-4 w-4 ${
-              star <= Math.round(numericRating)
+            className={`h-4 w-4 ${star <= Math.round(numericRating)
                 ? 'fill-yellow-400 text-yellow-400'
                 : 'text-gray-300'
-            }`}
+              }`}
           />
         ))}
         <span className="ml-1 text-sm font-medium">{numericRating.toFixed(1)}</span>
@@ -478,13 +461,13 @@ const handleCreateCycle = async (e: React.FormEvent) => {
     pending: records.filter(r => r.status === 'pending').length,
     selfReview: records.filter(r => r.status === 'self_review').length,
     completed: records.filter(r => r.status === 'completed').length,
-    avgRating: records.length > 0 
+    avgRating: records.length > 0
       ? (records.reduce((sum, r) => {
-          const rating = typeof r.overall_rating === 'string' 
-            ? parseFloat(r.overall_rating) 
-            : r.overall_rating || 0;
-          return sum + rating;
-        }, 0) / records.length).toFixed(1)
+        const rating = typeof r.overall_rating === 'string'
+          ? parseFloat(r.overall_rating)
+          : r.overall_rating || 0;
+        return sum + rating;
+      }, 0) / records.length).toFixed(1)
       : '0.0'
   };
 
@@ -507,11 +490,11 @@ const handleCreateCycle = async (e: React.FormEvent) => {
             Manage appraisal cycles and performance reviews
           </p>
         </div>
-        
+
         {activeTab === 'cycles' && (
           <Dialog open={isCycleDialogOpen} onOpenChange={setIsCycleDialogOpen}>
             <DialogTrigger asChild>
-              <Button 
+              <Button
                 className="bg-blue-600 hover:bg-blue-700 text-white"
                 onClick={() => {
                   setEditingCycle(null);
@@ -541,7 +524,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                       required
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="cycle_start">Start Date *</Label>
@@ -564,7 +547,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="review_deadline">Review Deadline</Label>
                     <Input
@@ -574,7 +557,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                       onChange={(e) => setCycleForm({ ...cycleForm, review_deadline: e.target.value })}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="notes">Notes</Label>
                     <Textarea
@@ -630,7 +613,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="border border-gray-200 dark:border-gray-700 shadow-sm">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
@@ -644,7 +627,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="border border-gray-200 dark:border-gray-700 shadow-sm">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
@@ -658,7 +641,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="border border-gray-200 dark:border-gray-700 shadow-sm">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
@@ -760,7 +743,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                                   <Eye className="mr-2 h-4 w-4" />
                                   View
                                 </DropdownMenuItem>
-                                
+
                                 {record.status === 'pending' && (
                                   <DropdownMenuItem onClick={() => {
                                     setSelectedRecord(record);
@@ -770,7 +753,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                                     Submit Self Review
                                   </DropdownMenuItem>
                                 )}
-                                
+
                                 {(record.status === 'pending' || record.status === 'self_review') && (
                                   <DropdownMenuItem onClick={() => {
                                     setSelectedRecord(record);
@@ -846,7 +829,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="border border-gray-200 dark:border-gray-700 shadow-sm">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
@@ -860,7 +843,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="border border-gray-200 dark:border-gray-700 shadow-sm">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
@@ -874,7 +857,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="border border-gray-200 dark:border-gray-700 shadow-sm">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
@@ -909,7 +892,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                 <p className="text-gray-600 dark:text-gray-400 mt-1">
                   Create an appraisal cycle to start the performance review process.
                 </p>
-                <Button 
+                <Button
                   className="mt-4 bg-blue-600 hover:bg-blue-700 text-white"
                   onClick={() => setIsCycleDialogOpen(true)}
                 >
@@ -944,7 +927,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                             <Eye className="mr-2 h-4 w-4" />
                             View
                           </DropdownMenuItem>
-                          
+
                           {cycle.status === 'draft' && (
                             <>
                               <DropdownMenuItem onClick={() => {
@@ -961,25 +944,25 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit
                               </DropdownMenuItem>
-                              
+
                               <DropdownMenuItem onClick={() => handleActivateCycle(cycle.id)}>
                                 <PlayCircle className="mr-2 h-4 w-4" />
                                 Activate Cycle
                               </DropdownMenuItem>
                             </>
                           )}
-                          
+
                           {cycle.status === 'active' && (
                             <DropdownMenuItem onClick={() => handleCloseCycle(cycle.id)}>
                               <CheckCircle className="mr-2 h-4 w-4" />
                               Close Cycle
                             </DropdownMenuItem>
                           )}
-                          
+
                           <DropdownMenuSeparator />
-                          
+
                           {cycle.status === 'draft' && (
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => handleDeleteCycle(cycle.id)}
                               className="text-red-600 dark:text-red-400"
                             >
@@ -998,7 +981,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                         {cycle.records_count || 0} records
                       </Badge>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-600 dark:text-gray-400">Review Deadline</span>
@@ -1006,13 +989,13 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                           {cycle.review_deadline ? formatDate(cycle.review_deadline) : 'Not set'}
                         </span>
                       </div>
-                      
+
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-600 dark:text-gray-400">Created by</span>
                         <span className="font-medium">{cycle.author?.name || 'System'}</span>
                       </div>
                     </div>
-                    
+
                     {cycle.notes && (
                       <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
                         {cycle.notes}
@@ -1023,7 +1006,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
               ))}
             </div>
           )}
-          
+
           {/* CYCLES PAGINATION */}
           {cyclesMeta && cyclesMeta.last_page > 1 && (
             <div className="flex items-center justify-center gap-2">
@@ -1056,7 +1039,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
       </Tabs>
 
       {/* ============ DIALOGS ============ */}
-      
+
       {/* View Details Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="max-w-2xl">
@@ -1065,7 +1048,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
               {selectedRecord ? 'Appraisal Record Details' : 'Appraisal Cycle Details'}
             </DialogTitle>
           </DialogHeader>
-          
+
           {selectedRecord && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -1082,7 +1065,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                   </p>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-gray-600 dark:text-gray-400">Status</Label>
@@ -1097,7 +1080,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                   </div>
                 </div>
               </div>
-              
+
               {selectedRecord.self_assessment && (
                 <div>
                   <Label className="text-gray-600 dark:text-gray-400">Self Assessment</Label>
@@ -1106,7 +1089,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                   </p>
                 </div>
               )}
-              
+
               {selectedRecord.career_goals && (
                 <div>
                   <Label className="text-gray-600 dark:text-gray-400">Career Goals</Label>
@@ -1115,7 +1098,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                   </p>
                 </div>
               )}
-              
+
               {selectedRecord.manager_feedback && (
                 <div>
                   <Label className="text-gray-600 dark:text-gray-400">Manager Feedback</Label>
@@ -1124,7 +1107,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                   </p>
                 </div>
               )}
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-gray-600 dark:text-gray-400">Self Submitted</Label>
@@ -1141,7 +1124,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
               </div>
             </div>
           )}
-          
+
           {selectedCycle && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -1156,7 +1139,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label className="text-gray-600 dark:text-gray-400">Start Date</Label>
@@ -1177,14 +1160,14 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                   </p>
                 </div>
               </div>
-              
+
               <div>
                 <Label className="text-gray-600 dark:text-gray-400">Notes</Label>
                 <p className="font-medium text-gray-900 dark:text-gray-100 mt-1 whitespace-pre-wrap">
                   {selectedCycle.notes || 'No notes'}
                 </p>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-gray-600 dark:text-gray-400">Appraisal Records</Label>
@@ -1201,7 +1184,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
               </div>
             </div>
           )}
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
               Close
@@ -1209,7 +1192,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Self Review Dialog */}
       <Dialog open={isSelfReviewDialogOpen} onOpenChange={setIsSelfReviewDialogOpen}>
         <DialogContent>
@@ -1232,7 +1215,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                   required
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="career_goals">Career Goals</Label>
                 <Textarea
@@ -1255,7 +1238,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
           </form>
         </DialogContent>
       </Dialog>
-      
+
       {/* Manager Review Dialog */}
       <Dialog open={isManagerReviewDialogOpen} onOpenChange={setIsManagerReviewDialogOpen}>
         <DialogContent className="max-w-xl">
@@ -1278,7 +1261,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                   required
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="overall_rating">Overall Rating *</Label>
                 <div className="flex items-center gap-2">
@@ -1298,7 +1281,7 @@ const handleCreateCycle = async (e: React.FormEvent) => {
                   </span>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="strengths">Strengths</Label>

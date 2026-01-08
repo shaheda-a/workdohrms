@@ -479,18 +479,7 @@ export default function AssetTypeList() {
             <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
               Close
             </Button>
-            <Button
-              className="bg-solarized-blue hover:bg-solarized-blue/90"
-              onClick={() => {
-                if (viewingAssetType) {
-                  handleEdit(viewingAssetType);
-                  setIsViewDialogOpen(false);
-                }
-              }}
-            >
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
+            
           </DialogFooter>
         </DialogContent>
       </Dialog>

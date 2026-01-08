@@ -72,32 +72,32 @@ export const attendanceService = {
   // Self attendance endpoints
   clockInSelf: (data: Record<string, unknown>) => api.post('/clock-in-self', data),
   clockOutSelf: (data: Record<string, unknown>) => api.post('/clock-out-self', data),
-  getCurrentStatusSelf: (params?: Record<string, unknown>) => 
+  getCurrentStatusSelf: (params?: Record<string, unknown>) =>
     api.get('/current-status-self', { params }),
 
   // Legacy endpoints (keep for compatibility)
   clockIn: (data: Record<string, unknown>) => api.post('/clock-in', data),
   clockOut: (data: Record<string, unknown>) => api.post('/clock-out', data),
   getCurrentStatus: (params?: Record<string, unknown>) => api.get('/current-status', { params }),
-  getWorkLogs: (params?: { 
-    staff_member_id?: number; 
-    start_date?: string; 
-    end_date?: string; 
-    page?: number 
+  getWorkLogs: (params?: {
+    staff_member_id?: number;
+    start_date?: string;
+    end_date?: string;
+    page?: number
   }) => api.get('/work-logs', { params }),
-  
-  getMyWorkLogs: (params?: { 
-    start_date?: string; 
-    end_date?: string; 
-    page?: number 
+
+  getMyWorkLogs: (params?: {
+    start_date?: string;
+    end_date?: string;
+    page?: number
   }) => api.get('/my-logs', { params }),
   getSummary: (params?: Record<string, unknown>) =>
     api.get('/attendance-summary', { params }),
-  
-  getMySummary: (params?: Record<string, unknown>) => 
+
+  getMySummary: (params?: Record<string, unknown>) =>
     api.get('/my-summary', { params }),
-  
-  getMyMonthlyAttendance: (params?: Record<string, unknown>) => 
+
+  getMyMonthlyAttendance: (params?: Record<string, unknown>) =>
     api.get('/my-monthly-attendance', { params }),
   getShifts: () => api.get('/shifts'),
   createShift: (data: Record<string, unknown>) => api.post('/shifts', data),
@@ -391,7 +391,7 @@ export const performanceService = {
   deleteGoal: (id: number) => api.delete(`/performance-objectives/${id}`),
   updateProgress: (id: number, data: Record<string, unknown>) => api.post(`/performance-objectives/${id}/progress`, data),
   rateGoal: (id: number, data: Record<string, unknown>) => api.post(`/performance-objectives/${id}/rate`, data),
-  getAppraisals: (params?: { staff_member_id?: number; page?: number }) => api.get('/appraisal-records', { params }),
+  getAppraisals: (params?: { staff_member_id?: number; page?: number; per_page?: number; search?: string; order_by?: string; order?: string }) => api.get('/appraisal-records', { params }),
   getAppraisalCycles: () => api.get('/appraisal-cycles'),
   createAppraisalCycle: (data: Record<string, unknown>) => api.post('/appraisal-cycles', data),
   updateAppraisalCycle: (id: number, data: Record<string, unknown>) => api.put(`/appraisal-cycles/${id}`, data),
@@ -404,7 +404,7 @@ export const performanceService = {
 };
 
 export const assetService = {
-  getAll: (params?: { type_id?: number; status?: string; page?: number; per_page?: number; search?: string; order_by?: string; order?: string }) => api.get('/assets', { params }),
+  getAll: (params?: { type_id?: number; status?: string; page?: number; per_page?: number; search?: string; order_by?: string; order?: string; paginate?: string }) => api.get('/assets', { params }),
   getAssetTypes: () => api.get('/asset-types'),
   createAssetType: (data: Record<string, unknown>) => api.post('/asset-types', data),
   getAssets: (params?: { type_id?: number; status?: string; page?: number }) => api.get('/assets', { params }),

@@ -145,7 +145,7 @@ const navigation: NavItem[] = [
       { name: 'Goals', href: '/performance/goals', permission: 'view_staff_performance' },
       // { name: 'KPIs', href: '/performance/kpis', permission: 'view_staff_performance' },
       { name: 'Appraisals', href: '/performance/appraisals', permission: 'view_staff_performance' },
-      { name: 'Competencies', href: '/performance/competencies', permission: 'view_staff_performance' },
+      // { name: 'Competencies', href: '/performance/competencies', permission: 'view_staff_performance' },
     ]
   },
   {
