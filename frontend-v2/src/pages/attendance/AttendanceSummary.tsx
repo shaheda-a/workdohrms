@@ -65,8 +65,8 @@ export default function AttendanceSummary() {
           const userData: UserData = JSON.parse(userStr);
           setCurrentUser(userData);
           
-          // Check if user has admin role (admin, administrator, organisation, company, hr)
-          const adminRoles = ['admin', 'administrator', 'organisation', 'company', 'hr'];
+          // Check if user has admin role (admin, administrator, org, organisation, company, hr)
+          const adminRoles = ['admin', 'administrator', 'org', 'organisation', 'company', 'hr'];
           const userRoles = userData.roles || [userData.role];
           const hasAdminRole = userRoles.some(role => 
             adminRoles.includes(role.toLowerCase())
