@@ -14,7 +14,24 @@ class JobStageController extends Controller
 
     public function index(Request $request)
     {
-        $stages = JobStage::orderBy('order')->get();
+        $query = JobStage::query();
+
+        // Search support
+        if ($request->search) {
+            $query->where('title', 'like', "%{$request->search}%");
+        }
+
+        // Sorting support
+        if ($request->filled('order_by')) {
+            $direction = $request->input('order', 'asc');
+            $query->orderBy($request->input('order_by'), $direction);
+        } else {
+            $query->orderBy('order');
+        }
+
+        $stages = $request->boolean('paginate', true)
+            ? $query->paginate($request->input('per_page', 15))
+            : $query->get();
 
         return $this->success($stages);
     }

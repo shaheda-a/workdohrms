@@ -19,9 +19,40 @@ class TaxSlabController extends Controller
             $query->where('is_active', $request->boolean('active'));
         }
 
-        $slabs = $query->orderBy('income_from')->get();
+        // Search functionality
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where('title', 'like', "%{$search}%");
+        }
 
-        return response()->json(['success' => true, 'data' => $slabs]);
+        // Sorting
+        $orderBy = $request->input('order_by', 'income_from');
+        $order = $request->input('order', 'asc');
+        
+        // Validate order_by field to prevent SQL injection
+        $allowedFields = ['id', 'title', 'income_from', 'income_to', 'fixed_amount', 'percentage', 'is_active', 'created_at'];
+        if (in_array($orderBy, $allowedFields)) {
+            $query->orderBy($orderBy, $order === 'desc' ? 'desc' : 'asc');
+        } else {
+            $query->orderBy('income_from', 'asc');
+        }
+
+        // Pagination
+        $perPage = $request->input('per_page', 10);
+        $slabs = $query->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'data' => $slabs->items(),
+            'meta' => [
+                'current_page' => $slabs->currentPage(),
+                'last_page' => $slabs->lastPage(),
+                'per_page' => $slabs->perPage(),
+                'total' => $slabs->total(),
+                'from' => $slabs->firstItem(),
+                'to' => $slabs->lastItem(),
+            ],
+        ]);
     }
 
     public function store(Request $request)

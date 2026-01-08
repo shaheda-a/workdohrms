@@ -1,17 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { payrollService } from '../../services/api';
 import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../components/ui/select';
+import { Textarea } from '../../components/ui/textarea';
+import { Switch } from '../../components/ui/switch';
+import { Badge } from '../../components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -19,21 +15,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '../../components/ui/dialog';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../../components/ui/table';
-import { Badge } from '../../components/ui/badge';
-import { Skeleton } from '../../components/ui/skeleton';
-import { Plus, Shield, CheckCircle, XCircle, Eye, Edit, Trash2, MoreVertical } from 'lucide-react';
-import { Textarea } from '../../components/ui/textarea';
-import { Switch } from '../../components/ui/switch';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu';
+import DataTable, { TableColumn } from 'react-data-table-component';
+import { Plus, Shield, CheckCircle, Eye, Edit, Trash2, MoreHorizontal, Search } from 'lucide-react';
 
 interface WithholdingType {
   id: number;
@@ -52,9 +42,21 @@ interface WithholdingType {
 export default function WithholdingTypes() {
   const [withholdingTypes, setWithholdingTypes] = useState<WithholdingType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Pagination & Sorting State
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [totalRows, setTotalRows] = useState(0);
+  const [sortField, setSortField] = useState<string>('');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Dialog states
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [selectedType, setSelectedType] = useState<WithholdingType | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     notes: '',
@@ -62,90 +64,80 @@ export default function WithholdingTypes() {
     is_active: true,
   });
 
-  const fetchWithholdingTypes = async () => {
-    setIsLoading(true);
-    try {
-      const response = await payrollService.getWithholdingTypes({ 
-        paginate: false 
-      });
-      console.log('Withholding types response:', response.data);
-      
-      if (response.data && response.data.data) {
-        setWithholdingTypes(response.data.data);
-      } else if (Array.isArray(response.data)) {
-        setWithholdingTypes(response.data);
-      } else {
-        console.error('Unexpected response format:', response);
+  // ================= FETCH WITHHOLDING TYPES =================
+  const fetchWithholdingTypes = useCallback(
+    async (currentPage: number = 1) => {
+      setIsLoading(true);
+      try {
+        const params: Record<string, unknown> = {
+          page: currentPage,
+          per_page: perPage,
+          search: searchQuery,
+          paginate: true,
+        };
+
+        if (sortField) {
+          params.order_by = sortField;
+          params.order = sortDirection;
+        }
+
+        const response = await payrollService.getWithholdingTypes(params);
+        const { data, meta } = response.data;
+
+        if (Array.isArray(data)) {
+          setWithholdingTypes(data);
+          setTotalRows(meta?.total ?? 0);
+        } else {
+          setWithholdingTypes([]);
+          setTotalRows(0);
+        }
+      } catch (error) {
+        console.error('Failed to fetch withholding types:', error);
+        showAlert('error', 'Error', getErrorMessage(error, 'Failed to fetch withholding types'));
         setWithholdingTypes([]);
+        setTotalRows(0);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to fetch withholding types:', error);
-      showAlert('error', 'Error', 'Failed to fetch withholding types');
-      setWithholdingTypes([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    [perPage, searchQuery, sortField, sortDirection]
+  );
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchWithholdingTypes(page);
+  }, [page, fetchWithholdingTypes]);
+
+  // ================= SEARCH =================
+  const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      if (isEditMode && editingId) {
-        // Update existing withholding type
-        await payrollService.updateWithholdingType(editingId, formData);
-      } else {
-        // Create new withholding type
-        await payrollService.createWithholdingType(formData);
-      }
-      
-      showAlert(
-        'success',
-        'Success!',
-        isEditMode ? 'Withholding type updated successfully' : 'Withholding type created successfully',
-        2000
-      );
-      setIsDialogOpen(false);
-      resetForm();
-      fetchWithholdingTypes();
-    } catch (error: unknown) {
-      console.error('Failed to save withholding type:', error);
-      showAlert('error', 'Error', getErrorMessage(error, 'Failed to save withholding type'));
+    setSearchQuery(searchInput);
+    setPage(1);
+  };
+
+  // ================= PAGINATION =================
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handlePerRowsChange = (newPerPage: number) => {
+    setPerPage(newPerPage);
+    setPage(1);
+  };
+
+  // ================= SORTING =================
+  const handleSort = (column: TableColumn<WithholdingType>, direction: 'asc' | 'desc') => {
+    const columnId = String(column.id || '');
+    if (columnId === 'title' || column.name === 'Title') {
+      setSortField('title');
+      setSortDirection(direction);
+      setPage(1);
     }
   };
 
-  const handleEdit = (withholdingType: WithholdingType) => {
-    setIsEditMode(true);
-    setEditingId(withholdingType.id);
-    setFormData({
-      title: withholdingType.title,
-      notes: withholdingType.notes || '',
-      is_statutory: withholdingType.is_statutory,
-      is_active: withholdingType.is_active,
-    });
-    setIsDialogOpen(true);
-  };
-
-  const handleDelete = async (id: number) => {
-    const result = await showConfirmDialog(
-      'Are you sure?',
-      'You want to delete this withholding type? This action cannot be undone.'
-    );
-
-    if (!result.isConfirmed) return;
-
-    try {
-      await payrollService.deleteWithholdingType(id);
-      showAlert('success', 'Deleted!', 'Withholding type deleted successfully', 2000);
-      fetchWithholdingTypes();
-    } catch (error: unknown) {
-      console.error('Failed to delete withholding type:', error);
-      showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete withholding type'));
-    }
-  };
-
+  // ================= CRUD OPERATIONS =================
   const resetForm = () => {
     setIsEditMode(false);
-    setEditingId(null);
+    setSelectedType(null);
     setFormData({
       title: '',
       notes: '',
@@ -154,10 +146,73 @@ export default function WithholdingTypes() {
     });
   };
 
-  useEffect(() => {
-    fetchWithholdingTypes();
-  }, []);
+  const handleAddClick = () => {
+    resetForm();
+    setIsDialogOpen(true);
+  };
 
+  const handleViewClick = (type: WithholdingType) => {
+    setSelectedType(type);
+    setIsViewOpen(true);
+  };
+
+  const handleEditClick = (type: WithholdingType) => {
+    setIsEditMode(true);
+    setSelectedType(type);
+    setFormData({
+      title: type.title,
+      notes: type.notes || '',
+      is_statutory: type.is_statutory,
+      is_active: type.is_active,
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.title) {
+      showAlert('error', 'Error', 'Please enter a title');
+      return;
+    }
+
+    try {
+      if (isEditMode && selectedType) {
+        await payrollService.updateWithholdingType(selectedType.id, formData);
+        showAlert('success', 'Success', 'Withholding type updated successfully', 2000);
+      } else {
+        await payrollService.createWithholdingType(formData);
+        showAlert('success', 'Success', 'Withholding type created successfully', 2000);
+      }
+
+      setIsDialogOpen(false);
+      resetForm();
+      fetchWithholdingTypes(page);
+    } catch (error) {
+      console.error('Failed to save withholding type:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to save withholding type'));
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    const result = await showConfirmDialog(
+      'Delete Withholding Type',
+      'Are you sure you want to delete this withholding type?'
+    );
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await payrollService.deleteWithholdingType(id);
+      showAlert('success', 'Deleted!', 'Withholding type deleted successfully', 2000);
+      fetchWithholdingTypes(page);
+    } catch (error) {
+      console.error('Failed to delete withholding type:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to delete withholding type'));
+    }
+  };
+
+  // ================= HELPERS =================
   const formatDate = (dateString: string) => {
     try {
       return new Date(dateString).toLocaleDateString('en-US', {
@@ -165,7 +220,7 @@ export default function WithholdingTypes() {
         month: 'short',
         day: 'numeric',
       });
-    } catch (error) {
+    } catch {
       return 'Invalid Date';
     }
   };
@@ -173,139 +228,152 @@ export default function WithholdingTypes() {
   const activeCount = withholdingTypes.filter(type => type.is_active).length;
   const statutoryCount = withholdingTypes.filter(type => type.is_statutory).length;
 
+  // ================= TABLE COLUMNS =================
+  const columns: TableColumn<WithholdingType>[] = [
+    {
+      id: 'title',
+      name: 'Title',
+      selector: (row) => row.title,
+      cell: (row) => <span className="font-medium">{row.title}</span>,
+      sortable: true,
+      minWidth: '180px',
+    },
+    {
+      name: 'Notes',
+      selector: (row) => row.notes || '-',
+      cell: (row) => (
+        <span className="text-sm text-solarized-base01 line-clamp-2">
+          {row.notes || '-'}
+        </span>
+      ),
+      minWidth: '200px',
+    },
+    {
+      name: 'Statutory',
+      cell: (row) => (
+        <Badge
+          className={
+            row.is_statutory
+              ? 'bg-solarized-yellow/10 text-solarized-yellow'
+              : 'bg-solarized-base01/10 text-solarized-base01'
+          }
+        >
+          {row.is_statutory ? 'Yes' : 'No'}
+        </Badge>
+      ),
+      width: '100px',
+    },
+    {
+      name: 'Status',
+      cell: (row) => (
+        <Badge
+          className={
+            row.is_active
+              ? 'bg-solarized-green/10 text-solarized-green'
+              : 'bg-solarized-red/10 text-solarized-red'
+          }
+        >
+          {row.is_active ? 'Active' : 'Inactive'}
+        </Badge>
+      ),
+      width: '100px',
+    },
+    {
+      name: 'Created',
+      selector: (row) => row.created_at,
+      cell: (row) => <span className="text-sm">{formatDate(row.created_at)}</span>,
+      width: '120px',
+    },
+    {
+      name: 'Actions',
+      cell: (row) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleViewClick(row)}>
+              <Eye className="mr-2 h-4 w-4" /> View
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleEditClick(row)}>
+              <Edit className="mr-2 h-4 w-4" /> Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => handleDelete(row.id)}
+              className="text-solarized-red"
+              disabled={row.recurringDeductions && row.recurringDeductions.length > 0}
+            >
+              <Trash2 className="mr-2 h-4 w-4" /> Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+      ignoreRowClick: true,
+      width: '80px',
+    },
+  ];
+
+  // Custom Styles for DataTable
+  const customStyles = {
+    headRow: {
+      style: {
+        backgroundColor: '#f9fafb',
+        borderBottomWidth: '1px',
+        borderBottomColor: '#e5e7eb',
+        borderBottomStyle: 'solid' as const,
+        minHeight: '56px',
+      },
+    },
+    headCells: {
+      style: {
+        fontSize: '14px',
+        fontWeight: '600',
+        color: '#374151',
+        paddingLeft: '16px',
+        paddingRight: '16px',
+      },
+    },
+  };
+
   return (
     <div className="space-y-6">
+      {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-solarized-base02">Withholding Types</h1>
           <p className="text-solarized-base01">Manage deduction types for payroll system</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={(open) => {
-          if (!open) {
-            resetForm();
-          }
-          setIsDialogOpen(open);
-        }}>
-          <DialogTrigger asChild>
-            <Button
-              className="bg-solarized-blue hover:bg-solarized-blue/90"
-              onClick={() => {
-                resetForm();
-                setIsDialogOpen(true);
-              }}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add Withholding Type
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>
-                {isEditMode ? 'Edit Withholding Type' : 'Add Withholding Type'}
-              </DialogTitle>
-              <DialogDescription>
-                {isEditMode 
-                  ? 'Update the details of this withholding type' 
-                  : 'Add a new withholding type to the system'}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit}>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Title *</Label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="e.g., Income Tax"
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea
-                    id="notes"
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="Optional notes about this withholding type..."
-                    rows={3}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between space-x-2">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="is_statutory">Statutory</Label>
-                    <p className="text-sm text-solarized-base01">
-                      Whether this is a statutory deduction (required by law)
-                    </p>
-                  </div>
-                  <Switch
-                    id="is_statutory"
-                    checked={formData.is_statutory}
-                    onCheckedChange={(checked) => setFormData({ ...formData, is_statutory: checked })}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between space-x-2">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="is_active">Active</Label>
-                    <p className="text-sm text-solarized-base01">
-                      Whether this withholding type is currently active
-                    </p>
-                  </div>
-                  <Switch
-                    id="is_active"
-                    checked={formData.is_active}
-                    onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => {
-                    resetForm();
-                    setIsDialogOpen(false);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  className="bg-solarized-blue hover:bg-solarized-blue/90"
-                >
-                  {isEditMode ? 'Update' : 'Create'} Withholding Type
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button className="bg-solarized-blue hover:bg-solarized-blue/90" onClick={handleAddClick}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Withholding Type
+        </Button>
       </div>
 
+      {/* Stats Cards */}
       <div className="grid gap-6 sm:grid-cols-3">
         <Card className="border-0 shadow-md">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-solarized-green/10 flex items-center justify-center">
-                <CheckCircle className="h-6 w-6 text-solarized-green" />
+              <div className="w-12 h-12 rounded-full bg-solarized-blue/10 flex items-center justify-center">
+                <Shield className="h-6 w-6 text-solarized-blue" />
               </div>
               <div>
                 <p className="text-sm text-solarized-base01">Total Types</p>
                 <p className="text-2xl font-bold text-solarized-base02">
-                  {withholdingTypes.length}
+                  {totalRows || withholdingTypes.length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="border-0 shadow-md">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-solarized-blue/10 flex items-center justify-center">
-                <CheckCircle className="h-6 w-6 text-solarized-blue" />
+              <div className="w-12 h-12 rounded-full bg-solarized-green/10 flex items-center justify-center">
+                <CheckCircle className="h-6 w-6 text-solarized-green" />
               </div>
               <div>
                 <p className="text-sm text-solarized-base01">Active Types</p>
@@ -314,7 +382,7 @@ export default function WithholdingTypes() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="border-0 shadow-md">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
@@ -323,121 +391,233 @@ export default function WithholdingTypes() {
               </div>
               <div>
                 <p className="text-sm text-solarized-base01">Statutory Types</p>
-                <p className="text-2xl font-bold text-solarized-base02">
-                  {statutoryCount}
-                </p>
+                <p className="text-2xl font-bold text-solarized-base02">{statutoryCount}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
+      {/* TABLE */}
       <Card className="border-0 shadow-md">
         <CardHeader>
           <CardTitle>Withholding Types List</CardTitle>
+          <form onSubmit={handleSearchSubmit} className="flex gap-4 mt-4">
+            <Input
+              placeholder="Search by title..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+            <Button type="submit" variant="outline">
+              <Search className="mr-2 h-4 w-4" /> Search
+            </Button>
+          </form>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
+          {!isLoading && withholdingTypes.length === 0 ? (
+            <div className="text-center py-12">
+              <Shield className="mx-auto h-12 w-12 text-solarized-base01 mb-4" />
+              <h3 className="text-lg font-medium text-solarized-base02">No withholding types found</h3>
+              <p className="text-solarized-base01 mt-1">Create your first withholding type to get started.</p>
+              <Button
+                className="mt-4 bg-solarized-blue hover:bg-solarized-blue/90"
+                onClick={handleAddClick}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Withholding Type
+              </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Notes</TableHead>
-                  <TableHead>Statutory</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Updated</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {withholdingTypes.length > 0 ? (
-                  withholdingTypes.map((type) => (
-                    <TableRow key={type.id}>
-                      <TableCell className="font-medium">{type.title}</TableCell>
-                      <TableCell className="max-w-xs truncate">
-                        {type.notes || 'No notes'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={
-                            type.is_statutory
-                              ? 'bg-solarized-yellow/10 text-solarized-yellow'
-                              : 'bg-solarized-green/10 text-solarized-green'
-                          }
-                        >
-                          {type.is_statutory ? 'Yes' : 'No'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={
-                            type.is_active
-                              ? 'bg-solarized-green/10 text-solarized-green'
-                              : 'bg-solarized-red/10 text-solarized-red'
-                          }
-                        >
-                          {type.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {formatDate(type.created_at)}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {formatDate(type.updated_at)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEdit(type)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDelete(type.id)}
-                            disabled={type.recurringDeductions && type.recurringDeductions.length > 0}
-                            title={
-                              type.recurringDeductions && type.recurringDeductions.length > 0
-                                ? 'Cannot delete: Withholding type is in use'
-                                : 'Delete withholding type'
-                            }
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
-                      <div className="flex flex-col items-center justify-center">
-                        <Shield className="h-12 w-12 text-solarized-base01 mb-4" />
-                        <h3 className="text-lg font-medium text-solarized-base02">
-                          No withholding types found
-                        </h3>
-                        <p className="text-solarized-base01 mt-1">
-                          Create your first withholding type to get started.
-                        </p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+            <DataTable
+              columns={columns}
+              data={withholdingTypes}
+              progressPending={isLoading}
+              pagination
+              paginationServer
+              paginationTotalRows={totalRows}
+              paginationPerPage={perPage}
+              paginationDefaultPage={page}
+              onChangePage={handlePageChange}
+              onChangeRowsPerPage={handlePerRowsChange}
+              onSort={handleSort}
+              customStyles={customStyles}
+              sortServer
+              defaultSortFieldId="title"
+              defaultSortAsc={true}
+              highlightOnHover
+              responsive
+            />
           )}
         </CardContent>
       </Card>
+
+      {/* VIEW DIALOG */}
+      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Withholding Type Details</DialogTitle>
+            <DialogDescription>View the details of this withholding type</DialogDescription>
+          </DialogHeader>
+
+          {selectedType && (
+            <div className="space-y-4 py-4">
+              <div>
+                <Label className="text-solarized-base01">Title</Label>
+                <p className="font-medium text-lg">{selectedType.title}</p>
+              </div>
+
+              <div>
+                <Label className="text-solarized-base01">Notes</Label>
+                <p className="text-sm">{selectedType.notes || 'No notes provided'}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-solarized-base01">Statutory</Label>
+                  <div className="mt-1">
+                    <Badge
+                      className={
+                        selectedType.is_statutory
+                          ? 'bg-solarized-yellow/10 text-solarized-yellow'
+                          : 'bg-solarized-base01/10 text-solarized-base01'
+                      }
+                    >
+                      {selectedType.is_statutory ? 'Yes' : 'No'}
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-solarized-base01">Status</Label>
+                  <div className="mt-1">
+                    <Badge
+                      className={
+                        selectedType.is_active
+                          ? 'bg-solarized-green/10 text-solarized-green'
+                          : 'bg-solarized-red/10 text-solarized-red'
+                      }
+                    >
+                      {selectedType.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                <div>
+                  <Label className="text-xs text-solarized-base01">Created At</Label>
+                  <p className="text-sm">{formatDate(selectedType.created_at)}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-solarized-base01">Updated At</Label>
+                  <p className="text-sm">{formatDate(selectedType.updated_at)}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewOpen(false)}>
+              Close
+            </Button>
+            <Button
+              className="bg-solarized-blue hover:bg-solarized-blue/90"
+              onClick={() => {
+                if (selectedType) {
+                  handleEditClick(selectedType);
+                  setIsViewOpen(false);
+                }
+              }}
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ADD/EDIT DIALOG */}
+      <Dialog open={isDialogOpen} onOpenChange={(open) => {
+        if (!open) resetForm();
+        setIsDialogOpen(open);
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {isEditMode ? 'Edit Withholding Type' : 'Add Withholding Type'}
+            </DialogTitle>
+            <DialogDescription>
+              {isEditMode
+                ? 'Update the details of this withholding type'
+                : 'Add a new withholding type to the system'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Title *</Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="e.g., Income Tax"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="Optional notes about this withholding type..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex items-center justify-between space-x-2">
+                <div className="space-y-0.5">
+                  <Label htmlFor="is_statutory">Statutory</Label>
+                  <p className="text-sm text-solarized-base01">
+                    Required by law
+                  </p>
+                </div>
+                <Switch
+                  id="is_statutory"
+                  checked={formData.is_statutory}
+                  onCheckedChange={(checked) => setFormData({ ...formData, is_statutory: checked })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between space-x-2">
+                <div className="space-y-0.5">
+                  <Label htmlFor="is_active">Active</Label>
+                  <p className="text-sm text-solarized-base01">
+                    Currently in use
+                  </p>
+                </div>
+                <Switch
+                  id="is_active"
+                  checked={formData.is_active}
+                  onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => {
+                resetForm();
+                setIsDialogOpen(false);
+              }}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-solarized-blue hover:bg-solarized-blue/90">
+                {isEditMode ? 'Update' : 'Create'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

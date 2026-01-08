@@ -22,9 +22,22 @@ class WithholdingTypeController extends Controller
             $query->where('is_statutory', $request->boolean('statutory'));
         }
 
+        // Search support
+        if ($request->search) {
+            $query->where('title', 'like', "%{$request->search}%");
+        }
+
+        // Sorting support
+        if ($request->filled('order_by')) {
+            $direction = $request->input('order', 'asc');
+            $query->orderBy($request->input('order_by'), $direction);
+        } else {
+            $query->latest();
+        }
+
         $types = $request->boolean('paginate', true)
-            ? $query->latest()->paginate($request->input('per_page', 15))
-            : $query->latest()->get();
+            ? $query->paginate($request->input('per_page', 15))
+            : $query->get();
 
         return $this->success($types);
     }

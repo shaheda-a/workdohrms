@@ -29,6 +29,21 @@ class JobApplicationController extends Controller
             $query->where('status', $request->status);
         }
 
+        // Sorting support
+        if ($request->filled('order_by')) {
+            $direction = $request->input('order', 'asc');
+            if ($request->input('order_by') === 'candidate_id') {
+                // Sort by candidate name
+                $query->join('candidates', 'job_applications.candidate_id', '=', 'candidates.id')
+                    ->orderBy('candidates.name', $direction)
+                    ->select('job_applications.*');
+            } else {
+                $query->orderBy($request->input('order_by'), $direction);
+            }
+        } else {
+            $query->latest();
+        }
+
         $applications = $request->paginate === 'false'
             ? $query->get()
             : $query->paginate($request->per_page ?? 15);

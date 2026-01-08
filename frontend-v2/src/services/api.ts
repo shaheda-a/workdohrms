@@ -210,7 +210,10 @@ export const payrollService = {
     statutory?: boolean;
     paginate?: boolean;
     page?: number;
-    per_page?: number
+    per_page?: number;
+    search?: string;
+    order_by?: string;
+    order?: string;
   }) => api.get('/withholding-types', { params }),
 
   createWithholdingType: (data: {
@@ -229,7 +232,7 @@ export const payrollService = {
 
   deleteWithholdingType: (id: number) => api.delete(`/withholding-types/${id}`),
 
-  getTaxSlabs: () => api.get('/tax-slabs'),
+  getTaxSlabs: (params?: { page?: number; per_page?: number; search?: string; order_by?: string; order?: string }) => api.get('/tax-slabs', { params }),
   calculateTax: (data: Record<string, unknown>) => api.post('/tax-slabs/calculate', data), // Remove 'annual_income' type restriction
   createTaxSlab: (data: Record<string, unknown>) => api.post('/tax-slabs', data),
   updateTaxSlab: (id: number, data: Record<string, unknown>) => api.put(`/tax-slabs/${id}`, data),
@@ -248,6 +251,8 @@ export const recruitmentService = {
     search?: string;
     job_category_id?: number;
     office_location_id?: number;
+    order_by?: string;
+    order?: string;
   }) => api.get('/jobs', { params }),
   createJob: (data: Record<string, unknown>) => api.post('/jobs', data),
   getJobById: (id: number) => api.get(`/jobs/${id}`),
@@ -313,6 +318,9 @@ export const recruitmentService = {
     paginate?: boolean;
     page?: number;
     per_page?: number;
+    search?: string;
+    order_by?: string;
+    order?: string;
   }) => api.get('/job-stages', { params }),
 
   createJobStage: (data: {
@@ -341,6 +349,8 @@ export const recruitmentService = {
     paginate?: boolean;
     page?: number;
     per_page?: number;
+    order_by?: string;
+    order?: string;
   }) => api.get('/job-applications', { params }),
 
   createJobApplication: (jobId: number, data: {

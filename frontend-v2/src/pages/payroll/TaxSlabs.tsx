@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { payrollService } from '../../services/api';
 import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
@@ -16,25 +16,26 @@ import {
   DialogTrigger,
 } from '../../components/ui/dialog';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../../components/ui/table';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu';
 import { Skeleton } from '../../components/ui/skeleton';
-import { 
-  Plus, 
-  Calculator, 
-  Edit, 
+import {
+  Plus,
+  Calculator,
+  Edit,
   Trash2,
   CheckCircle,
   XCircle,
-  Filter
+  MoreVertical,
+  Eye,
+  Search,
 } from 'lucide-react';
 import { Badge } from '../../components/ui/badge';
 import { Alert, AlertDescription } from '../../components/ui/alert';
+import DataTable, { TableColumn } from 'react-data-table-component';
 
 interface TaxSlab {
   id: number;
@@ -64,10 +65,20 @@ export default function TaxSlabs() {
   const [calculatedTax, setCalculatedTax] = useState<CalculatedTax | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [showActiveOnly, setShowActiveOnly] = useState(true);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [selectedSlab, setSelectedSlab] = useState<TaxSlab | null>(null);
   const [editingSlab, setEditingSlab] = useState<TaxSlab | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
+
+  // Pagination & Sorting State
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [totalRows, setTotalRows] = useState(0);
+  const [sortField, setSortField] = useState<string>('');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
   const [formData, setFormData] = useState({
     title: '',
     income_from: '',
@@ -77,32 +88,101 @@ export default function TaxSlabs() {
     is_active: true,
   });
 
-  // Fetch tax slabs
-  const fetchSlabs = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await payrollService.getTaxSlabs();
-      setSlabs(response.data.data || []);
-    } catch (error: unknown) {
-      console.error('Failed to fetch tax slabs:', error);
-      const errorMessage = getErrorMessage(error, 'Failed to load tax slabs');
-      setError(errorMessage);
-      showAlert('error', 'Error', errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Fetch tax slabs with pagination
+  const fetchSlabs = useCallback(
+    async (currentPage: number = 1) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const params: Record<string, unknown> = {
+          page: currentPage,
+          per_page: perPage,
+          search: searchQuery,
+        };
+
+        if (sortField) {
+          params.order_by = sortField;
+          params.order = sortDirection;
+        }
+
+        const response = await payrollService.getTaxSlabs(params);
+        const { data, meta } = response.data;
+
+        if (Array.isArray(data)) {
+          setSlabs(data);
+          setTotalRows(meta?.total ?? 0);
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          setSlabs(response.data.data);
+          if (response.data.meta) {
+            setTotalRows(response.data.meta.total ?? 0);
+          } else if (response.data.total !== undefined) {
+            setTotalRows(response.data.total);
+          }
+        } else {
+          setSlabs([]);
+          setTotalRows(0);
+        }
+      } catch (error: unknown) {
+        console.error('Failed to fetch tax slabs:', error);
+        const errorMessage = getErrorMessage(error, 'Failed to load tax slabs');
+        setError(errorMessage);
+        showAlert('error', 'Error', errorMessage);
+        setSlabs([]);
+        setTotalRows(0);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [perPage, searchQuery, sortField, sortDirection]
+  );
 
   useEffect(() => {
-    fetchSlabs();
-  }, [showActiveOnly]);
+    fetchSlabs(page);
+  }, [page, fetchSlabs]);
+
+  // Search Handler
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearchQuery(searchInput);
+    setPage(1);
+  };
+
+  // Pagination Handlers
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handlePerRowsChange = (newPerPage: number) => {
+    setPerPage(newPerPage);
+    setPage(1);
+  };
+
+  // Sorting Handler
+  const handleSort = (column: TableColumn<TaxSlab>, direction: 'asc' | 'desc') => {
+    const columnId = String(column.id || '');
+
+    // Map column IDs to database field names
+    const fieldMap: Record<string, string> = {
+      'title': 'title',
+      'income_range': 'income_from',
+      'fixed_amount': 'fixed_amount',
+      'percentage': 'percentage',
+    };
+
+    const fieldName = fieldMap[columnId];
+
+    if (fieldName) {
+      setSortField(fieldName);
+      setSortDirection(direction);
+      setPage(1);
+    }
+  };
 
   // Handle form submission for create/update
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
+
     try {
       const data = {
         title: formData.title,
@@ -118,7 +198,7 @@ export default function TaxSlabs() {
       } else {
         await payrollService.createTaxSlab(data);
       }
-      
+
       showAlert(
         'success',
         'Success!',
@@ -127,7 +207,7 @@ export default function TaxSlabs() {
       );
       setIsDialogOpen(false);
       resetForm();
-      fetchSlabs();
+      fetchSlabs(page);
     } catch (error: unknown) {
       console.error('Failed to save tax slab:', error);
       const errorMessage = getErrorMessage(error, 'Failed to save tax slab');
@@ -137,24 +217,44 @@ export default function TaxSlabs() {
   };
 
   // Handle delete
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (slab: TaxSlab) => {
     const result = await showConfirmDialog(
       'Are you sure?',
-      'You want to delete this tax slab?'
+      `You want to delete this tax slab: "${slab.title}"?`
     );
 
     if (!result.isConfirmed) return;
-    
+
     try {
-      await payrollService.deleteTaxSlab(id);
+      await payrollService.deleteTaxSlab(slab.id);
       showAlert('success', 'Deleted!', 'Tax slab deleted successfully', 2000);
-      fetchSlabs();
+      fetchSlabs(page);
     } catch (error: unknown) {
       console.error('Failed to delete tax slab:', error);
       const errorMessage = getErrorMessage(error, 'Failed to delete tax slab');
       setError(errorMessage);
       showAlert('error', 'Error', errorMessage);
     }
+  };
+
+  // Handle view
+  const handleView = (slab: TaxSlab) => {
+    setSelectedSlab(slab);
+    setIsViewDialogOpen(true);
+  };
+
+  // Handle edit
+  const handleEdit = (slab: TaxSlab) => {
+    setEditingSlab(slab);
+    setFormData({
+      title: slab.title,
+      income_from: slab.income_from.toString(),
+      income_to: slab.income_to.toString(),
+      fixed_amount: slab.fixed_amount.toString(),
+      percentage: slab.percentage.toString(),
+      is_active: slab.is_active,
+    });
+    setIsDialogOpen(true);
   };
 
   // Reset form
@@ -170,29 +270,15 @@ export default function TaxSlabs() {
     setEditingSlab(null);
   };
 
-  // Open edit dialog
-  const openEditDialog = (slab: TaxSlab) => {
-    setEditingSlab(slab);
-    setFormData({
-      title: slab.title,
-      income_from: slab.income_from.toString(),
-      income_to: slab.income_to.toString(),
-      fixed_amount: slab.fixed_amount.toString(),
-      percentage: slab.percentage.toString(),
-      is_active: slab.is_active,
-    });
-    setIsDialogOpen(true);
-  };
-
   // Calculate tax
   const handleCalculateTax = async () => {
     if (!annualIncome) return;
-    
+
     setIsCalculating(true);
     setError(null);
     try {
-      const response = await payrollService.calculateTax({ 
-        income: Number(annualIncome) 
+      const response = await payrollService.calculateTax({
+        income: Number(annualIncome)
       });
       setCalculatedTax(response.data.data);
     } catch (error: any) {
@@ -202,11 +288,10 @@ export default function TaxSlabs() {
       const income = Number(annualIncome);
       let tax = 0;
       let foundSlab = null;
-      
+
       for (const slab of slabs) {
         if (slab.is_active && income >= slab.income_from && income <= slab.income_to) {
           foundSlab = slab;
-          // Calculate tax based on slab rules
           let calculated = slab.fixed_amount;
           if (slab.percentage > 0) {
             calculated += (income - slab.income_from) * (slab.percentage / 100);
@@ -215,7 +300,7 @@ export default function TaxSlabs() {
           break;
         }
       }
-      
+
       setCalculatedTax({
         income,
         tax,
@@ -240,6 +325,121 @@ export default function TaxSlabs() {
     return `${percentage}%`;
   };
 
+  // Table Columns
+  const columns: TableColumn<TaxSlab>[] = [
+    {
+      id: 'title',
+      name: 'Title',
+      selector: (row) => row.title,
+      sortable: true,
+      minWidth: '150px',
+    },
+    {
+      id: 'income_range',
+      name: 'Income Range',
+      cell: (row) => (
+        <span>
+          {formatCurrency(row.income_from)} - {formatCurrency(row.income_to)}
+        </span>
+      ),
+      sortable: true,
+      minWidth: '200px',
+    },
+    {
+      id: 'fixed_amount',
+      name: 'Fixed Amount',
+      cell: (row) => (
+        <span>{row.fixed_amount > 0 ? formatCurrency(row.fixed_amount) : '-'}</span>
+      ),
+      sortable: true,
+    },
+    {
+      id: 'percentage',
+      name: 'Rate',
+      cell: (row) => (
+        <span>{row.percentage > 0 ? formatPercentage(row.percentage) : '-'}</span>
+      ),
+      sortable: true,
+    },
+    {
+      name: 'Status',
+      cell: (row) => (
+        <Badge
+          variant={row.is_active ? "default" : "secondary"}
+          className={row.is_active
+            ? "bg-green-100 text-green-800 hover:bg-green-100"
+            : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+          }
+        >
+          {row.is_active ? (
+            <>
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Active
+            </>
+          ) : (
+            <>
+              <XCircle className="h-3 w-3 mr-1" />
+              Inactive
+            </>
+          )}
+        </Badge>
+      ),
+    },
+    {
+      name: 'Actions',
+      cell: (row) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleView(row)}>
+              <Eye className="mr-2 h-4 w-4" />
+              View
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleEdit(row)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => handleDelete(row)}
+              className="text-red-600"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+      ignoreRowClick: true,
+      width: '80px',
+    },
+  ];
+
+  // Custom Styles for DataTable
+  const customStyles = {
+    headRow: {
+      style: {
+        backgroundColor: '#f9fafb',
+        borderBottomWidth: '1px',
+        borderBottomColor: '#e5e7eb',
+        borderBottomStyle: 'solid' as const,
+        minHeight: '56px',
+      },
+    },
+    headCells: {
+      style: {
+        fontSize: '14px',
+        fontWeight: '600',
+        color: '#374151',
+        paddingLeft: '16px',
+        paddingRight: '16px',
+      },
+    },
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -247,19 +447,8 @@ export default function TaxSlabs() {
           <h1 className="text-2xl font-bold text-solarized-base02">Tax Slabs</h1>
           <p className="text-solarized-base01">Configure income tax brackets and rates</p>
         </div>
-        
+
         <div className="flex items-center gap-4">
-          {/* Filter toggle */}
-          {/* <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-solarized-base01" />
-            <Label htmlFor="active-filter" className="text-sm">Active Only</Label>
-            <Switch
-              id="active-filter"
-              checked={showActiveOnly}
-              onCheckedChange={setShowActiveOnly}
-            />
-          </div> */}
-          
           {/* Add button */}
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -280,19 +469,19 @@ export default function TaxSlabs() {
                   {editingSlab ? 'Edit Tax Slab' : 'Add Tax Slab'}
                 </DialogTitle>
                 <DialogDescription>
-                  {editingSlab 
-                    ? 'Update the income tax bracket details.' 
+                  {editingSlab
+                    ? 'Update the income tax bracket details.'
                     : 'Add a new income tax bracket.'
                   }
                 </DialogDescription>
               </DialogHeader>
-              
+
               {error && (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-              
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="title">Title *</Label>
@@ -304,7 +493,7 @@ export default function TaxSlabs() {
                     required
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="income_from">Income From *</Label>
@@ -333,7 +522,7 @@ export default function TaxSlabs() {
                     />
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="fixed_amount">Fixed Amount</Label>
@@ -361,7 +550,7 @@ export default function TaxSlabs() {
                     />
                   </div>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <Label htmlFor="is_active" className="cursor-pointer">
                     Active Status
@@ -372,11 +561,11 @@ export default function TaxSlabs() {
                     onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
                   />
                 </div>
-                
+
                 <DialogFooter>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                  <Button
+                    type="button"
+                    variant="outline"
                     onClick={() => {
                       setIsDialogOpen(false);
                       resetForm();
@@ -384,8 +573,8 @@ export default function TaxSlabs() {
                   >
                     Cancel
                   </Button>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     className="bg-solarized-blue hover:bg-solarized-blue/90"
                   >
                     {editingSlab ? 'Update' : 'Create'}
@@ -410,99 +599,56 @@ export default function TaxSlabs() {
           <Card className="border-0 shadow-md">
             <CardHeader>
               <CardTitle>Tax Brackets</CardTitle>
-              {/* <CardDescription>
-                Current income tax slab configuration
-                {showActiveOnly && ' (Active only)'}
-              </CardDescription> */}
+              <form onSubmit={handleSearchSubmit} className="flex gap-4 mt-4">
+                <Input
+                  placeholder="Search tax slabs..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                />
+                <Button type="submit" variant="outline">
+                  <Search className="mr-2 h-4 w-4" /> Search
+                </Button>
+              </form>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
-                <div className="space-y-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
-                  ))}
-                </div>
-              ) : slabs.length === 0 ? (
+              {!isLoading && slabs.length === 0 && !searchQuery ? (
                 <div className="text-center py-12">
                   <Calculator className="h-12 w-12 text-solarized-base01 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-solarized-base02">
                     No tax slabs found
                   </h3>
                   <p className="text-solarized-base01 mt-1">
-                    {showActiveOnly 
-                      ? 'No active tax slabs configured.' 
-                      : 'No tax slabs configured.'
-                    }
+                    Create your first tax slab to get started.
                   </p>
+                  <Button
+                    className="mt-4 bg-solarized-blue hover:bg-solarized-blue/90"
+                    onClick={() => {
+                      resetForm();
+                      setIsDialogOpen(true);
+                    }}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Tax Slab
+                  </Button>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Income Range</TableHead>
-                      <TableHead>Fixed Amount</TableHead>
-                      <TableHead>Rate</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {slabs.map((slab) => (
-                      <TableRow key={slab.id}>
-                        <TableCell className="font-medium">{slab.title}</TableCell>
-                        <TableCell>
-                          {formatCurrency(slab.income_from)} - {formatCurrency(slab.income_to)}
-                        </TableCell>
-                        <TableCell>
-                          {slab.fixed_amount > 0 ? formatCurrency(slab.fixed_amount) : '-'}
-                        </TableCell>
-                        <TableCell>
-                          {slab.percentage > 0 ? formatPercentage(slab.percentage) : '-'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={slab.is_active ? "default" : "secondary"}
-                            className={slab.is_active 
-                              ? "bg-green-100 text-green-800 hover:bg-green-100" 
-                              : "bg-gray-100 text-gray-800 hover:bg-gray-100"
-                            }
-                          >
-                            {slab.is_active ? (
-                              <>
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Active
-                              </>
-                            ) : (
-                              <>
-                                <XCircle className="h-3 w-3 mr-1" />
-                                Inactive
-                              </>
-                            )}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openEditDialog(slab)}
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDelete(slab.id)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <DataTable
+                  columns={columns}
+                  data={slabs}
+                  progressPending={isLoading}
+                  pagination
+                  paginationServer
+                  paginationTotalRows={totalRows}
+                  paginationPerPage={perPage}
+                  paginationDefaultPage={page}
+                  onChangePage={handlePageChange}
+                  onChangeRowsPerPage={handlePerRowsChange}
+                  onSort={handleSort}
+                  customStyles={customStyles}
+                  sortServer
+                  highlightOnHover
+                  responsive
+                />
               )}
             </CardContent>
           </Card>
@@ -534,7 +680,7 @@ export default function TaxSlabs() {
                   placeholder="Enter annual income"
                 />
               </div>
-              
+
               <Button
                 onClick={handleCalculateTax}
                 disabled={!annualIncome || isCalculating}
@@ -542,7 +688,7 @@ export default function TaxSlabs() {
               >
                 {isCalculating ? 'Calculating...' : 'Calculate Tax'}
               </Button>
-              
+
               {calculatedTax && (
                 <div className="space-y-4 mt-4">
                   <div className="p-4 bg-solarized-base3 rounded-lg text-center">
@@ -551,12 +697,12 @@ export default function TaxSlabs() {
                       {formatCurrency(calculatedTax.tax)}
                     </p>
                     <p className="text-xs text-solarized-base01 mt-2">
-                      Effective Rate: {calculatedTax.income > 0 
+                      Effective Rate: {calculatedTax.income > 0
                         ? ((calculatedTax.tax / calculatedTax.income) * 100).toFixed(2)
                         : '0.00'}%
                     </p>
                   </div>
-                  
+
                   {calculatedTax.slab && (
                     <div className="p-4 bg-solarized-base2 rounded-lg">
                       <p className="text-sm font-medium text-solarized-base01 mb-2">
@@ -576,23 +722,23 @@ export default function TaxSlabs() {
                         <div className="flex justify-between">
                           <span className="text-solarized-base01">Fixed Amount:</span>
                           <span className="font-medium">
-                            {calculatedTax.slab.fixed_amount > 0 
-                              ? formatCurrency(calculatedTax.slab.fixed_amount) 
+                            {calculatedTax.slab.fixed_amount > 0
+                              ? formatCurrency(calculatedTax.slab.fixed_amount)
                               : '-'}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-solarized-base01">Rate:</span>
                           <span className="font-medium">
-                            {calculatedTax.slab.percentage > 0 
-                              ? formatPercentage(calculatedTax.slab.percentage) 
+                            {calculatedTax.slab.percentage > 0
+                              ? formatPercentage(calculatedTax.slab.percentage)
                               : '-'}
                           </span>
                         </div>
                       </div>
                     </div>
                   )}
-                  
+
                   {!calculatedTax.slab && (
                     <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                       <p className="text-sm text-yellow-800 text-center">
@@ -606,6 +752,85 @@ export default function TaxSlabs() {
           </Card>
         </div>
       </div>
+
+      {/* View Tax Slab Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Tax Slab Details</DialogTitle>
+            <DialogDescription>
+              View detailed information about this tax slab
+            </DialogDescription>
+          </DialogHeader>
+          {selectedSlab && (
+            <div className="space-y-6 py-4">
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-solarized-base01">Title</Label>
+                  <p className="text-sm font-medium">{selectedSlab.title}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-solarized-base01">Income From</Label>
+                  <p className="text-sm font-medium">{formatCurrency(selectedSlab.income_from)}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-solarized-base01">Income To</Label>
+                  <p className="text-sm font-medium">{formatCurrency(selectedSlab.income_to)}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-solarized-base01">Fixed Amount</Label>
+                  <p className="text-sm font-medium">
+                    {selectedSlab.fixed_amount > 0 ? formatCurrency(selectedSlab.fixed_amount) : '-'}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-solarized-base01">Tax Rate</Label>
+                  <p className="text-sm font-medium">
+                    {selectedSlab.percentage > 0 ? formatPercentage(selectedSlab.percentage) : '-'}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-solarized-base01">Status</Label>
+                  <div>
+                    <Badge
+                      className={
+                        selectedSlab.is_active
+                          ? 'bg-solarized-green/10 text-solarized-green'
+                          : 'bg-solarized-red/10 text-solarized-red'
+                      }
+                    >
+                      {selectedSlab.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </div>
+                </div>
+                {selectedSlab.author && (
+                  <div className="space-y-2">
+                    <Label className="text-solarized-base01">Created By</Label>
+                    <p className="text-sm font-medium">{selectedSlab.author.name}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+              Close
+            </Button>
+            <Button
+              className="bg-solarized-blue hover:bg-solarized-blue/90"
+              onClick={() => {
+                if (selectedSlab) {
+                  handleEdit(selectedSlab);
+                  setIsViewDialogOpen(false);
+                }
+              }}
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

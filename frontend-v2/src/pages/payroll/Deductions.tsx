@@ -109,13 +109,13 @@ export default function Deductions() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Check if a valid withholding type is selected
     if (formData.withholding_type_id === "no-withholding-types" || !formData.withholding_type_id) {
       showAlert('warning', 'Validation Error', 'Please select a valid deduction type');
       return;
     }
-    
+
     try {
       const payload: any = {
         staff_member_id: Number(selectedStaff),
@@ -135,7 +135,7 @@ export default function Deductions() {
       }
 
       console.log('Submitting deduction:', payload);
-      
+
       await payrollService.createDeduction(payload);
       showAlert('success', 'Success!', 'Deduction created successfully', 2000);
       setIsDialogOpen(false);
@@ -151,9 +151,9 @@ export default function Deductions() {
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedDeduction) return;
-    
+
     try {
       const payload: any = {
         withholding_type_id: Number(formData.withholding_type_id),
@@ -172,7 +172,7 @@ export default function Deductions() {
       }
 
       console.log('Updating deduction:', payload);
-      
+
       await payrollService.updateDeduction(selectedDeduction.id, payload);
       showAlert('success', 'Success!', 'Deduction updated successfully', 2000);
       setIsEditDialogOpen(false);
@@ -194,7 +194,7 @@ export default function Deductions() {
 
   const handleEdit = (deduction: Deduction) => {
     setSelectedDeduction(deduction);
-    
+
     // Format dates from ISO to YYYY-MM-DD for date inputs
     const formatDateForInput = (dateString: string | null) => {
       if (!dateString) return '';
@@ -270,9 +270,9 @@ export default function Deductions() {
           paginate: false,
           active: true
         }) || { data: { success: true, data: [] } };
-        
+
         console.log('Withholding types response:', response.data);
-        
+
         if (response.data && response.data.data) {
           setWithholdingTypes(response.data.data);
         } else if (Array.isArray(response.data)) {
@@ -310,7 +310,7 @@ export default function Deductions() {
   const fetchDeductions = async () => {
     setIsLoading(true);
     try {
-      const response = await payrollService.getDeductions({ 
+      const response = await payrollService.getDeductions({
         staff_member_id: Number(selectedStaff),
         paginate: false
       });
@@ -438,7 +438,7 @@ export default function Deductions() {
                     </Select>
                   )}
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="description">Description *</Label>
                   <Textarea
@@ -450,7 +450,7 @@ export default function Deductions() {
                     rows={2}
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="calculation_type">Calculation Type *</Label>
@@ -468,7 +468,7 @@ export default function Deductions() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="amount">Amount *</Label>
                     <div className="relative">
@@ -507,7 +507,7 @@ export default function Deductions() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="effective_from">Effective From</Label>
@@ -518,7 +518,7 @@ export default function Deductions() {
                       onChange={(e) => setFormData({ ...formData, effective_from: e.target.value })}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="effective_until">Effective Until</Label>
                     <Input
@@ -530,7 +530,7 @@ export default function Deductions() {
                     />
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="is_active">Status</Label>
                   <Select
@@ -611,7 +611,7 @@ export default function Deductions() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="border-0 shadow-md">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
@@ -625,7 +625,7 @@ export default function Deductions() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="border-0 shadow-md">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
@@ -639,7 +639,7 @@ export default function Deductions() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="border-0 shadow-md">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
@@ -747,7 +747,7 @@ export default function Deductions() {
                               Edit
                             </DropdownMenuItem>
                             {/* <DropdownMenuSeparator /> */}
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => handleDelete(deduction)}
                               className="text-red-600"
                             >
@@ -819,9 +819,9 @@ export default function Deductions() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-solarized-base01">Calculation Type</Label>
-                  <Badge className="capitalize">
+                  <div><Badge className="capitalize">
                     {selectedDeduction.calculation_type}
-                  </Badge>
+                  </Badge></div>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-solarized-base01">Amount</Label>
@@ -833,7 +833,7 @@ export default function Deductions() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-solarized-base01">Statutory</Label>
-                  <Badge
+                  <div><Badge
                     className={
                       selectedDeduction.withholding_type?.is_statutory
                         ? 'bg-solarized-yellow/10 text-solarized-yellow'
@@ -841,7 +841,7 @@ export default function Deductions() {
                     }
                   >
                     {selectedDeduction.withholding_type?.is_statutory ? 'Yes' : 'No'}
-                  </Badge>
+                  </Badge></div>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-solarized-base01">Effective From</Label>
@@ -853,7 +853,7 @@ export default function Deductions() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-solarized-base01">Status</Label>
-                  <Badge
+                  <div><Badge
                     className={
                       selectedDeduction.is_active
                         ? 'bg-solarized-green/10 text-solarized-green'
@@ -861,7 +861,7 @@ export default function Deductions() {
                     }
                   >
                     {selectedDeduction.is_active ? 'Active' : 'Inactive'}
-                  </Badge>
+                  </Badge></div>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-solarized-base01">Created By</Label>
@@ -933,7 +933,7 @@ export default function Deductions() {
                   </Select>
                 )}
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="edit_description">Description *</Label>
                 <Textarea
@@ -945,7 +945,7 @@ export default function Deductions() {
                   rows={2}
                 />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit_calculation_type">Calculation Type *</Label>
@@ -963,7 +963,7 @@ export default function Deductions() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="edit_amount">Amount *</Label>
                   <div className="relative">
@@ -1002,7 +1002,7 @@ export default function Deductions() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit_effective_from">Effective From</Label>
@@ -1013,7 +1013,7 @@ export default function Deductions() {
                     onChange={(e) => setFormData({ ...formData, effective_from: e.target.value })}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="edit_effective_until">Effective Until</Label>
                   <Input
@@ -1025,7 +1025,7 @@ export default function Deductions() {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="edit_is_active">Status</Label>
                 <Select
@@ -1043,9 +1043,9 @@ export default function Deductions() {
               </div>
             </div>
             <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => {
                   setSelectedDeduction(null);
                   resetForm();
@@ -1054,8 +1054,8 @@ export default function Deductions() {
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="bg-solarized-blue hover:bg-solarized-blue/90"
                 disabled={!formData.withholding_type_id || !formData.description || !formData.amount}
               >

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { recruitmentService } from '../../services/api';
+import { showAlert, showConfirmDialog, getErrorMessage } from '../../lib/sweetalert';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -18,34 +19,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '../../components/ui/dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../../components/ui/table';
 import { Badge } from '../../components/ui/badge';
-import { Skeleton } from '../../components/ui/skeleton';
-import { 
-  Plus, 
-  Eye, 
-  Edit, 
-  Trash2, 
-  MoreVertical,
-  User,
-  Briefcase,
-  Calendar,
-  Star,
-  FileText,
-  CheckCircle,
-  XCircle,
-  Award
-} from 'lucide-react';
-import { Textarea } from '../../components/ui/textarea';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,6 +29,23 @@ import {
   DropdownMenuTrigger,
 } from '../../components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Textarea } from '../../components/ui/textarea';
+import DataTable, { TableColumn } from 'react-data-table-component';
+import {
+  Plus,
+  Eye,
+  Edit,
+  MoreHorizontal,
+  User,
+  Briefcase,
+  Calendar,
+  Star,
+  FileText,
+  CheckCircle,
+  XCircle,
+  Award,
+  Search,
+} from 'lucide-react';
 
 interface JobApplication {
   id: number;
@@ -70,9 +62,7 @@ interface JobApplication {
   job?: {
     id: number;
     title: string;
-    category?: {
-      title: string;
-    };
+    category?: { title: string };
   };
   candidate?: {
     id: number;
@@ -112,15 +102,27 @@ export default function JobApplications() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [stages, setStages] = useState<JobStage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Pagination & Sorting State
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [totalRows, setTotalRows] = useState(0);
+  const [sortField, setSortField] = useState<string>('');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Filter State
   const [selectedJob, setSelectedJob] = useState<string>('all');
   const [selectedStage, setSelectedStage] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [isLoading, setIsLoading] = useState(false);
+
+  // Dialog states
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
   const [isActionDialogOpen, setIsActionDialogOpen] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<JobApplication | null>(null);
   const [actionType, setActionType] = useState<'move' | 'rate' | 'note' | ''>('');
+
   const [formData, setFormData] = useState({
     job_id: '',
     candidate_id: '',
@@ -130,169 +132,103 @@ export default function JobApplications() {
     note: '',
   });
 
+  // ================= FETCH DATA =================
+  const fetchApplications = useCallback(
+    async (currentPage: number = 1) => {
+      setIsLoading(true);
+      try {
+        const params: Record<string, unknown> = {
+          page: currentPage,
+          per_page: perPage,
+          paginate: true,
+        };
+
+        if (selectedJob && selectedJob !== 'all') params.job_posting_id = Number(selectedJob);
+        if (selectedStage && selectedStage !== 'all') params.job_stage_id = Number(selectedStage);
+        if (selectedStatus && selectedStatus !== 'all') params.status = selectedStatus;
+
+        if (sortField) {
+          params.order_by = sortField;
+          params.order = sortDirection;
+        }
+
+        const response = await recruitmentService.getJobApplications(params);
+        const { data, meta } = response.data;
+
+        if (Array.isArray(data)) {
+          setApplications(data);
+          setTotalRows(meta?.total ?? 0);
+        } else {
+          setApplications([]);
+          setTotalRows(0);
+        }
+      } catch (error) {
+        console.error('Failed to fetch applications:', error);
+        showAlert('error', 'Error', getErrorMessage(error, 'Failed to fetch applications'));
+        setApplications([]);
+        setTotalRows(0);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [perPage, selectedJob, selectedStage, selectedStatus, sortField, sortDirection]
+  );
+
+  const fetchDropdownData = async () => {
+    try {
+      const [jobsRes, candidatesRes, stagesRes] = await Promise.all([
+        recruitmentService.getJobs({ paginate: false }),
+        recruitmentService.getCandidates({ paginate: false }),
+        recruitmentService.getJobStages({ paginate: false }),
+      ]);
+
+      if (jobsRes.data?.data) setJobs(jobsRes.data.data);
+      if (candidatesRes.data?.data) setCandidates(candidatesRes.data.data);
+      if (stagesRes.data?.data) setStages(stagesRes.data.data);
+    } catch (error) {
+      console.error('Failed to fetch dropdown data:', error);
+    }
+  };
+
   useEffect(() => {
-    fetchJobs();
-    fetchCandidates();
-    fetchStages();
-    fetchApplications();
+    fetchApplications(page);
+  }, [page, fetchApplications]);
+
+  useEffect(() => {
+    fetchDropdownData();
   }, []);
 
-  useEffect(() => {
-    fetchApplications();
-  }, [selectedJob, selectedStage, selectedStatus]);
+  // ================= PAGINATION =================
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
 
-  const fetchJobs = async () => {
-    try {
-      const response = await recruitmentService.getJobs({ paginate: false });
-      if (response.data && response.data.data) {
-        // Filter to only show open jobs for new applications (based on your backend statuses)
-        setJobs(response.data.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch jobs:', error);
+  const handlePerRowsChange = (newPerPage: number) => {
+    setPerPage(newPerPage);
+    setPage(1);
+  };
+
+  // ================= SORTING =================
+  const handleSort = (column: TableColumn<JobApplication>, direction: 'asc' | 'desc') => {
+    const columnId = String(column.id || '');
+    if (columnId === 'candidate' || column.name === 'Candidate') {
+      setSortField('candidate_id');
+      setSortDirection(direction);
+      setPage(1);
+    } else if (columnId === 'applied_date' || column.name === 'Applied Date') {
+      setSortField('applied_date');
+      setSortDirection(direction);
+      setPage(1);
     }
   };
 
-  const fetchCandidates = async () => {
-    try {
-      const response = await recruitmentService.getCandidates({ paginate: false });
-      if (response.data && response.data.data) {
-        setCandidates(response.data.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch candidates:', error);
-    }
+  // ================= FILTER HANDLERS =================
+  const handleApplyFilters = () => {
+    setPage(1);
+    fetchApplications(1);
   };
 
-  const fetchStages = async () => {
-    try {
-      const response = await recruitmentService.getJobStages({ paginate: false });
-      if (response.data && response.data.data) {
-        setStages(response.data.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch stages:', error);
-    }
-  };
-
-  const fetchApplications = async () => {
-    setIsLoading(true);
-    try {
-      const params: any = {};
-      if (selectedJob && selectedJob !== 'all') params.job_posting_id = Number(selectedJob);
-      if (selectedStage && selectedStage !== 'all') params.job_stage_id = Number(selectedStage);
-      if (selectedStatus && selectedStatus !== 'all') params.status = selectedStatus;
-      params.paginate = false;
-
-      const response = await recruitmentService.getJobApplications(params);
-      if (response.data && response.data.data) {
-        setApplications(response.data.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch applications:', error);
-      setApplications([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.job_id) {
-      alert('Please select a job');
-      return;
-    }
-
-    if (!formData.candidate_id) {
-      alert('Please select a candidate');
-      return;
-    }
-
-    try {
-      await recruitmentService.createJobApplication(Number(formData.job_id), {
-        candidate_id: Number(formData.candidate_id),
-        custom_answers: formData.custom_answers ? JSON.parse(formData.custom_answers) : undefined,
-      });
-      setIsDialogOpen(false);
-      resetForm();
-      fetchApplications();
-    } catch (error: any) {
-      console.error('Failed to create application:', error);
-      if (error.response?.data?.message) {
-        alert(error.response.data.message);
-      } else {
-        alert('Failed to create application. Please try again.');
-      }
-    }
-  };
-
-  const handleAction = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedApplication || !actionType) return;
-
-    try {
-      switch (actionType) {
-        case 'move':
-          await recruitmentService.moveJobApplicationStage(
-            selectedApplication.id,
-            { job_stage_id: Number(formData.job_stage_id) }
-          );
-          break;
-        case 'rate':
-          await recruitmentService.rateJobApplication(
-            selectedApplication.id,
-            { 
-              rating: Number(formData.rating),
-              notes: formData.note || selectedApplication.notes || ''
-            }
-          );
-          break;
-        case 'note':
-          await recruitmentService.addJobApplicationNote(
-            selectedApplication.id,
-            { note: formData.note }
-          );
-          break;
-      }
-      setIsActionDialogOpen(false);
-      resetForm();
-      setActionType('');
-      fetchApplications();
-    } catch (error: any) {
-      console.error('Failed to perform action:', error);
-      if (error.response?.data?.message) {
-        alert(error.response.data.message);
-      } else {
-        alert('Failed to perform action. Please try again.');
-      }
-    }
-  };
-
-  const handleQuickAction = async (application: JobApplication, action: 'shortlist' | 'reject' | 'hire') => {
-    try {
-      switch (action) {
-        case 'shortlist':
-          await recruitmentService.shortlistJobApplication(application.id);
-          break;
-        case 'reject':
-          await recruitmentService.rejectJobApplication(application.id);
-          break;
-        case 'hire':
-          await recruitmentService.hireJobApplication(application.id);
-          break;
-      }
-      fetchApplications();
-    } catch (error: any) {
-      console.error('Failed to perform quick action:', error);
-      if (error.response?.data?.message) {
-        alert(error.response.data.message);
-      } else {
-        alert('Failed to perform action. Please try again.');
-      }
-    }
-  };
-
+  // ================= CRUD OPERATIONS =================
   const resetForm = () => {
     setFormData({
       job_id: '',
@@ -304,9 +240,14 @@ export default function JobApplications() {
     });
   };
 
-  const handleView = (application: JobApplication) => {
+  const handleAddClick = () => {
+    resetForm();
+    setIsDialogOpen(true);
+  };
+
+  const handleViewClick = (application: JobApplication) => {
     setSelectedApplication(application);
-    setIsViewDialogOpen(true);
+    setIsViewOpen(true);
   };
 
   const handleActionClick = (application: JobApplication, type: 'move' | 'rate' | 'note') => {
@@ -316,10 +257,99 @@ export default function JobApplications() {
       ...formData,
       job_stage_id: application.job_stage_id?.toString() || '',
       rating: application.rating?.toString() || '3',
+      note: '',
     });
     setIsActionDialogOpen(true);
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.job_id || !formData.candidate_id) {
+      showAlert('error', 'Error', 'Please select a job and candidate');
+      return;
+    }
+
+    try {
+      await recruitmentService.createJobApplication(Number(formData.job_id), {
+        candidate_id: Number(formData.candidate_id),
+        custom_answers: formData.custom_answers ? JSON.parse(formData.custom_answers) : undefined,
+      });
+
+      showAlert('success', 'Success', 'Application created successfully', 2000);
+      setIsDialogOpen(false);
+      resetForm();
+      fetchApplications(page);
+    } catch (error) {
+      console.error('Failed to create application:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to create application'));
+    }
+  };
+
+  const handleAction = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedApplication || !actionType) return;
+
+    try {
+      switch (actionType) {
+        case 'move':
+          await recruitmentService.moveJobApplicationStage(selectedApplication.id, {
+            job_stage_id: Number(formData.job_stage_id),
+          });
+          showAlert('success', 'Success', 'Application moved to new stage', 2000);
+          break;
+        case 'rate':
+          await recruitmentService.rateJobApplication(selectedApplication.id, {
+            rating: Number(formData.rating),
+            notes: formData.note || selectedApplication.notes || '',
+          });
+          showAlert('success', 'Success', 'Application rated successfully', 2000);
+          break;
+        case 'note':
+          await recruitmentService.addJobApplicationNote(selectedApplication.id, {
+            note: formData.note,
+          });
+          showAlert('success', 'Success', 'Note added successfully', 2000);
+          break;
+      }
+
+      setIsActionDialogOpen(false);
+      resetForm();
+      setActionType('');
+      fetchApplications(page);
+    } catch (error) {
+      console.error('Failed to perform action:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to perform action'));
+    }
+  };
+
+  const handleQuickAction = async (
+    application: JobApplication,
+    action: 'shortlist' | 'reject' | 'hire'
+  ) => {
+    try {
+      switch (action) {
+        case 'shortlist':
+          await recruitmentService.shortlistJobApplication(application.id);
+          showAlert('success', 'Success', 'Candidate shortlisted', 2000);
+          break;
+        case 'reject':
+          await recruitmentService.rejectJobApplication(application.id);
+          showAlert('success', 'Success', 'Application rejected', 2000);
+          break;
+        case 'hire':
+          await recruitmentService.hireJobApplication(application.id);
+          showAlert('success', 'Success', 'Candidate hired successfully', 2000);
+          break;
+      }
+      fetchApplications(page);
+    } catch (error) {
+      console.error('Failed to perform quick action:', error);
+      showAlert('error', 'Error', getErrorMessage(error, 'Failed to perform action'));
+    }
+  };
+
+  // ================= HELPERS =================
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -329,153 +359,193 @@ export default function JobApplications() {
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <Badge variant="outline">Pending</Badge>;
-      case 'shortlisted':
-        return <Badge className="bg-blue-100 text-blue-800">Shortlisted</Badge>;
-      case 'rejected':
-        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
-      case 'hired':
-        return <Badge className="bg-green-100 text-green-800">Hired</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
+    const variants: Record<string, string> = {
+      pending: 'bg-solarized-yellow/10 text-solarized-yellow',
+      shortlisted: 'bg-solarized-blue/10 text-solarized-blue',
+      rejected: 'bg-solarized-red/10 text-solarized-red',
+      hired: 'bg-solarized-green/10 text-solarized-green',
+    };
+    return variants[status] || variants.pending;
   };
 
   const renderStars = (rating: number | null) => {
-    if (!rating) return <span className="text-solarized-base01">Not rated</span>;
+    if (!rating) return <span className="text-solarized-base01">-</span>;
     return (
       <div className="flex">
         {[...Array(5)].map((_, i) => (
           <Star
             key={i}
-            className={`h-4 w-4 ${i < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+            className={`h-4 w-4 ${i < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
+              }`}
           />
         ))}
       </div>
     );
   };
 
+  // Stats
   const stats = {
-    total: applications.length,
-    pending: applications.filter(a => a.status === 'pending').length,
-    shortlisted: applications.filter(a => a.status === 'shortlisted').length,
-    hired: applications.filter(a => a.status === 'hired').length,
+    total: totalRows,
+    pending: applications.filter((a) => a.status === 'pending').length,
+    shortlisted: applications.filter((a) => a.status === 'shortlisted').length,
+    hired: applications.filter((a) => a.status === 'hired').length,
   };
 
-  // Get open jobs for the form (based on your backend statuses)
-  const openJobs = jobs.filter(job => job.status === 'open');
+  const openJobs = jobs.filter((job) => job.status === 'open');
+
+  // ================= TABLE COLUMNS =================
+  const columns: TableColumn<JobApplication>[] = [
+    {
+      id: 'candidate',
+      name: 'Candidate',
+      cell: (row) => (
+        <div>
+          <p className="font-medium">{row.candidate?.name || 'Unknown'}</p>
+          <p className="text-sm text-solarized-base01">{row.candidate?.email}</p>
+        </div>
+      ),
+      sortable: true,
+      minWidth: '200px',
+    },
+    {
+      name: 'Job',
+      selector: (row) => row.job?.title || 'N/A',
+      minWidth: '180px',
+    },
+    {
+      name: 'Stage',
+      cell: (row) =>
+        row.stage ? (
+          <Badge
+            style={{
+              backgroundColor: `${row.stage.color}20`,
+              color: row.stage.color,
+            }}
+          >
+            {row.stage.title}
+          </Badge>
+        ) : (
+          <Badge variant="outline">No Stage</Badge>
+        ),
+      width: '130px',
+    },
+    {
+      id: 'applied_date',
+      name: 'Applied Date',
+      selector: (row) => row.applied_date,
+      cell: (row) => formatDate(row.applied_date),
+      sortable: true,
+      width: '130px',
+    },
+    {
+      name: 'Rating',
+      cell: (row) => renderStars(row.rating),
+      width: '110px',
+    },
+    {
+      name: 'Status',
+      cell: (row) => (
+        <Badge className={getStatusBadge(row.status)}>
+          {row.status.charAt(0).toUpperCase() + row.status.slice(1)}
+        </Badge>
+      ),
+      width: '110px',
+    },
+    {
+      name: 'Actions',
+      cell: (row) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleViewClick(row)}>
+              <Eye className="mr-2 h-4 w-4" /> View
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleActionClick(row, 'move')}>
+              <Briefcase className="mr-2 h-4 w-4" /> Move Stage
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleActionClick(row, 'rate')}>
+              <Star className="mr-2 h-4 w-4" /> Rate
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleActionClick(row, 'note')}>
+              <FileText className="mr-2 h-4 w-4" /> Add Note
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => handleQuickAction(row, 'shortlist')}
+              disabled={row.status === 'shortlisted'}
+              className="text-solarized-blue"
+            >
+              <CheckCircle className="mr-2 h-4 w-4" /> Shortlist
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => handleQuickAction(row, 'reject')}
+              disabled={row.status === 'rejected'}
+              className="text-solarized-red"
+            >
+              <XCircle className="mr-2 h-4 w-4" /> Reject
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => handleQuickAction(row, 'hire')}
+              disabled={row.status === 'hired'}
+              className="text-solarized-green"
+            >
+              <Award className="mr-2 h-4 w-4" /> Hire
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+      ignoreRowClick: true,
+      width: '80px',
+    },
+  ];
+
+  // Custom Styles
+  const customStyles = {
+    headRow: {
+      style: {
+        backgroundColor: '#f9fafb',
+        borderBottomWidth: '1px',
+        borderBottomColor: '#e5e7eb',
+        borderBottomStyle: 'solid' as const,
+        minHeight: '56px',
+      },
+    },
+    headCells: {
+      style: {
+        fontSize: '14px',
+        fontWeight: '600',
+        color: '#374151',
+        paddingLeft: '16px',
+        paddingRight: '16px',
+      },
+    },
+  };
 
   return (
     <div className="space-y-6">
+      {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-solarized-base02">Job Applications</h1>
           <p className="text-solarized-base01">Manage and track job applications</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={(open) => {
-          if (!open) resetForm();
-          setIsDialogOpen(open);
-        }}>
-          <DialogTrigger asChild>
-            <Button
-              className="bg-solarized-blue hover:bg-solarized-blue/90"
-              onClick={resetForm}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              New Application
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Create Application</DialogTitle>
-              <DialogDescription>
-                Add a new job application
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit}>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="job_id">Job *</Label>
-                  <Select
-                    value={formData.job_id}
-                    onValueChange={(value) => setFormData({ ...formData, job_id: value })}
-                    required
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select job" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {openJobs.map((job) => (
-                        <SelectItem key={job.id} value={job.id.toString()}>
-                          {job.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {openJobs.length === 0 && (
-                    <p className="text-sm text-red-500">No open jobs available. Please create an open job first.</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="candidate_id">Candidate *</Label>
-                  <Select
-                    value={formData.candidate_id}
-                    onValueChange={(value) => setFormData({ ...formData, candidate_id: value })}
-                    required
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select candidate" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {candidates.map((candidate) => (
-                        <SelectItem key={candidate.id} value={candidate.id.toString()}>
-                          {candidate.name} ({candidate.email})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="custom_answers">Custom Answers (JSON)</Label>
-                  <Textarea
-                    id="custom_answers"
-                    value={formData.custom_answers}
-                    onChange={(e) => setFormData({ ...formData, custom_answers: e.target.value })}
-                    placeholder='{"question": "answer", ...}'
-                    rows={4}
-                  />
-                  <p className="text-sm text-solarized-base01">
-                    Optional: JSON format for custom application questions
-                  </p>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  className="bg-solarized-blue hover:bg-solarized-blue/90"
-                  disabled={!formData.job_id || !formData.candidate_id || openJobs.length === 0}
-                >
-                  Create Application
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button className="bg-solarized-blue hover:bg-solarized-blue/90" onClick={handleAddClick}>
+          <Plus className="mr-2 h-4 w-4" />
+          New Application
+        </Button>
       </div>
 
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-0 shadow-md">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                <FileText className="h-6 w-6 text-blue-600" />
+              <div className="w-12 h-12 rounded-full bg-solarized-blue/10 flex items-center justify-center">
+                <FileText className="h-6 w-6 text-solarized-blue" />
               </div>
               <div>
                 <p className="text-sm text-solarized-base01">Total Applications</p>
@@ -488,8 +558,8 @@ export default function JobApplications() {
         <Card className="border-0 shadow-md">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
-                <Briefcase className="h-6 w-6 text-yellow-600" />
+              <div className="w-12 h-12 rounded-full bg-solarized-yellow/10 flex items-center justify-center">
+                <Briefcase className="h-6 w-6 text-solarized-yellow" />
               </div>
               <div>
                 <p className="text-sm text-solarized-base01">Pending Review</p>
@@ -502,8 +572,8 @@ export default function JobApplications() {
         <Card className="border-0 shadow-md">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                <CheckCircle className="h-6 w-6 text-green-600" />
+              <div className="w-12 h-12 rounded-full bg-solarized-green/10 flex items-center justify-center">
+                <CheckCircle className="h-6 w-6 text-solarized-green" />
               </div>
               <div>
                 <p className="text-sm text-solarized-base01">Shortlisted</p>
@@ -516,8 +586,8 @@ export default function JobApplications() {
         <Card className="border-0 shadow-md">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-                <Award className="h-6 w-6 text-purple-600" />
+              <div className="w-12 h-12 rounded-full bg-solarized-violet/10 flex items-center justify-center">
+                <Award className="h-6 w-6 text-solarized-violet" />
               </div>
               <div>
                 <p className="text-sm text-solarized-base01">Hired</p>
@@ -528,216 +598,126 @@ export default function JobApplications() {
         </Card>
       </div>
 
+      {/* Filter Card */}
       <Card className="border-0 shadow-md">
         <CardHeader>
           <CardTitle>Filter Applications</CardTitle>
           <CardDescription>Filter by job, stage, or status</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>Job Posting</Label>
-              <Select value={selectedJob} onValueChange={setSelectedJob}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Jobs" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Jobs</SelectItem>
-                  {jobs.map((job) => (
-                    <SelectItem key={job.id} value={job.id.toString()}>
-                      {job.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <Select value={selectedJob} onValueChange={setSelectedJob}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Jobs" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Jobs</SelectItem>
+                {jobs.map((job) => (
+                  <SelectItem key={job.id} value={job.id.toString()}>
+                    {job.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-            <div className="space-y-2">
-              <Label>Stage</Label>
-              <Select value={selectedStage} onValueChange={setSelectedStage}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Stages" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Stages</SelectItem>
-                  {stages.map((stage) => (
-                    <SelectItem key={stage.id} value={stage.id.toString()}>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: stage.color }}
-                        />
-                        {stage.title}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Select value={selectedStage} onValueChange={setSelectedStage}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Stages" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Stages</SelectItem>
+                {stages.map((stage) => (
+                  <SelectItem key={stage.id} value={stage.id.toString()}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: stage.color }}
+                      />
+                      {stage.title}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="shortlisted">Shortlisted</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                  <SelectItem value="hired">Hired</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="shortlisted">Shortlisted</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="hired">Hired</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              onClick={handleApplyFilters}
+              className="bg-solarized-blue hover:bg-solarized-blue/90"
+            >
+              <Search className="mr-2 h-4 w-4" /> Apply Filters
+            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {isLoading ? (
-        <Card className="border-0 shadow-md">
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
+      {/* TABLE */}
+      <Card className="border-0 shadow-md">
+        <CardHeader>
+          <CardTitle>Applications List</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!isLoading && applications.length === 0 ? (
+            <div className="text-center py-12">
+              <Briefcase className="mx-auto h-12 w-12 text-solarized-base01 mb-4" />
+              <h3 className="text-lg font-medium text-solarized-base02">No applications found</h3>
+              <p className="text-solarized-base01 mt-1">
+                {selectedJob !== 'all' || selectedStage !== 'all' || selectedStatus !== 'all'
+                  ? 'Try changing your filters'
+                  : 'Start by creating your first job application'}
+              </p>
+              <Button
+                className="mt-4 bg-solarized-blue hover:bg-solarized-blue/90"
+                onClick={handleAddClick}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Create Application
+              </Button>
             </div>
-          </CardContent>
-        </Card>
-      ) : applications.length > 0 ? (
-        <Card className="border-0 shadow-md">
-          <CardHeader>
-            <CardTitle>Applications List</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Candidate</TableHead>
-                  <TableHead>Job</TableHead>
-                  <TableHead>Stage</TableHead>
-                  <TableHead>Applied Date</TableHead>
-                  <TableHead>Rating</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {applications.map((application) => (
-                  <TableRow key={application.id}>
-                    <TableCell className="font-medium">
-                      <div>
-                        <p className="font-medium">
-                          {application.candidate?.name}
-                        </p>
-                        <p className="text-sm text-solarized-base01">
-                          {application.candidate?.email}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {application.job?.title || 'N/A'}
-                    </TableCell>
-                    <TableCell>
-                      {application.stage ? (
-                        <Badge
-                          style={{ backgroundColor: `${application.stage.color}20`, color: application.stage.color }}
-                        >
-                          {application.stage.title}
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline">No Stage</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>{formatDate(application.applied_date)}</TableCell>
-                    <TableCell>{renderStars(application.rating)}</TableCell>
-                    <TableCell>{getStatusBadge(application.status)}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleView(application)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleActionClick(application, 'move')}>
-                            <Briefcase className="mr-2 h-4 w-4" />
-                            Move to Stage
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleActionClick(application, 'rate')}>
-                            <Star className="mr-2 h-4 w-4" />
-                            Rate Application
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleActionClick(application, 'note')}>
-                            <FileText className="mr-2 h-4 w-4" />
-                            Add Note
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            onClick={() => handleQuickAction(application, 'shortlist')}
-                            disabled={application.status === 'shortlisted'}
-                          >
-                            <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
-                            Shortlist
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleQuickAction(application, 'reject')}
-                            disabled={application.status === 'rejected'}
-                          >
-                            <XCircle className="mr-2 h-4 w-4 text-red-600" />
-                            Reject
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleQuickAction(application, 'hire')}
-                            disabled={application.status === 'hired'}
-                          >
-                            <Award className="mr-2 h-4 w-4 text-purple-600" />
-                            Hire
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="border-0 shadow-md">
-          <CardContent className="py-12 text-center">
-            <Briefcase className="h-12 w-12 text-solarized-base01 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-solarized-base02">No applications found</h3>
-            <p className="text-solarized-base01 mt-1">
-              {selectedJob !== 'all' || selectedStage !== 'all' || selectedStatus !== 'all'
-                ? 'Try changing your filters'
-                : 'Start by creating your first job application'}
-            </p>
-            <Button
-              className="mt-4 bg-solarized-blue hover:bg-solarized-blue/90"
-              onClick={() => setIsDialogOpen(true)}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Create Application
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+          ) : (
+            <DataTable
+              columns={columns}
+              data={applications}
+              progressPending={isLoading}
+              pagination
+              paginationServer
+              paginationTotalRows={totalRows}
+              paginationPerPage={perPage}
+              paginationDefaultPage={page}
+              onChangePage={handlePageChange}
+              onChangeRowsPerPage={handlePerRowsChange}
+              onSort={handleSort}
+              customStyles={customStyles}
+              sortServer
+              defaultSortFieldId="applied_date"
+              defaultSortAsc={false}
+              highlightOnHover
+              responsive
+            />
+          )}
+        </CardContent>
+      </Card>
 
-      {/* View Dialog */}
-      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+      {/* VIEW DIALOG */}
+      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Application Details</DialogTitle>
-            <DialogDescription>
-              Complete information about this job application
-            </DialogDescription>
+            <DialogDescription>Complete information about this job application</DialogDescription>
           </DialogHeader>
+
           {selectedApplication && (
             <div className="space-y-6 py-4">
               <Tabs defaultValue="details">
@@ -746,75 +726,70 @@ export default function JobApplications() {
                   <TabsTrigger value="candidate">Candidate</TabsTrigger>
                   <TabsTrigger value="notes">Notes & Rating</TabsTrigger>
                 </TabsList>
-                
+
                 <TabsContent value="details" className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
+                    <div>
                       <Label className="text-solarized-base01">Job Title</Label>
                       <p className="font-medium">{selectedApplication.job?.title || 'N/A'}</p>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-solarized-base01">Application Status</Label>
-                      <div>{getStatusBadge(selectedApplication.status)}</div>
+                    <div>
+                      <Label className="text-solarized-base01">Status</Label>
+                      <div className="mt-1">
+                        <Badge className={getStatusBadge(selectedApplication.status)}>
+                          {selectedApplication.status}
+                        </Badge>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-solarized-base01">Current Stage</Label>
+                    <div>
+                      <Label className="text-solarized-base01">Stage</Label>
                       {selectedApplication.stage ? (
                         <Badge
-                          style={{ 
-                            backgroundColor: `${selectedApplication.stage.color}20`, 
-                            color: selectedApplication.stage.color 
+                          style={{
+                            backgroundColor: `${selectedApplication.stage.color}20`,
+                            color: selectedApplication.stage.color,
                           }}
                         >
                           {selectedApplication.stage.title}
                         </Badge>
                       ) : (
-                        <p className="font-medium">No Stage</p>
+                        <p>No Stage</p>
                       )}
                     </div>
-                    <div className="space-y-2">
+                    <div>
                       <Label className="text-solarized-base01">Applied Date</Label>
                       <p className="font-medium">{formatDate(selectedApplication.applied_date)}</p>
                     </div>
                   </div>
-                  
-                  {selectedApplication.custom_answers && selectedApplication.custom_answers.length > 0 && (
-                    <div className="space-y-2">
-                      <Label className="text-solarized-base01">Custom Answers</Label>
-                      <pre className="bg-solarized-base03/10 p-4 rounded text-sm overflow-auto">
-                        {JSON.stringify(selectedApplication.custom_answers, null, 2)}
-                      </pre>
-                    </div>
-                  )}
                 </TabsContent>
-                
+
                 <TabsContent value="candidate" className="space-y-4">
                   {selectedApplication.candidate && (
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
+                      <div>
                         <Label className="text-solarized-base01">Name</Label>
                         <p className="font-medium">{selectedApplication.candidate.name}</p>
                       </div>
-                      <div className="space-y-2">
+                      <div>
                         <Label className="text-solarized-base01">Email</Label>
                         <p className="font-medium">{selectedApplication.candidate.email}</p>
                       </div>
-                      <div className="space-y-2">
+                      <div>
                         <Label className="text-solarized-base01">Phone</Label>
                         <p className="font-medium">{selectedApplication.candidate.phone || 'N/A'}</p>
                       </div>
                     </div>
                   )}
                 </TabsContent>
-                
+
                 <TabsContent value="notes" className="space-y-4">
-                  <div className="space-y-2">
+                  <div>
                     <Label className="text-solarized-base01">Rating</Label>
                     {renderStars(selectedApplication.rating)}
                   </div>
-                  <div className="space-y-2">
+                  <div>
                     <Label className="text-solarized-base01">Notes</Label>
-                    <div className="bg-solarized-base03/10 p-4 rounded">
+                    <div className="bg-solarized-base03/10 p-4 rounded mt-1">
                       {selectedApplication.notes || 'No notes added'}
                     </div>
                   </div>
@@ -822,15 +797,94 @@ export default function JobApplications() {
               </Tabs>
             </div>
           )}
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsViewOpen(false)}>
               Close
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Action Dialog */}
+      {/* ADD DIALOG */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create Application</DialogTitle>
+            <DialogDescription>Add a new job application</DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Job *</Label>
+                <Select
+                  value={formData.job_id}
+                  onValueChange={(value) => setFormData({ ...formData, job_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select job" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {openJobs.map((job) => (
+                      <SelectItem key={job.id} value={job.id.toString()}>
+                        {job.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {openJobs.length === 0 && (
+                  <p className="text-sm text-solarized-red">No open jobs available.</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Candidate *</Label>
+                <Select
+                  value={formData.candidate_id}
+                  onValueChange={(value) => setFormData({ ...formData, candidate_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select candidate" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {candidates.map((candidate) => (
+                      <SelectItem key={candidate.id} value={candidate.id.toString()}>
+                        {candidate.name} ({candidate.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Custom Answers (JSON)</Label>
+                <Textarea
+                  value={formData.custom_answers}
+                  onChange={(e) => setFormData({ ...formData, custom_answers: e.target.value })}
+                  placeholder='{"question": "answer"}'
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="bg-solarized-blue hover:bg-solarized-blue/90"
+                disabled={!formData.job_id || !formData.candidate_id}
+              >
+                Create Application
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ACTION DIALOG */}
       <Dialog open={isActionDialogOpen} onOpenChange={setIsActionDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -839,21 +893,16 @@ export default function JobApplications() {
               {actionType === 'rate' && 'Rate Application'}
               {actionType === 'note' && 'Add Note'}
             </DialogTitle>
-            <DialogDescription>
-              {actionType === 'move' && 'Move this application to a different stage'}
-              {actionType === 'rate' && 'Rate this application (1-5 stars)'}
-              {actionType === 'note' && 'Add a note to this application'}
-            </DialogDescription>
           </DialogHeader>
+
           <form onSubmit={handleAction}>
-            <div className="grid gap-4 py-4">
+            <div className="space-y-4 py-4">
               {actionType === 'move' && (
                 <div className="space-y-2">
-                  <Label htmlFor="job_stage_id">Select Stage *</Label>
+                  <Label>Select Stage *</Label>
                   <Select
                     value={formData.job_stage_id}
                     onValueChange={(value) => setFormData({ ...formData, job_stage_id: value })}
-                    required
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select stage" />
@@ -878,11 +927,10 @@ export default function JobApplications() {
               {actionType === 'rate' && (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="rating">Rating (1-5)</Label>
+                    <Label>Rating (1-5)</Label>
                     <Select
                       value={formData.rating}
                       onValueChange={(value) => setFormData({ ...formData, rating: value })}
-                      required
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select rating" />
@@ -890,14 +938,14 @@ export default function JobApplications() {
                       <SelectContent>
                         {[1, 2, 3, 4, 5].map((num) => (
                           <SelectItem key={num} value={num.toString()}>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
                               {[...Array(5)].map((_, i) => (
                                 <Star
                                   key={i}
-                                  className={`h-4 w-4 ${i < num ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                                  className={`h-4 w-4 ${i < num ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
+                                    }`}
                                 />
                               ))}
-                              <span>({num})</span>
                             </div>
                           </SelectItem>
                         ))}
@@ -905,13 +953,12 @@ export default function JobApplications() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="note">Note</Label>
+                    <Label>Note</Label>
                     <Textarea
-                      id="note"
                       value={formData.note}
                       onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                      placeholder="Enter your notes here..."
-                      rows={4}
+                      placeholder="Enter your notes..."
+                      rows={3}
                     />
                   </div>
                 </>
@@ -919,18 +966,17 @@ export default function JobApplications() {
 
               {actionType === 'note' && (
                 <div className="space-y-2">
-                  <Label htmlFor="note">Note *</Label>
+                  <Label>Note *</Label>
                   <Textarea
-                    id="note"
                     value={formData.note}
                     onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                    placeholder="Enter your notes here..."
+                    placeholder="Enter your notes..."
                     rows={4}
-                    required
                   />
                 </div>
               )}
             </div>
+
             <DialogFooter>
               <Button
                 type="button"
@@ -938,7 +984,6 @@ export default function JobApplications() {
                 onClick={() => {
                   setIsActionDialogOpen(false);
                   setActionType('');
-                  resetForm();
                 }}
               >
                 Cancel
@@ -951,7 +996,7 @@ export default function JobApplications() {
                   (actionType === 'note' && !formData.note)
                 }
               >
-                {actionType === 'move' && 'Move Application'}
+                {actionType === 'move' && 'Move'}
                 {actionType === 'rate' && 'Save Rating'}
                 {actionType === 'note' && 'Add Note'}
               </Button>
