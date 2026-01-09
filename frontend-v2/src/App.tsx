@@ -130,7 +130,7 @@ import MyLeaveBalances from './pages/leave/MyLeaveBalances';
 import MyWorkLogs from './pages/attendance/MyWorkLogs';
 import MyAttendanceSummary from './pages/attendance/MyAttendanceSummary';
 import ClockInOutSelf from './pages/attendance/ClockInOutSelf';
-import Goals from './pages/performance/Goals';
+
 
 function App() {
   return (
