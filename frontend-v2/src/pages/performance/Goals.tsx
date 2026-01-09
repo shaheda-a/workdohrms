@@ -630,81 +630,88 @@ export default function Goals() {
 
         {/* View Goal Dialog */}
         <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Objective Details</DialogTitle>
             </DialogHeader>
             {viewingGoal && (
               <div className="space-y-4">
-                <div>
-                  <Label className="text-gray-600 dark:text-gray-400">Title</Label>
-                  <p className="font-medium text-gray-900 dark:text-gray-100">{viewingGoal.title}</p>
-                </div>
-                <div>
-                  <Label className="text-gray-600 dark:text-gray-400">Description</Label>
-                  <p className="font-medium text-gray-900 dark:text-gray-100">{viewingGoal.description || '-'}</p>
-                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-gray-600 dark:text-gray-400">Staff Member</Label>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">{viewingGoal.staff_member?.full_name || '-'}</p>
+                    <p className="text-sm text-solarized-base01">Title</p>
+                    <p className="font-medium">{viewingGoal.title}</p>
                   </div>
                   <div>
-                    <Label className="text-gray-600 dark:text-gray-400">Type</Label>
+                    <p className="text-sm text-solarized-base01">Type</p>
                     <Badge className={getTypeBadge(viewingGoal.objective_type)}>
                       {viewingGoal.objective_type.toUpperCase()}
                     </Badge>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <p className="text-sm text-solarized-base01">Description</p>
+                  <p>{viewingGoal.description || '-'}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-gray-600 dark:text-gray-400">Target Value</Label>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">
+                    <p className="text-sm text-solarized-base01">Staff Member</p>
+                    <p className="font-medium">{viewingGoal.staff_member?.full_name || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-solarized-base01">Status</p>
+                    <Badge className={getStatusBadge(viewingGoal.status, viewingGoal.is_overdue)}>
+                      {viewingGoal.status.replace('_', ' ')}
+                      {viewingGoal.is_overdue && ' (Overdue)'}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-solarized-base01">Rating</p>
+                    {viewingGoal.rating ? (
+                      <Badge className={getRatingBadge(viewingGoal.rating)}>
+                        {viewingGoal.rating.replace('_', ' ')}
+                      </Badge>
+                    ) : (
+                      <p>-</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm text-solarized-base01">Manager Notes</p>
+                    <p>{viewingGoal.manager_notes || '-'}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-solarized-base01">Current / Target</p>
+                    <p className="font-medium">
                       {viewingGoal.current_value !== null ? viewingGoal.current_value : 0}
                       {viewingGoal.target_value !== null ? ` / ${viewingGoal.target_value}` : ''}
                       {viewingGoal.measurement_unit ? ` ${viewingGoal.measurement_unit}` : ''}
                     </p>
                   </div>
                   <div>
-                    <Label className="text-gray-600 dark:text-gray-400">Weight</Label>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">{viewingGoal.weight_percentage ? `${viewingGoal.weight_percentage}%` : '-'}</p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-600 dark:text-gray-400">Progress</Label>
-                    <div className="flex items-center gap-2">
-                      <Progress value={calculateProgress(viewingGoal)} className="h-2 flex-1" />
-                      <span className="font-medium text-gray-900 dark:text-gray-100">{Math.round(calculateProgress(viewingGoal))}%</span>
-                    </div>
+                    <p className="text-sm text-solarized-base01">Weight</p>
+                    <p className="font-medium">{viewingGoal.weight_percentage ? `${viewingGoal.weight_percentage}%` : '-'}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-gray-600 dark:text-gray-400">Dates</Label>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">
-                      {formatDateForDisplay(viewingGoal.start_date)} to {formatDateForDisplay(viewingGoal.due_date)}
-                    </p>
+                    <p className="text-sm text-solarized-base01">Start Date</p>
+                    <p>{formatDateForDisplay(viewingGoal.start_date)}</p>
                   </div>
                   <div>
-                    <Label className="text-gray-600 dark:text-gray-400">Status</Label>
-                    <div className="flex gap-2">
-                      <Badge className={getStatusBadge(viewingGoal.status, viewingGoal.is_overdue)}>
-                        {viewingGoal.status.replace('_', ' ')}
-                        {viewingGoal.is_overdue && ' (Overdue)'}
-                      </Badge>
-                      {viewingGoal.rating && (
-                        <Badge className={getRatingBadge(viewingGoal.rating)}>
-                          {viewingGoal.rating.replace('_', ' ')}
-                        </Badge>
-                      )}
-                    </div>
+                    <p className="text-sm text-solarized-base01">Due Date</p>
+                    <p>{formatDateForDisplay(viewingGoal.due_date)}</p>
                   </div>
                 </div>
-                {viewingGoal.manager_notes && (
-                  <div>
-                    <Label className="text-gray-600 dark:text-gray-400">Manager Notes</Label>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">{viewingGoal.manager_notes}</p>
+                <div>
+                  <p className="text-sm text-solarized-base01">Progress</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Progress value={calculateProgress(viewingGoal)} className="h-2 flex-1" />
+                    <span className="font-medium">{Math.round(calculateProgress(viewingGoal))}%</span>
                   </div>
-                )}
+                </div>
               </div>
             )}
             <DialogFooter>
