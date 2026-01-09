@@ -27,6 +27,8 @@ import {
   Download,
   Loader2,
 } from 'lucide-react';
+import { Eye } from 'lucide-react';
+
 import {
   Select,
   SelectContent,
@@ -75,6 +77,12 @@ interface DocumentItem {
   document_name: string;
   original_name?: string; // Fallback
   created_at: string;
+
+  // ✅ FIXED: backend sends "type"
+  type?: {
+    id: number;
+    title: string;
+  };
   document_type?: { id: number; title: string };
   temporary_url?: string;
   storage_type?: string;
@@ -223,6 +231,31 @@ export default function StaffProfile() {
       </div>
     );
   }
+  // const handleViewDocument = async (file: DocumentItem) => {
+  //   try {
+  //     // If backend already sent URL (index API)
+  //     if (file.temporary_url) {
+  //       window.open(file.temporary_url, '_blank');
+  //       return;
+  //     }
+
+  //     // Fallback to view API
+  //     const response = await documentService.view(file.id);
+  //     const viewUrl = response.data.view_url;
+
+  //     window.open(viewUrl, '_blank');
+  //   } catch (error) {
+  //     showAlert('error', 'Error', 'Unable to view document');
+  //   }
+  // };
+
+  const handleViewDocument = (file: DocumentItem) => {
+    window.open(
+      `http://127.0.0.1:8000/api/documents/${file.id}/view`,
+      '_blank'
+    );
+  };
+
 
   if (!staff) {
     return (
@@ -234,8 +267,25 @@ export default function StaffProfile() {
       </div>
     );
   }
+  const uploadedDocumentTypes = Array.from(
+    new Set(
+      files
+        .map(file => file.type?.title)
+        .filter(Boolean)
+    )
+  );
+  const groupedFiles = files.reduce<Record<string, DocumentItem[]>>(
+    (acc, file) => {
+      const type = file.type?.title || 'Uncategorized';
+      if (!acc[type]) acc[type] = [];
+      acc[type].push(file);
+      return acc;
+    },
+    {}
+  );
 
   return (
+
     <div className="space-y-6">
       {/* HEADER */}
       <div className="flex items-center justify-between">
@@ -414,71 +464,99 @@ export default function StaffProfile() {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <h4 className="font-medium">Uploaded Documents</h4>
-                      <div className="border rounded-lg divide-y">
-                        {files.map((file) => (
-                          <div key={file.id} className="flex items-center justify-between p-3">
-                            <div className="flex items-center gap-3">
-                              <FileText className="h-5 w-5 text-solarized-blue" />
-                              <div>
-                                <p className="font-medium">{file.document_name || file.original_name}</p>
-                                <p className="text-sm text-solarized-base01">
-                                  {file.document_type?.title || 'Uncategorized'} • {new Date(file.created_at).toLocaleDateString()}
-                                  {file.storage_type && <span className="ml-2 text-xs bg-gray-100 px-2 py-0.5 rounded">{file.storage_type}</span>}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {file.temporary_url ? (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  asChild
-                                >
-                                  <a
-                                    href={file.temporary_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                  >
-                                    <Download className="h-4 w-4" />
-                                  </a>
-                                </Button>
-                              ) : (
-                                // Fallback download if no temp URL (though index should provide it)
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={async () => {
-                                    try {
-                                      const res = await documentService.download(file.id);
-                                      // Handle download response if it's a blob or url
-                                      if (res.data.download_url) {
-                                        window.open(res.data.download_url, '_blank');
-                                      } else {
-                                        // Direct blob download handled by browser or fallback
-                                        window.location.href = `http://127.0.0.1:8000/api/documents/${file.id}/download`;
-                                      }
-                                    } catch (e) {
-                                      console.error(e);
-                                      showAlert('error', 'Error', 'Failed to download');
-                                    }
-                                  }}
-                                >
-                                  <Download className="h-4 w-4" />
-                                </Button>
-                              )}
+                      <div className="space-y-1">
+                        <h4 className="font-medium">Uploaded Documents</h4>
 
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleFileDelete(file.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-solarized-red" />
-                              </Button>
+                        {/* {uploadedDocumentTypes.length > 0 && (
+                          <p className="text-sm font-semibold text-solarized-blue">
+                            Document Type: {uploadedDocumentTypes.join(', ')}
+                          </p>
+                        )} */}
+
+                      </div>
+                      <div className="border rounded-lg divide-y">
+
+                        {/* HEADER */}
+                        <div className="grid grid-cols-12 bg-gray-50 px-4 py-2 text-sm font-semibold text-solarized-base01">
+                          <div className="col-span-3">Document Type</div>
+                          <div className="col-span-9">Documents</div>
+                        </div>
+
+                        {/* BODY */}
+                        {Object.entries(groupedFiles).map(([type, docs]) => (
+                          <div key={type} className="grid grid-cols-12 px-4 py-3 gap-4">
+
+                            {/* LEFT COLUMN – DOCUMENT TYPE */}
+                            <div className="col-span-3">
+                              <span className="inline-block text-sm font-semibold text-solarized-blue">
+                                {type}
+                              </span>
+                              <p className="text-xs text-solarized-base01">
+                                {docs.length} file{docs.length > 1 ? 's' : ''}
+                              </p>
                             </div>
+
+                            {/* RIGHT COLUMN – FILE LIST */}
+                            <div className="col-span-9 space-y-3">
+                              {docs.map((file) => (
+                                <div
+                                  key={file.id}
+                                  className="flex items-center justify-between border rounded-md px-3 py-2"
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <FileText className="h-5 w-5 text-solarized-blue mt-1" />
+
+                                    <div>
+                                      <p className="font-medium">
+                                        {file.document_name || file.original_name}
+                                      </p>
+                                      <p className="text-xs text-solarized-base01">
+                                        Uploaded on {new Date(file.created_at).toLocaleDateString()}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {/* ACTIONS */}
+                                  <div className="flex items-center gap-2">
+                                    {/* VIEW */}
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleViewDocument(file)}
+                                      title="View document"
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+
+                                    {/* DOWNLOAD */}
+                                    <Button variant="ghost" size="icon" asChild>
+                                      <a
+                                        href={file.temporary_url || `http://127.0.0.1:8000/api/documents/${file.id}/download`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                      >
+                                        <Download className="h-4 w-4" />
+                                      </a>
+                                    </Button>
+
+                                    {/* DELETE */}
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleFileDelete(file.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4 text-solarized-red" />
+                                    </Button>
+                                  </div>
+
+                                </div>
+                              ))}
+                            </div>
+
                           </div>
                         ))}
                       </div>
+
                     </div>
                   )}
                 </CardContent>

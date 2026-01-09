@@ -668,6 +668,7 @@ export const documentService = {
   update: (id: number, data: Record<string, unknown>) => api.put(`/documents/${id}`, data),
   delete: (id: number) => api.delete(`/documents/${id}`),
   download: (id: number) => api.get(`/documents/${id}/download`),
+  view: (id: number) => api.get(`/documents/${id}`),
 };
 
 export const documentConfigService = {

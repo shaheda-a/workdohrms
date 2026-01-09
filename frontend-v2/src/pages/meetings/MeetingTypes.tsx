@@ -250,16 +250,16 @@ export default function MeetingTypes() {
             cell: (row) => getStatusBadge(row.status),
             width: '120px',
         },
-        {
-            name: 'Meetings',
-            selector: (row) => row.meetings_count || 0,
-            cell: (row) => (
-                <Badge variant="outline">
-                    {row.meetings_count || 0}
-                </Badge>
-            ),
-            width: '100px',
-        },
+        // {
+        //     name: 'Meetings',
+        //     selector: (row) => row.meetings_count || 0,
+        //     cell: (row) => (
+        //         <Badge variant="outline">
+        //             {row.meetings_count || 0}
+        //         </Badge>
+        //     ),
+        //     width: '100px',
+        // },
         {
             name: 'Actions',
             cell: (row) => (

@@ -266,6 +266,66 @@ class DocumentController extends Controller
         }
     }
 
+
+    /**
+ * View document in browser (INLINE)
+ */
+public function view($id)
+{
+    $user = auth()->user();
+
+    $filters = [
+        'org_id' => $user->org_id ?? null,
+        'company_id' => $user->company_id ?? null,
+    ];
+
+    $document = $this->documentService->getDocument($id, $filters);
+
+    if (!$document) {
+        abort(404);
+    }
+
+    $storageType = $document->location->location_type;
+
+    // LOCAL STORAGE → stream inline
+    if ($storageType === 1) {
+        $path = storage_path('app/' . $document->file_path);
+
+        if (!file_exists($path)) {
+            abort(404);
+        }
+
+        return response()->file($path, [
+            'Content-Type' => $document->mime_type,
+            'Content-Disposition' => 'inline; filename="' . $document->document_name . '"',
+        ]);
+    }
+
+    // S3 / WASABI → redirect
+    if (in_array($storageType, [2, 3])) {
+        return redirect()->away(
+            $this->documentService->getDocumentUrl($document)
+        );
+    }
+
+    abort(400);
+}
+
+/**
+ * Convert bytes into human readable format
+ */
+private function formatBytes($bytes, $precision = 2): string
+{
+    if ($bytes <= 0) {
+        return '0 B';
+    }
+
+    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    $base = floor(log($bytes, 1024));
+
+    return round($bytes / pow(1024, $base), $precision) . ' ' . $units[$base];
+}
+
     /**
      * Update Metadata (Name, Type)
      * Automatically filters by authenticated user's org_id and company_id

@@ -290,13 +290,31 @@ export default function Sessions() {
             width: '200px',
         },
         {
-            name: 'Date & Time',
+            name: 'Date',
             selector: (row) => row.date,
             cell: (row) => (
                 <div className="text-sm">
                     <p className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" /> {row.date}
                     </p>
+                    {/* {row.time && (
+                        <p className="flex items-center gap-1 text-muted-foreground">
+                            <Clock className="h-3 w-3" /> {row.time}
+                        </p>
+                    )} */}
+                </div>
+            ),
+            width: '150px',
+        },
+
+         {
+            name: 'Time',
+            selector: (row) => row.date,
+            cell: (row) => (
+                <div className="text-sm">
+                    {/* <p className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" /> {row.date}
+                    </p> */}
                     {row.time && (
                         <p className="flex items-center gap-1 text-muted-foreground">
                             <Clock className="h-3 w-3" /> {row.time}
@@ -317,11 +335,11 @@ export default function Sessions() {
             width: '150px',
         },
         {
-            name: 'Trainer',
-            selector: (row) => row.trainer?.first_name || '',
+            name: 'Max Participants',
+            selector: (row) => row.max_participants|| '',
             cell: (row) => (
                 <p className="text-sm">
-                    {row.trainer ? `${row.trainer.first_name} ${row.trainer.last_name}` : 'TBD'}
+                    {row.max_participants ? `${row.max_participants}` : 'TBD'}
                 </p>
             ),
             width: '150px',
@@ -476,8 +494,8 @@ export default function Sessions() {
                                             placeholder="e.g., Conference Room B or Zoom Link"
                                         />
                                     </div>
-                                    {/* <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {/* <div className="space-y-2">
                                             <Label htmlFor="trainer_id">Trainer</Label>
                                             <Select
                                                 value={formData.trainer_id}
@@ -494,18 +512,37 @@ export default function Sessions() {
                                                     ))}
                                                 </SelectContent>
                                             </Select>
-                                        </div>
+                                        </div> */}
                                         <div className="space-y-2">
-                                            <Label htmlFor="max_participants">Max Participants</Label>
+                                            <Label htmlFor="max_participants">Max Participants *</Label>
                                             <Input
                                                 id="max_participants"
                                                 type="number"
                                                 min="1"
                                                 value={formData.max_participants}
                                                 onChange={(e) => setFormData({ ...formData, max_participants: e.target.value })}
+                                                required
                                             />
                                         </div>
-                                    </div> */}
+
+                                 <div className="space-y-2">
+                                            <Label htmlFor="status">Status</Label>
+                                            <Select
+                                                value={formData.status}
+                                                onValueChange={(value) => setFormData({ ...formData, status: value as any })}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select status" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                                                    <SelectItem value="in_progress">In Progress</SelectItem>
+                                                    <SelectItem value="completed">Completed</SelectItem>
+                                                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
                                     {editingSession && (
                                         <div className="space-y-2">
                                             <Label htmlFor="status">Status</Label>

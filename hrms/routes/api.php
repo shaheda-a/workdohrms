@@ -559,6 +559,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/documents/{id}/download', [DocumentController::class, 'download']); // Download
     Route::put('/documents/{id}', [DocumentController::class, 'update']); // Update Metadata
     Route::delete('/documents/{id}', [DocumentController::class, 'destroy']); // Delete File & Record
+Route::get('documents/{id}/view', [DocumentController::class, 'view'])
+  ->withoutMiddleware('auth:sanctum');
+
 
     // ============================================
     // ORGANIZATIONS & COMPANIES
