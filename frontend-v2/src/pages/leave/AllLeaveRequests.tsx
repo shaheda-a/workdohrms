@@ -132,7 +132,7 @@ export default function AllLeaveRequests() {
           setCurrentUser(userData);
           
           // Check if user has admin role
-          const adminRoles = ['admin', 'administrator', 'organisation', 'company', 'hr'];
+          const adminRoles = ['admin', 'administrator', 'org', 'organisation', 'company', 'hr'];
           const userRoles = userData.roles || [userData.role];
           const hasAdminRole = userRoles.some(role => 
             adminRoles.includes(role.toLowerCase())

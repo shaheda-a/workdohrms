@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { adminService } from '../../services/api';
+import { permissionService } from '../../services/api';
 import { showAlert } from '../../lib/sweetalert';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -76,9 +76,12 @@ export default function Permissions() {
       if (search) params.search = search;
       if (moduleFilter !== 'all') params.module = moduleFilter;
       
-      const response = await adminService.getPermissions(params);
-      setPermissions(response.data.data || []);
-      setMeta(response.data.meta);
+      const response = await permissionService.getAll(params);
+      // API returns { success: true, data: [...permissions...], message: "..." }
+      // Handle both paginated (data.data) and non-paginated (data) responses
+      const permissionsData = Array.isArray(response.data.data) ? response.data.data : response.data.data || response.data || [];
+      setPermissions(Array.isArray(permissionsData) ? permissionsData : []);
+      setMeta(response.data.meta || null);
     } catch (error) {
       console.error('Failed to fetch permissions:', error);
       showAlert('error', 'Error', 'Failed to fetch permissions');
